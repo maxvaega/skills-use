@@ -62,7 +62,8 @@ A LangChain developer wants to convert discovered skills into LangChain Structur
 
 **Why this priority**: LangChain is the target framework for v0.1 MVP. This integration validates the entire vertical slice and delivers end-to-end value.
 
-**Independent Test**: Can be tested by creating LangChain tools from skills, passing them to a LangChain agent, and verifying the agent can successfully invoke skills. Delivers complete end-to-end functionality.
+**Independent Test**: 
+Can be tested by creating LangChain tools from skills, passing them to a LangChain agent, and verifying the agent can successfully invoke skills using the tools provided. Delivers complete end-to-end functionality.
 
 **Acceptance Scenarios**:
 
@@ -101,7 +102,7 @@ A developer evaluating the library wants to see working examples of skills that 
 
 **Acceptance Scenarios**:
 
-1. **Given** example skills are provided (code-reviewer, markdown-formatter, git-helper), **When** a developer uses them with a LangChain agent, **Then** each skill successfully guides the agent to complete relevant tasks
+1. **Given** example skills are provided in [.docs/SKILL format specification.md](.docs/SKILL format specification.md) (code-reviewer, markdown-formatter, git-helper), **When** a developer uses them with a LangChain agent, **Then** each skill successfully guides the agent to complete relevant tasks
 2. **Given** a new user installs the library, **When** they follow the README quick start, **Then** the example code runs without modification and demonstrates working skill usage
 3. **Given** an example skill, **When** it is invoked, **Then** the resulting output is clear and actionable for the agent
 
@@ -257,6 +258,7 @@ A developer evaluating the library wants to see working examples of skills that 
 ### Explicitly Out of Scope for v0.1
 
 - Async support (deferred to v0.2)
+- Dynamic tool discovery from scripts/ directories (deferred to v0.2)
 - Plugin integration (deferred to v0.3)
 - Tool restriction enforcement (deferred to v0.3)
 - Multiple search paths (deferred to v0.3)
