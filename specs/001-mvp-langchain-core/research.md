@@ -114,12 +114,24 @@ class ArgumentSubstitutionProcessor(ContentProcessor):
     PLACEHOLDER_NAME = "ARGUMENTS"
     MAX_ARGUMENT_LENGTH = 1_000_000  # 1MB
 
+    # Common typos to detect and warn about
+    COMMON_TYPOS = {
+        '$arguments': '$ARGUMENTS (case-sensitive)',
+        '$Arguments': '$ARGUMENTS (all caps)',
+        '$ ARGUMENTS': '$ARGUMENTS (no space)',
+        '$ARGS': '$ARGUMENTS (full word)',
+        '$args': '$ARGUMENTS (full word, all caps)',
+    }
+
     def process(self, content: str, context: dict) -> str:
         from string import Template
         import re
 
         arguments = context.get("arguments", "")
         skill_name = context.get("skill_name", "unknown")
+
+        # Check for common typos (UX improvement)
+        self._check_for_typos(content, skill_name)
 
         # Validate arguments (security)
         if arguments:
@@ -169,7 +181,39 @@ class ArgumentSubstitutionProcessor(ContentProcessor):
     @staticmethod
     def _contains_suspicious_patterns(text: str) -> bool:
         """Check for common injection patterns."""
-        return any(p in text for p in ['../', '$(', '`', '\x00', '\u202E'])
+        # Expanded pattern detection for defense-in-depth
+        SUSPICIOUS_PATTERNS = {
+            '../': 'path traversal',
+            '$(': 'shell command substitution',
+            '`': 'shell backticks',
+            '\x00': 'null byte injection',
+            '\u202E': 'right-to-left override',
+            '${': 'shell variable expansion',
+            '\n\n---': 'YAML frontmatter injection',
+            '<script': 'potential XSS',
+            'javascript:': 'javascript protocol',
+        }
+
+        found_patterns = [pattern for pattern in SUSPICIOUS_PATTERNS if pattern in text]
+
+        if found_patterns:
+            # Log which specific patterns were found
+            pattern_names = [SUSPICIOUS_PATTERNS[p] for p in found_patterns]
+            logger.warning(
+                "Suspicious patterns detected: %s",
+                ', '.join(pattern_names)
+            )
+            return True
+        return False
+
+    def _check_for_typos(self, content: str, skill_name: str) -> None:
+        """Log warnings for common $ARGUMENTS typos."""
+        for typo, correction in self.COMMON_TYPOS.items():
+            if typo in content:
+                logger.warning(
+                    "Skill '%s': Possible typo '%s' found. Did you mean '%s'?",
+                    skill_name, typo, correction
+                )
 
 class CompositeProcessor(ContentProcessor):
     """Chains multiple processors in order."""
@@ -199,7 +243,9 @@ class CompositeProcessor(ContentProcessor):
 - ✅ **Escape mechanism**: Standard `$$ARGUMENTS` syntax (no collision risk with temporary markers)
 - ✅ **Security**: `string.Template` prevents code execution; 1MB size limit prevents resource exhaustion
 - ✅ **Standard Library**: Zero dependencies for core processing, follows Python conventions
-- ✅ **Input validation**: Defense-in-depth with suspicious pattern detection and logging
+- ✅ **Input validation**: Defense-in-depth with expanded suspicious pattern detection (9 patterns including XSS, YAML injection)
+- ✅ **Developer experience**: Typo detection with helpful warnings (`$arguments` → suggests `$ARGUMENTS`)
+- ✅ **Detailed logging**: Suspicious patterns logged with descriptive names for easy debugging
 - ✅ **Clean initialization**: Processor created in `__post_init__` avoids inline imports anti-pattern
 - ✅ **Immutability**: Frozen dataclass ensures thread-safety and prevents accidental mutation
 
@@ -409,11 +455,19 @@ def _get_identifiers(template: Template) -> set:
 
 **Edge Cases**:
 - **Case sensitivity**: Only exact `$ARGUMENTS` replaced (not `$arguments` or `$Arguments`) - intentional for clarity
-  - **Mitigation**: Log warning when common typos detected (`$arguments`, `$Arguments`, `$ ARGUMENTS`)
+  - **Mitigation**: Implemented via `_check_for_typos()` method which logs warnings for common typos: `$arguments`, `$Arguments`, `$ ARGUMENTS`, `$ARGS`, `$args`
+  - Helps skill authors debug placeholder issues quickly
 - **Placeholder in code blocks**: Still replaced (author uses `$$ARGUMENTS` to escape if needed)
 - **Unicode in arguments**: Fully supported (UTF-8 encoding enforced)
 - **Empty result**: If skill is only `$ARGUMENTS` with no args, return `[Skill invoked with no arguments]` placeholder
-- **Security**: Suspicious patterns (`../`, `$(`, `\x00`, RTL override) logged as warnings (defense-in-depth)
+- **Security**: Expanded suspicious pattern detection (defense-in-depth):
+  - Path traversal: `../`
+  - Command injection: `$(`, `` ` ``, `${`
+  - Null byte injection: `\x00`
+  - Unicode attacks: `\u202E` (RTL override)
+  - YAML injection: `\n\n---`
+  - XSS patterns: `<script`, `javascript:`
+  - All patterns logged with descriptive names for debugging
 
 **Security Considerations**:
 - **Input validation**: 1MB (1,000,000 character) limit on arguments prevents memory exhaustion
@@ -423,8 +477,41 @@ def _get_identifiers(template: Template) -> set:
 
 **Implementation Notes**:
 - Python 3.11+ has `template.get_identifiers()` method; fallback regex for Python 3.9-3.10
+  - NOTE: `Template.get_identifiers()` added in Python 3.11; regex fallback is functionally equivalent
 - `safe_substitute()` used instead of `substitute()` to avoid KeyError if placeholder missing
 - Escaping documentation must clearly explain `$$ARGUMENTS` → `$ARGUMENTS` conversion
+
+**Escaping $ARGUMENTS Documentation** (for skill authors):
+
+Skills can use the standard Python `$$` escape pattern to include literal `$ARGUMENTS` text:
+
+```markdown
+---
+name: example-skill
+description: Demonstrates escaping
+---
+
+This skill uses $$ARGUMENTS as a placeholder.
+Actual arguments: $ARGUMENTS
+```
+
+**Result with arguments="test"**:
+```
+This skill uses $ARGUMENTS as a placeholder.
+Actual arguments: test
+```
+
+**Common escaping scenarios**:
+- `$$ARGUMENTS` → `$ARGUMENTS` (escaped placeholder)
+- `$ARGUMENTS` → replaced with actual arguments
+- `Cost: $$50` → `Cost: $50` (escaped dollar sign)
+- `$$ARGUMENTS = $ARGUMENTS` → `$ARGUMENTS = test` (mixed usage)
+
+**Best practices**:
+- Use `$$ARGUMENTS` in documentation/examples when you want to show the literal text
+- Use `$ARGUMENTS` when you want the actual argument value substituted
+- The escaping follows Python's standard `string.Template` conventions
+- No collision risk with skill content (unlike custom marker approaches)
 
 ---
 
@@ -436,6 +523,7 @@ def _get_identifiers(template: Template) -> set:
 - **Discovery phase**: Bad skill files shouldn't prevent discovery of other skills (robustness)
 - **Invocation phase**: Errors should be explicit for debugging (clarity)
 - **Balance**: Maximize usability during browsing, maximize clarity during execution
+- **Python library standards (2024-2025)**: Follows best practices for exception hierarchies and logging
 
 **Implementation**:
 
@@ -444,9 +532,24 @@ def _get_identifiers(template: Template) -> set:
 for skill_path in skill_paths:
     try:
         metadata = self.parser.parse_skill_file(skill_path)
+
+        # Handle duplicate skill names (v0.1)
+        if metadata.name in self._skills:
+            logger.warning(
+                "Duplicate skill name '%s' found at %s. "
+                "Ignoring duplicate (first found at %s).",
+                metadata.name,
+                skill_path,
+                self._skills[metadata.name].skill_path
+            )
+            continue
+
         self._skills[metadata.name] = metadata
     except Exception as e:
-        logger.error(f"Failed to parse skill at {skill_path}: {e}")
+        logger.exception(  # Use .exception() for traceback
+            "Failed to parse skill at %s",
+            skill_path
+        )
         # Continue processing other skills - don't fail entire discovery
 ```
 
@@ -454,28 +557,233 @@ for skill_path in skill_paths:
 ```python
 def get_skill(self, name: str) -> SkillMetadata:
     if name not in self._skills:
+        logger.debug("Skill '%s' not found in registry", name)
         raise SkillNotFoundError(f"Skill '{name}' not found")
     return self._skills[name]
 ```
 
-**Exception Hierarchy**:
+**Exception Hierarchy** (Expanded for v0.1):
 ```python
-SkillsUseError            # Base exception (catch-all)
-├── SkillParsingError     # Malformed SKILL.md (missing fields, invalid YAML)
-├── SkillNotFoundError    # Skill doesn't exist in registry
-└── SkillInvocationError  # Runtime failure during invocation (future)
+SkillsUseError                      # Base exception (catch-all)
+├── SkillParsingError               # Base parsing error
+│   ├── InvalidYAMLError            # YAML syntax errors
+│   ├── MissingRequiredFieldError   # Missing name/description
+│   └── InvalidFrontmatterError     # Delimiter or structure issues
+├── SkillNotFoundError              # Skill doesn't exist in registry
+├── SkillInvocationError            # Base invocation error
+│   ├── ArgumentProcessingError     # $ARGUMENTS substitution failed
+│   └── ContentLoadError            # Failed to read skill content
+└── SkillSecurityError              # Base security error
+    ├── SuspiciousInputError        # Detected malicious patterns
+    └── SizeLimitExceededError      # Input exceeds size limits
 ```
 
-**Logging Strategy**:
-- **DEBUG**: Individual skill discoveries, successful parsing
-- **INFO**: Discovery complete (count), major operations
-- **WARNING**: Recoverable issues (malformed allowed-tools field)
-- **ERROR**: Parsing failures, missing required fields
+**Logging Strategy** (Python Library Best Practices):
+
+**🚨 CRITICAL: Logging Configuration (MUST DO for v0.1)**:
+```python
+# src/skills_use/__init__.py
+import logging
+
+# Add NullHandler to prevent "No handlers found" warnings
+# This is Python library standard (2024-2025)
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+```
+
+**Why NullHandler is Critical**:
+- **Python standard**: "Strongly advised that you do not add any handlers other than NullHandler to your library's loggers"
+- **Application control**: Configuration of handlers is the prerogative of the application developer
+- **Popular libraries**: requests, urllib3, and all major Python libraries use this pattern
+- **Test isolation**: Prevents unwanted log output in unit tests
+
+**Module-Specific Loggers (MUST DO)**:
+```python
+# ❌ WRONG - Don't use root logger
+import logging
+logger = logging.getLogger()  # Root logger!
+
+# ✅ CORRECT - Use module name
+import logging
+logger = logging.getLogger(__name__)  # Creates 'skills_use.core.discovery', etc.
+```
+
+**Why Module-Specific Loggers**:
+- Application developers can configure per-module verbosity
+- Example: `logging.getLogger('skills_use.core.discovery').setLevel(logging.DEBUG)`
+- Follows "Explicit is better than implicit" (PEP 20)
+
+**Logging Levels**:
+- **DEBUG**: Individual skill discoveries, successful parsing, pre-exception diagnostics
+- **INFO**: Discovery complete (count), major operations, empty skill directory
+- **WARNING**: Recoverable issues (malformed allowed-tools field, suspicious patterns, duplicate skill names)
+- **ERROR**: Parsing failures, missing required fields (use `logger.exception()` in except blocks)
+
+**Enhanced Logging Practices**:
+```python
+# Use logger.exception() for automatic traceback
+except Exception as e:
+    logger.exception("Failed to parse skill at %s", skill_path)
+
+# Use structured context
+logger.error(
+    "Failed to parse skill at %s: %s",
+    skill_path,
+    str(e),
+    exc_info=True  # Include stack trace
+)
+
+# Performance-conscious debug logging
+if logger.isEnabledFor(logging.DEBUG):
+    logger.debug("Discovered skill: %s", expensive_repr(metadata))
+```
+
+**Missing Error Scenarios** (Must Handle in v0.1):
+
+1. **Duplicate Skill Names** ✅ (Added above)
+   - Log WARNING and skip duplicate
+   - Keep first discovered skill
+
+2. **Content Loading Failures**:
+   ```python
+   @cached_property
+   def content(self) -> str:
+       try:
+           return self.metadata.skill_path.read_text(encoding="utf-8")
+       except FileNotFoundError as e:
+           raise ContentLoadError(
+               f"Skill file not found: {self.metadata.skill_path}. "
+               f"File may have been deleted after discovery."
+           ) from e
+       except PermissionError as e:
+           raise ContentLoadError(
+               f"Permission denied reading skill: {self.metadata.skill_path}"
+           ) from e
+       except UnicodeDecodeError as e:
+           raise ContentLoadError(
+               f"Skill file contains invalid UTF-8: {self.metadata.skill_path}"
+           ) from e
+   ```
+
+3. **Empty Skill Directory**:
+   ```python
+   if len(self._skills) == 0:
+       logger.info(
+           "No skills found in %s. "
+           "Create SKILL.md files to define skills.",
+           skill_dir
+       )
+   ```
+
+4. **Size Limit Exceeded** (Wrap in custom exception):
+   ```python
+   if len(arguments) > self.MAX_ARGUMENT_LENGTH:
+       raise SizeLimitExceededError(
+           f"Arguments too large: {len(arguments)} chars "
+           f"(max: {self.MAX_ARGUMENT_LENGTH})"
+       )
+   ```
+
+5. **Argument Processing Failures**:
+   ```python
+   try:
+       processed = template.safe_substitute(ARGUMENTS=arguments)
+   except (ValueError, KeyError) as e:
+       raise ArgumentProcessingError(
+           f"Failed to process arguments in skill '{skill_name}': {e}"
+       ) from e
+   ```
+
+**Exception Context Requirements**:
+- **Include file paths**: Help developers locate problematic files
+- **Include field names**: Specify which required field is missing
+- **Provide guidance**: Suggest fixes ("Check file permissions", "Fix YAML syntax")
+- **Chain exceptions**: Use `raise ... from e` to preserve stack traces
+
+**Testing Requirements**:
+```python
+# Test exception hierarchy integrity
+def test_all_exceptions_inherit_from_base():
+    assert issubclass(SkillParsingError, SkillsUseError)
+    assert issubclass(InvalidYAMLError, SkillParsingError)
+
+# Test graceful degradation
+def test_discovery_continues_after_parsing_error(caplog):
+    # One bad skill shouldn't prevent discovering others
+    assert len(manager.list_skills()) == 1
+    assert "Failed to parse skill" in caplog.text
+    assert caplog.records[0].levelname == "ERROR"
+
+# Test strict invocation
+def test_invocation_raises_on_missing_skill():
+    with pytest.raises(SkillNotFoundError, match="Skill 'nonexistent' not found"):
+        manager.invoke_skill("nonexistent")
+
+# Test NullHandler configuration
+def test_nullhandler_configured():
+    logger = logging.getLogger('skills_use')
+    assert any(isinstance(h, logging.NullHandler) for h in logger.handlers)
+```
+
+**Documentation Requirements** (for README.md):
+
+1. **Exception Handling Guide**:
+   ```python
+   # Catch all library errors
+   try:
+       manager.invoke_skill("my-skill", args)
+   except SkillsUseError as e:
+       print(f"Skill operation failed: {e}")
+
+   # Catch specific errors
+   try:
+       manager.invoke_skill("my-skill", args)
+   except SkillNotFoundError:
+       print("Skill not found. Check skill name.")
+   except ContentLoadError:
+       print("Skill file was deleted or is unreadable.")
+   except SizeLimitExceededError:
+       print("Arguments too large (max 1MB).")
+   ```
+
+2. **Logging Configuration**:
+   ```python
+   import logging
+
+   # Configure skills-use logging
+   logging.getLogger('skills_use').setLevel(logging.INFO)
+
+   # Enable debug for discovery only
+   logging.getLogger('skills_use.core.discovery').setLevel(logging.DEBUG)
+
+   # Add handler to see logs
+   handler = logging.StreamHandler()
+   handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
+   logging.getLogger('skills_use').addHandler(handler)
+   ```
+
+3. **Exception Reference Table**:
+   | Exception | When Raised | How to Handle |
+   |-----------|-------------|---------------|
+   | InvalidYAMLError | Malformed YAML syntax | Fix YAML in SKILL.md |
+   | MissingRequiredFieldError | Missing name/description | Add required field |
+   | SkillNotFoundError | Skill name not in registry | Check spelling, run discover() |
+   | ContentLoadError | File deleted/unreadable | Check file exists and permissions |
+   | SizeLimitExceededError | Arguments exceed 1MB | Reduce argument size |
+   | ArgumentProcessingError | Template substitution failed | Check $ARGUMENTS syntax |
 
 **Alternatives Considered**:
 - **Fail-fast**: Stop discovery on first error - Rejected as too brittle (one bad skill breaks everything)
 - **Silent failures**: Don't log errors - Rejected as makes debugging impossible
 - **Try-except everywhere**: Catch all exceptions - Rejected as hides real bugs
+- **Return values vs exceptions**: Use Optional[T] - Rejected as "not found" should be exceptional (not expected)
+- **Result objects (functional style)**: Union[Success, Failure] - Rejected as not idiomatic Python
+
+**Architectural Review Summary** (Nov 4, 2025):
+- **Score**: 8/10 - Architecturally sound, required enhancements identified
+- **Core decision**: ✅ Excellent (graceful discovery + strict invocation)
+- **Critical gaps**: NullHandler configuration, expanded exception hierarchy, duplicate handling
+- **Validation**: Follows Python library best practices (2024-2025 standards)
+- **Recommendation**: ✅ APPROVED with required changes (8 critical items for v0.1)
 
 ---
 
@@ -650,7 +958,7 @@ assert tools[2].name == "skill-3"
 tests/
 ├── test_discovery.py      # SkillDiscovery: happy path, missing dir, case-insensitive
 ├── test_parser.py         # SkillParser: valid YAML, missing fields, malformed
-├── test_invocation.py     # process_skill_content: all $ARGUMENTS edge cases
+├── test_invocation.py     # ArgumentSubstitutionProcessor: comprehensive edge cases (15+ tests)
 ├── test_manager.py        # SkillManager: discover, list, get, load, invoke
 ├── test_langchain.py      # LangChain integration: tool creation, invocation, errors
 └── fixtures/skills/
@@ -662,7 +970,12 @@ tests/
 **Testing Priorities** (from spec):
 - ✅ Core discovery logic (happy path + missing directory)
 - ✅ SKILL.md parsing (valid + missing fields + malformed YAML)
-- ✅ Invocation with $ARGUMENTS edge cases (5 scenarios)
+- ✅ Invocation with $ARGUMENTS edge cases (15+ comprehensive scenarios):
+  - **Basic cases**: single placeholder, multiple placeholders, empty args, no placeholder, no args
+  - **Escaping cases**: `$$ARGUMENTS` escaping, mixed escaped/normal, double-dollar in non-placeholder
+  - **Edge cases**: Unicode arguments, multiline arguments, size limit exceeded, empty content
+  - **Security cases**: suspicious patterns logged, no code execution via attributes, XSS patterns
+  - **UX cases**: typo detection (lowercase, titlecase, spacing, abbreviations)
 - ✅ LangChain integration (end-to-end agent test)
 - ❌ Edge case testing (nested dirs, permissions) - deferred to v0.2
 - ❌ Performance testing (benchmarks, profiling) - deferred to v0.3
@@ -814,7 +1127,7 @@ All open points from PRD are resolved for v0.1:
 **Resolution**: LangChain only for v0.1; LlamaIndex, CrewAI, etc. in v1.1+
 
 ### OP-7: Error Categorization
-**Resolution**: Basic exceptions sufficient for v0.1 (see Decision 4)
+**Resolution**: Comprehensive exception hierarchy with 11 exceptions for v0.1 (see Decision 4)
 
 ---
 
@@ -844,7 +1157,7 @@ All open points from PRD are resolved for v0.1:
 
 **Review Date**: November 3-4, 2025
 **Reviewer**: Python Library Architect + Technical Documentation Researcher (via skills)
-**Scope**: Decision 1 (Progressive Disclosure), Decision 2 (Framework-Agnostic Core), and Decision 3 ($ARGUMENTS Substitution)
+**Scope**: Decision 1 (Progressive Disclosure), Decision 2 (Framework-Agnostic Core), Decision 3 ($ARGUMENTS Substitution), and Decision 4 (Error Handling Strategy)
 
 ### Key Improvements Applied
 
@@ -905,15 +1218,27 @@ All open points from PRD are resolved for v0.1:
    - Fixed: 1MB size limit with ValueError on overflow
    - Impact: Prevents resource exhaustion attacks
 
-3. **Added suspicious pattern detection**:
-   - Original: No security checks on input
-   - Fixed: Defense-in-depth warnings for path traversal, command injection, Unicode attacks
-   - Impact: Early warning system for potentially malicious input
+3. **Expanded suspicious pattern detection**:
+   - Original: Basic patterns only (`../`, `$(`, `` ` ``, `\x00`, `\u202E`)
+   - Fixed: Comprehensive detection (9 patterns) with descriptive logging:
+     - Path traversal: `../`
+     - Command injection: `$(`, `` ` ``, `${`
+     - Null byte: `\x00`
+     - Unicode attacks: `\u202E`
+     - YAML injection: `\n\n---`
+     - XSS: `<script`, `javascript:`
+   - Implementation: Pattern dictionary with names, detailed warning messages
+   - Impact: Early warning system with clear debugging information
 
-4. **Improved UX with typo detection**:
+4. **Implemented typo detection** (NEW):
    - Original: Silent failures when using `$arguments` (lowercase) instead of `$ARGUMENTS`
-   - Fixed: Log warnings when common typos detected
-   - Impact: Better debugging experience for skill authors
+   - Fixed: `_check_for_typos()` method with 5 common typo patterns:
+     - `$arguments` → suggests `$ARGUMENTS (case-sensitive)`
+     - `$Arguments` → suggests `$ARGUMENTS (all caps)`
+     - `$ ARGUMENTS` → suggests `$ARGUMENTS (no space)`
+     - `$ARGS` / `$args` → suggests `$ARGUMENTS (full word)`
+   - Implementation: COMMON_TYPOS class constant, clear warning messages
+   - Impact: Significantly better debugging experience for skill authors
 
 5. **Enhanced empty content handling**:
    - Original: Skill with only `$ARGUMENTS` + no args produces completely empty string
@@ -929,6 +1254,74 @@ All open points from PRD are resolved for v0.1:
 **Performance Analysis**:
 - Template substitution overhead: <1ms (C-optimized, comparable to str.replace())
 - Total invocation overhead unchanged: ~10-25ms (dominated by file I/O)
+
+#### Decision 4: Error Handling Strategy
+
+1. **Added NullHandler requirement** (🚨 CRITICAL):
+   - Original: No logging configuration guidance
+   - Fixed: Documented NullHandler requirement in __init__.py (Python library standard 2024-2025)
+   - Impact: Prevents "No handlers found" warnings, gives application developers control
+   - Implementation: `logging.getLogger(__name__).addHandler(logging.NullHandler())`
+
+2. **Expanded exception hierarchy**:
+   - Original: 4 basic exceptions (SkillsUseError, SkillParsingError, SkillNotFoundError, SkillInvocationError)
+   - Fixed: 11 exceptions with granular error types:
+     - Parsing: InvalidYAMLError, MissingRequiredFieldError, InvalidFrontmatterError
+     - Invocation: ArgumentProcessingError, ContentLoadError
+     - Security: SuspiciousInputError, SizeLimitExceededError
+   - Impact: Enables specific error handling (`except ContentLoadError` vs broad `except SkillsUseError`)
+
+3. **Added module-specific logger requirement** (🚨 CRITICAL):
+   - Original: No explicit guidance on logger naming
+   - Fixed: Documented requirement to use `logging.getLogger(__name__)` in all modules
+   - Impact: Allows per-module logging configuration by application developers
+   - Anti-pattern documented: Never use root logger (`logging.getLogger()`)
+
+4. **Identified missing error scenarios**:
+   - Added: Duplicate skill name handling (log WARNING, skip duplicate, keep first)
+   - Added: Content loading failures (FileNotFoundError, PermissionError, UnicodeDecodeError → ContentLoadError)
+   - Added: Empty skill directory (log INFO with helpful message)
+   - Added: Argument processing failures (Template errors → ArgumentProcessingError)
+   - Added: Size limit exceeded (ValueError → SizeLimitExceededError)
+   - Impact: Comprehensive error coverage prevents unexpected crashes
+
+5. **Enhanced logging practices**:
+   - Original: Basic logging level guidance only
+   - Fixed: Documented best practices:
+     - Use `logger.exception()` in except blocks for automatic tracebacks
+     - Add structured context (file paths, field names) to error messages
+     - Use `exc_info=True` for detailed diagnostics
+     - Performance-conscious debug logging with `logger.isEnabledFor()`
+   - Impact: Better debugging experience for developers and users
+
+6. **Added exception context requirements**:
+   - Include file paths (help locate problematic files)
+   - Include field names (specify which required field is missing)
+   - Provide actionable guidance ("Check file permissions", "Fix YAML syntax")
+   - Chain exceptions with `raise ... from e` (preserve stack traces)
+   - Impact: Error messages are self-documenting and actionable
+
+7. **Documented testing requirements**:
+   - Exception hierarchy integrity tests
+   - Graceful degradation tests (discovery continues despite errors)
+   - Strict invocation tests (raises specific exceptions)
+   - NullHandler configuration test
+   - Duplicate skill handling test
+   - Impact: Ensures error handling works as designed
+
+8. **Added comprehensive documentation requirements**:
+   - Exception handling guide with code examples
+   - Logging configuration guide
+   - Exception reference table (when raised, how to handle)
+   - Impact: Users can handle errors appropriately without reading source code
+
+**Architectural Validation**:
+- ✅ Dual approach (graceful discovery + strict invocation) is excellent design
+- ✅ Exception hierarchy follows Python library best practices
+- ✅ Logging strategy aligned with 2024-2025 standards (NullHandler, module-specific loggers)
+- ✅ Comprehensive error scenario coverage
+- ✅ Actionable error messages with context
+- ✅ Ready for implementation with 8 critical items identified
 
 ### Architectural Principles Validated
 
@@ -957,23 +1350,37 @@ All open points from PRD are resolved for v0.1:
 1. **Target Python 3.10+** for optimal performance (60% memory savings)
 2. **Support Python 3.9** with documented trade-offs (remove slots from Skill class only)
 3. **Use string.Template** for $ARGUMENTS substitution (security + standard library)
-4. **Implement input validation** with 1MB limit and suspicious pattern detection
-5. **Use ruff instead of black** (faster, all-in-one linter + formatter)
-6. **Implement import guards** in all integration modules
-7. **Run mypy in strict mode** to catch type errors early
-8. **Add comprehensive tests** for edge cases (15+ test cases for ArgumentSubstitutionProcessor)
+4. **Implement input validation** with 1MB limit and expanded suspicious pattern detection (9 patterns) ✅ APPLIED
+5. **Implement typo detection** with `_check_for_typos()` method (5 common patterns) ✅ APPLIED
+6. **Use ruff instead of black** (faster, all-in-one linter + formatter)
+7. **Implement import guards** in all integration modules
+8. **Run mypy in strict mode** to catch type errors early
+9. **Add comprehensive tests** for edge cases (15+ test cases for ArgumentSubstitutionProcessor) ✅ SPECIFIED
 
 ### Validation Status
 
 - ✅ Decision 1: Architecturally sound with improvements applied
 - ✅ Decision 2: Architecturally sound with improvements applied
 - ✅ Decision 3: Architecturally sound with string.Template approach
-- ✅ All decisions follow Python library best practices
+- ✅ Decision 4: Architecturally sound with critical enhancements (8/10 score, approved with required changes)
+- ✅ All decisions follow Python library best practices (2024-2025 standards)
 - ✅ Security considerations addressed
 - ✅ Ready for implementation
 
 ---
 
-**Document Version**: 1.2
+**Document Version**: 1.4
 **Last Updated**: November 4, 2025
-**Status**: Architecturally Reviewed & Approved (Decisions 1, 2, 3)
+**Status**: Architecturally Reviewed & Enhanced (Decisions 1, 2, 3, 4)
+**Changes in v1.4**:
+- **Decision 4 comprehensive review**: Added NullHandler requirement, expanded exception hierarchy (11 exceptions), module-specific loggers, 8 critical items identified
+- **Critical error handling gaps closed**: Duplicate skill names, content loading failures, empty directory, argument processing, size limits
+- **Enhanced logging practices**: logger.exception(), structured context, exc_info=True, performance-conscious debug logging
+- **Documentation requirements added**: Exception handling guide, logging configuration, exception reference table
+- **Testing requirements specified**: Exception hierarchy tests, graceful degradation tests, NullHandler configuration test
+**Changes in v1.3**:
+- Implemented typo detection with `_check_for_typos()` method (5 common patterns)
+- Expanded suspicious pattern detection from 5 to 9 patterns (added XSS, YAML injection, shell variables)
+- Enhanced test specifications from 5 to 15+ comprehensive test cases
+- Added detailed escaping documentation with examples and best practices
+- Improved logging with descriptive pattern names for debugging
