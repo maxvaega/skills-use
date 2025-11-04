@@ -1,49 +1,88 @@
 # Implementation Plan: Skills-use v0.1 MVP - Core Functionality & LangChain Integration
 
-**Branch**: `001-mvp-langchain-core` | **Date**: November 3, 2025 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-mvp-langchain-core` | **Date**: November 4, 2025 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-mvp-langchain-core/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-This MVP implements the core skills-use library functionality: discovering skills from `.claude/skills/` directory, parsing SKILL.md files with YAML frontmatter, managing skill metadata with progressive disclosure pattern (load metadata first, defer content loading until invocation), and integrating with LangChain framework via StructuredTool objects. The library enables LLM agents to autonomously discover and utilize packaged expertise (skills) with minimal context window consumption.
+The v0.1 MVP delivers a Python library that implements Anthropic's Agent Skills functionality with a vertical slice approach. Core features include: (1) skill discovery from `.claude/skills/` directory, (2) YAML frontmatter parsing with validation, (3) progressive disclosure pattern (metadata-first loading), (4) skill invocation with $ARGUMENTS substitution and base directory injection, (5) LangChain StructuredTool integration (sync only), (6) 70% test coverage, and (7) PyPI publishing with minimal documentation.
+
+**Technical Approach**: Framework-agnostic core with zero dependencies (stdlib + PyYAML only), optional LangChain integration via `pip install skills-use[langchain]`, frozen dataclasses with slots for memory efficiency, lazy content loading via `@cached_property`, string.Template for secure $ARGUMENTS substitution, comprehensive exception hierarchy with graceful degradation during discovery and strict validation during invocation.
 
 ## Technical Context
 
-**Language/Version**: Python 3.9+ (minimum supported version)
-**Primary Dependencies**: PyYAML (YAML frontmatter parsing), LangChain-core (StructuredTool integration), Pydantic 2.0+ (schema validation)
+**Language/Version**: Python 3.9+ (minimum), Python 3.10+ recommended for optimal memory efficiency (slots + cached_property)
+**Primary Dependencies**:
+- Core: PyYAML 6.0+ (YAML parsing), Python stdlib (pathlib, dataclasses, functools, typing, re, logging)
+- LangChain integration (optional): langchain-core 0.1.0+, pydantic 2.0+
+- Development: pytest 7.0+, pytest-cov 4.0+, ruff 0.1.0+, mypy 1.0+
+
 **Storage**: Filesystem-based (`.claude/skills/` directory with SKILL.md files)
-**Testing**: pytest, pytest-cov (70% coverage target for v0.1)
-**Target Platform**: Cross-platform (Linux, macOS, Windows) - Python package distributed via PyPI
-**Project Type**: Single Python library package
+**Testing**: pytest with 70% coverage target (v0.1), parametrized tests for edge cases, fixtures in conftest.py
+**Target Platform**: Cross-platform (Linux, macOS, Windows) - regex patterns handle both Unix (\n) and Windows (\r\n) line endings
+**Project Type**: Python library (single package structure)
 **Performance Goals**:
-  - Discovery: <500ms for 10 skills metadata loading
-  - Invocation: <10ms overhead (excluding file I/O and LLM time)
+- Discovery: <500ms for 10 skills (metadata only, ~5-10ms per skill for YAML parsing)
+- Invocation: <10-25ms overhead (file I/O ~10-20ms + string processing ~1-5ms)
+- Memory: ~2-2.5MB for 100 skills with 10% usage (80% reduction vs eager loading)
+
 **Constraints**:
-  - Synchronous operations only (async deferred to v0.2)
-  - Single skills directory (~/.claude/skills/) - custom paths deferred to v0.3
-  - Flat directory structure only (nested directories deferred to v0.3)
+- Zero framework dependencies in core modules (framework-agnostic design)
+- Sync-only for v0.1 (async deferred to v0.2)
+- 1MB size limit on skill arguments (prevents resource exhaustion)
+- UTF-8 encoding enforced throughout (security requirement)
+
 **Scale/Scope**:
-  - Target: 10-100 skills in typical deployment
-  - Progressive disclosure ensures scalability
-  - Minimal memory footprint (~1-5KB per skill metadata)
+- Target: 10-20 skills for v0.1 users (acceptable without optimization)
+- Design supports: 100+ skills via progressive disclosure pattern
+- Test coverage: 70% for v0.1 (unit + integration), 90% target for v1.0
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Status**: ✅ PASS (Constitution not yet defined - using default Python library best practices)
+**Status**: Constitution file is a template placeholder (not yet customized for this project). Applying general Python library best practices as implicit constitution:
 
-Since the project constitution file is still a template, applying standard Python library development principles:
+### Implicit Principles Applied
 
-1. ✅ **Library-First Design**: Core functionality is framework-agnostic (core/ modules), framework integrations separate (integrations/)
-2. ✅ **Clear API Contract**: Public API exposed via `__init__.py`, internal modules not exposed
-3. ✅ **Test-First Approach**: 70% coverage minimum, all critical paths tested before v0.1 release
-4. ✅ **Progressive Disclosure**: Metadata loaded upfront, content on-demand (architectural principle)
-5. ✅ **Minimal Dependencies**: Core depends only on stdlib + PyYAML; framework deps are optional extras
+1. **Library-First Design** ✅
+   - Core functionality (`skills_use.core`) has zero framework dependencies
+   - Framework integrations cleanly separated (`skills_use.integrations`)
+   - Independently testable and documented
+   - Clear purpose: Enable LLM agents to discover and use packaged expertise
 
-**No violations or exceptions required for v0.1 MVP.**
+2. **Progressive Disclosure** ✅
+   - Metadata-first loading pattern (lazy content loading via `@cached_property`)
+   - 80% memory reduction vs eager loading
+   - Enables browsing 100+ skills without loading full content
+
+3. **Test-First Approach** ✅
+   - 70% coverage target with pytest
+   - Unit tests for discovery, parsing, invocation
+   - Integration test for LangChain end-to-end workflow
+   - Parametrized tests for 15+ edge cases
+
+4. **Error Handling** ✅
+   - Comprehensive exception hierarchy (11 exception types)
+   - Graceful degradation during discovery (log errors, continue)
+   - Strict validation during invocation (raise specific exceptions)
+   - NullHandler configuration per Python library standards
+
+5. **Security & Safety** ✅
+   - `yaml.safe_load()` prevents code execution
+   - `string.Template` prevents attribute access vulnerabilities
+   - 1MB size limit on arguments
+   - Suspicious pattern detection (9 patterns including XSS, YAML injection)
+
+6. **Simplicity & YAGNI** ✅
+   - Sync-only for v0.1 (async deferred to v0.2)
+   - Single skill directory (multiple paths deferred to v0.3)
+   - Flat directory structure (nested deferred to v0.3)
+   - 70% coverage sufficient for MVP (90% deferred to v1.0)
+
+**Conclusion**: No constitution violations. Design aligns with Python library best practices (2024-2025 standards). Proceed to Phase 0.
 
 ## Project Structure
 
@@ -65,170 +104,279 @@ specs/[###-feature]/
 skills-use/
 ├── src/
 │   └── skills_use/
-│       ├── __init__.py              # Public API exports (SkillManager, models, exceptions)
+│       ├── __init__.py           # Public API exports + NullHandler configuration
 │       ├── core/
-│       │   ├── __init__.py
-│       │   ├── discovery.py         # SkillDiscovery class - filesystem scanning
-│       │   ├── parser.py            # SkillParser class - YAML + markdown parsing
-│       │   ├── models.py            # SkillMetadata, Skill dataclasses
-│       │   ├── manager.py           # SkillManager - orchestration layer
-│       │   └── invocation.py        # process_skill_content() - $ARGUMENTS substitution
+│       │   ├── __init__.py       # Core module exports
+│       │   ├── discovery.py      # SkillDiscovery: filesystem scanning
+│       │   ├── parser.py         # SkillParser: YAML frontmatter parsing
+│       │   ├── models.py         # SkillMetadata, Skill dataclasses
+│       │   ├── manager.py        # SkillManager: orchestration layer
+│       │   ├── processors.py     # ContentProcessor strategy pattern
+│       │   └── exceptions.py     # Custom exceptions hierarchy
 │       ├── integrations/
-│       │   ├── __init__.py
-│       │   └── langchain.py         # create_langchain_tools() - LangChain adapter
-│       └── exceptions.py            # SkillsUseError, SkillParsingError, etc.
+│       │   ├── __init__.py       # Integration module exports
+│       │   └── langchain.py      # LangChain StructuredTool adapter
+│       └── py.typed              # PEP 561 marker for type hints
 ├── tests/
-│   ├── __init__.py
-│   ├── test_discovery.py            # SkillDiscovery tests
-│   ├── test_parser.py               # SkillParser tests
-│   ├── test_invocation.py           # Invocation logic tests
-│   ├── test_manager.py              # SkillManager integration tests
-│   ├── test_langchain.py            # LangChain integration tests
+│   ├── conftest.py               # Shared fixtures (fixtures_dir, skills_dir)
+│   ├── test_discovery.py         # SkillDiscovery tests (happy path, empty dir)
+│   ├── test_parser.py            # SkillParser tests (valid, missing fields, malformed YAML)
+│   ├── test_models.py            # Dataclass tests (validation, immutability)
+│   ├── test_processors.py        # ContentProcessor tests (parametrized edge cases)
+│   ├── test_manager.py           # SkillManager tests (discover, list, get, load, invoke)
+│   ├── test_langchain.py         # LangChain integration tests (end-to-end)
 │   └── fixtures/
-│       └── skills/                  # Test SKILL.md samples
-│           ├── valid-skill/
-│           ├── missing-name-skill/
-│           └── invalid-yaml-skill/
-├── pyproject.toml                   # Package metadata, dependencies, build config
-├── README.md                        # Installation, quick start, examples
-├── LICENSE                          # MIT license
-└── .gitignore
+│       └── skills/               # Test SKILL.md files
+│           ├── valid-skill/SKILL.md
+│           ├── missing-name-skill/SKILL.md
+│           ├── invalid-yaml-skill/SKILL.md
+│           └── arguments-test-skill/SKILL.md
+├── examples/
+│   ├── basic_usage.py            # Standalone usage example
+│   └── langchain_agent.py        # LangChain integration example
+├── .docs/                        # Project documentation (PRD, TECH_SPECS, etc.)
+├── pyproject.toml                # Package configuration (PEP 621)
+├── README.md                     # Installation, quick start, examples
+├── LICENSE                       # MIT license
+└── .gitignore                    # Python-standard ignores
 ```
 
-**Structure Decision**: Single Python library package (Option 1). This is a pure library with no CLI, web frontend, or mobile components. The `src/` layout follows modern Python packaging standards (PEP 420), enabling `pip install skills-use` to work correctly. Core logic is isolated from framework integrations to maintain independence and testability.
+**Structure Decision**: Single Python library package structure (Option 1). Rationale:
+- Framework-agnostic core in `src/skills_use/core/` (zero dependencies)
+- Optional integrations in `src/skills_use/integrations/` (framework-specific)
+- Tests mirror source structure for clarity
+- Examples demonstrate standalone + framework usage
+- PEP 621 `pyproject.toml` for modern Python packaging
 
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
-**No violations tracked.** All design decisions align with Python library best practices and v0.1 MVP scope constraints.
+**Status**: No constitution violations detected. All design decisions align with simplicity principles:
+- Zero unnecessary abstractions (direct filesystem operations, no ORM/repository pattern)
+- Standard library prioritized (string.Template, dataclasses, pathlib)
+- Strategy pattern justified by extensibility requirements (processors can be composed)
+- Exception hierarchy justified by Python library standards (specific error handling)
+
+No complexity justification required.
 
 ---
 
-## Phase 0: Research & Outline
+## Phase 0: Research (COMPLETE)
 
-**Status**: ✅ Complete
+**Status**: ✅ All research documented in [research.md](./research.md)
 
-**Deliverable**: [research.md](./research.md)
+The research phase identified and resolved 8 critical architectural decisions:
 
-### Key Decisions Documented
+1. **Progressive Disclosure Pattern**: Two-tier dataclass architecture (SkillMetadata + Skill) with lazy content loading via `@cached_property`, achieving 80% memory reduction
+2. **Framework-Agnostic Core**: Zero dependencies in `core/`, optional framework integrations in `integrations/`
+3. **$ARGUMENTS Substitution**: `string.Template` with `$$ARGUMENTS` escaping, input validation, suspicious pattern detection
+4. **Error Handling Strategy**: Graceful degradation during discovery, strict exceptions during invocation, 11-exception hierarchy
+5. **YAML Frontmatter Parsing**: `yaml.safe_load()` with cross-platform line ending support, detailed error messages, typo detection
+6. **LangChain Integration**: StructuredTool with closure capture pattern, sync-only v0.1, dual sync/async in v0.2
+7. **Testing Strategy**: 70% coverage with parametrized tests, fixtures in conftest.py, pytest-cov measurement
+8. **Synchronous-Only Implementation**: Async deferred to v0.2 (file I/O overhead negligible vs LLM latency)
 
-1. **Progressive Disclosure Pattern**: Metadata-first loading, content on-demand (Research Decision 1)
-2. **Framework-Agnostic Core**: Zero framework dependencies in core modules (Research Decision 2)
-3. **$ARGUMENTS Substitution**: Replace all occurrences or append if missing (Research Decision 3)
-4. **Error Handling Strategy**: Graceful during discovery, strict during invocation (Research Decision 4)
-5. **YAML Parsing**: Regex + yaml.safe_load() for security (Research Decision 5)
-6. **LangChain Integration**: StructuredTool with single string parameter (Research Decision 6)
-7. **Testing Strategy**: 70% coverage target with unit + integration tests (Research Decision 7)
-8. **Sync-Only v0.1**: Async deferred to v0.2 for faster delivery (Research Decision 8)
+**Key Technical Decisions**:
+- Python 3.10+ recommended (full slots support), 3.9 supported (partial slots)
+- Memory optimization: `frozen=True, slots=True` dataclasses (~60% reduction per instance)
+- Security: `string.Template` prevents code execution, 1MB size limit, 9 suspicious patterns detected
+- Cross-platform: Regex pattern `[\\r\\n]+` handles Unix/Windows line endings
+- Performance: <500ms discovery for 10 skills, <10-25ms invocation overhead
 
-### Technologies Selected
-
-- **Core**: Python 3.9+, PyYAML 6.0+, pathlib (stdlib)
-- **Integration**: LangChain-core 0.1+, Pydantic 2.0+
-- **Testing**: pytest 7.0+, pytest-cov 4.0+
-- **Linting/Formatting**: black, ruff, mypy
-
-### Open Questions Resolved
-
-All 7 open points from PRD resolved:
-- OP-1 ($ARGUMENTS): Replace all or append
-- OP-2 (Multiple paths): Deferred to v0.3
-- OP-3 (Tool restrictions): Deferred to v0.2
-- OP-4 (Async): v0.1 sync-only
-- OP-5 (Performance): <500ms acceptable
-- OP-6 (Frameworks): LangChain only for v0.1
-- OP-7 (Error handling): Basic exceptions sufficient
+All NEEDS CLARIFICATION items resolved. Ready for Phase 1 design artifacts.
 
 ---
 
 ## Phase 1: Design & Contracts
 
-**Status**: ✅ Complete
+**Objective**: Generate data model, API contracts, and quickstart guide based on research findings.
 
-**Deliverables**:
-- [data-model.md](./data-model.md) - Entity models and relationships
-- [contracts/public-api.md](./contracts/public-api.md) - API contract specification
-- [quickstart.md](./quickstart.md) - Developer onboarding guide
-- Updated agent context (CLAUDE.md)
+### Phase 1 Deliverables
 
-### Core Entities Defined
+1. **data-model.md**: Entity definitions, relationships, validation rules, state transitions
+2. **contracts/public-api.md**: Complete public API specifications with type signatures
+3. **quickstart.md**: Developer onboarding guide with installation and usage examples
 
-1. **SkillMetadata**: Lightweight metadata (name, description, path, allowed_tools)
-2. **Skill**: Full skill object (metadata + content + base_directory)
-3. **SkillDiscovery**: Filesystem scanner
-4. **SkillParser**: YAML frontmatter + markdown parser
-5. **SkillManager**: Orchestration layer
-6. **SkillInput**: Pydantic schema for LangChain tools
+### Key Entities (from research.md)
 
-### API Surface
+**SkillMetadata** (Tier 1 - Lightweight)
+```python
+@dataclass(frozen=True, slots=True)
+class SkillMetadata:
+    name: str
+    description: str
+    skill_path: Path
+    allowed_tools: tuple[str, ...] = field(default_factory=tuple)
+```
 
-**Public Classes**:
-- `SkillManager` - Main entry point
-- `SkillMetadata` - Metadata model
-- `Skill` - Full skill model
-- Exceptions: `SkillsUseError`, `SkillParsingError`, `SkillNotFoundError`, `SkillInvocationError`
+**Skill** (Tier 2 - Full with lazy content)
+```python
+@dataclass(frozen=True, slots=True)  # slots=True requires Python 3.10+
+class Skill:
+    metadata: SkillMetadata
+    base_directory: Path
+    _processor: CompositeProcessor = field(init=False, repr=False)
 
-**Public Functions**:
-- `create_langchain_tools()` - Bulk tool creation
-- `create_langchain_tool_from_skill()` - Single tool creation
+    @cached_property
+    def content(self) -> str:
+        """Lazy load content only when accessed."""
+```
 
-### Implementation Phases
+**SkillManager** (Orchestration)
+- Methods: `discover()`, `list_skills()`, `get_skill(name)`, `load_skill(name)`, `invoke_skill(name, args)`
+- Discovery: Graceful degradation (log errors, continue)
+- Invocation: Strict validation (raise specific exceptions)
 
-**Week 1: Core Foundation** (24 hours)
-- models.py, exceptions.py (3 hours)
-- discovery.py + tests (4 hours)
-- parser.py + tests (6 hours)
-- manager.py + tests (4 hours)
-- invocation.py + tests (6 hours)
-- __init__.py (1 hour)
+**ContentProcessor** (Strategy Pattern)
+- Base: Abstract processor interface
+- BaseDirectoryProcessor: Injects base directory context
+- ArgumentSubstitutionProcessor: Handles $ARGUMENTS with `string.Template`
+- CompositeProcessor: Chains processors in order
 
-**Week 2: LangChain Integration** (12 hours)
-- integrations/langchain.py + tests (8 hours)
-- Integration testing (4 hours)
+**Exception Hierarchy** (11 exceptions)
+```
+SkillsUseError (base)
+├── SkillParsingError
+│   ├── InvalidYAMLError
+│   ├── MissingRequiredFieldError
+│   └── InvalidFrontmatterError
+├── SkillNotFoundError
+├── SkillInvocationError
+│   ├── ArgumentProcessingError
+│   └── ContentLoadError
+└── SkillSecurityError
+    ├── SuspiciousInputError
+    └── SizeLimitExceededError
+```
 
-**Week 3: Testing & Examples** (10 hours)
-- Comprehensive testing to 70% coverage (6 hours)
-- Example skills (4 hours)
+### API Surface (contracts/public-api.md)
 
-**Week 4: Documentation & Publishing** (14 hours)
-- README.md (6 hours)
-- PyPI preparation (4 hours)
-- Publishing + announcement (4 hours)
+**Core API** (skills_use.core)
+- `SkillManager(skills_dir: Path | None = None)` - Main entry point
+- `SkillMetadata` - Dataclass (name, description, skill_path, allowed_tools)
+- `Skill` - Dataclass (metadata, base_directory, content property)
+- All exceptions from hierarchy
 
-### Constitution Check (Post-Design)
+**LangChain Integration** (skills_use.integrations.langchain)
+- `create_langchain_tools(manager: SkillManager) -> List[StructuredTool]`
+- `SkillInput` - Pydantic model for tool input schema
 
-✅ **Re-evaluated**: All gates still pass
-- Library-first design maintained
-- Clear API contract defined
-- Test-first approach documented
-- Progressive disclosure preserved
-- Minimal dependencies confirmed
+### Quickstart Requirements (quickstart.md)
 
-No new violations introduced during design phase.
-
----
-
-## Next Steps
-
-### For Implementation (/speckit.implement)
-
-**Prerequisites**: All Phase 0 and Phase 1 artifacts complete ✅
-
-**Ready to proceed with**:
-1. Project structure creation (`src/skills_use/`, `tests/`)
-2. Core module implementation following TECH_SPECS.md
-3. Test-driven development with 70% coverage target
-4. LangChain integration and end-to-end testing
-
-### For Task Generation (/speckit.tasks)
-
-**Command**: `/speckit.tasks` will generate detailed task breakdown based on this plan
-
-**Expected Output**: `tasks.md` with dependency-ordered implementation tasks
+1. **Installation**: `pip install skills-use` and `pip install skills-use[langchain]`
+2. **Creating Skills**: SKILL.md format with YAML frontmatter examples
+3. **Standalone Usage**: Basic SkillManager usage without frameworks
+4. **LangChain Integration**: End-to-end agent example
+5. **Common Patterns**: $ARGUMENTS substitution, error handling, logging configuration
+6. **Troubleshooting**: Common issues and solutions
 
 ---
 
-**Plan Status**: ✅ Complete (Phase 0 + Phase 1)
-**Implementation Ready**: Yes
-**Next Command**: `/speckit.tasks` to generate implementation tasks
+## Phase 2: Task Generation (DEFERRED)
+
+**Status**: Not created by `/speckit.plan` command. Use `/speckit.tasks` to generate detailed implementation tasks.
+
+The tasks.md file will break down implementation into dependency-ordered, actionable tasks across:
+- Core modules (discovery, parser, models, manager, processors, exceptions)
+- LangChain integration
+- Test suite (unit + integration)
+- Documentation (README, examples)
+- Packaging (pyproject.toml, distribution)
+
+Expected task count: ~25-35 tasks over 4-week timeline.
+
+---
+
+## Implementation Timeline
+
+**Week 1**: Core foundation
+- Create project structure
+- Implement models.py + exceptions.py
+- Implement discovery.py + parser.py with tests
+- Achieve: Skill discovery and metadata parsing working
+
+**Week 2**: Invocation and processing
+- Implement processors.py (ContentProcessor hierarchy)
+- Implement manager.py orchestration layer
+- Add comprehensive tests (parametrized edge cases)
+- Achieve: End-to-end skill invocation working
+
+**Week 3**: LangChain integration
+- Implement integrations/langchain.py
+- Create LangChain integration tests
+- Write examples (basic_usage.py, langchain_agent.py)
+- Achieve: LangChain agents can use skills
+
+**Week 4**: Documentation and distribution
+- Write README.md with installation and examples
+- Configure pyproject.toml
+- Verify 70% test coverage
+- Publish to PyPI
+- Achieve: Library publicly available and documented
+
+---
+
+## Success Metrics
+
+**Functional Validation**:
+- ✅ All 50 functional requirements from spec.md satisfied
+- ✅ 6 user stories with acceptance scenarios pass
+- ✅ Edge cases handled gracefully with clear error messages
+
+**Performance Validation**:
+- ✅ Discovery: <500ms for 10 skills (metadata only)
+- ✅ Invocation: <10-25ms overhead (file I/O + processing)
+- ✅ Memory: ~2-2.5MB for 100 skills with 10% usage
+
+**Quality Validation**:
+- ✅ 70% test coverage measured with pytest-cov
+- ✅ All tests passing with pytest
+- ✅ Type checking passes with mypy in strict mode
+- ✅ Linting passes with ruff
+
+**Distribution Validation**:
+- ✅ Package installable via `pip install skills-use`
+- ✅ README example runs without modification
+- ✅ LangChain integration example demonstrates end-to-end workflow
+- ✅ Published to PyPI with MIT license
+
+---
+
+## Risk Mitigation
+
+**Risk 1: LangChain API Changes**
+- Mitigation: Pin langchain-core version, use stable StructuredTool interface
+- Impact: Low (StructuredTool is stable since v0.1)
+
+**Risk 2: Cross-Platform Line Ending Issues**
+- Mitigation: Regex pattern `[\\r\\n]+` tested on Unix + Windows
+- Impact: Low (pattern handles both \n and \r\n)
+
+**Risk 3: Memory Usage on Python 3.9**
+- Mitigation: Document Python 3.10+ recommendation, 3.9 fallback acceptable
+- Impact: Low (25% memory overhead on 3.9 still 80% reduction vs eager loading)
+
+**Risk 4: Scope Creep**
+- Mitigation: Strict adherence to vertical slice plan, defer all non-critical features
+- Impact: Medium (requires discipline to reject feature additions)
+
+**Risk 5: Test Coverage Target**
+- Mitigation: Focus on critical paths (discovery, parsing, invocation), defer edge case tests
+- Impact: Low (70% coverage acceptable for MVP)
+
+---
+
+## Post-Implementation
+
+After `/speckit.implement` completes:
+
+1. **Manual verification**: Run examples/langchain_agent.py with real LLM
+2. **Coverage report**: `pytest --cov=skills_use --cov-report=html`
+3. **Type checking**: `mypy src/skills_use --strict`
+4. **Linting**: `ruff check src/skills_use`
+5. **Build package**: `python -m build`
+6. **Test installation**: `pip install dist/skills_use-0.1.0-*.whl`
+7. **Publish to PyPI**: `python -m twine upload dist/*`
+
+**Iteration to v0.2**: Gather user feedback, implement async support, enhance error handling

@@ -1,468 +1,526 @@
 # Data Model: Skills-use v0.1 MVP
 
 **Feature**: Core Functionality & LangChain Integration
-**Date**: November 3, 2025
-**Status**: Complete
+**Branch**: `001-mvp-langchain-core`
+**Date**: November 4, 2025
 
 ## Overview
 
-This document defines all data structures, entities, and their relationships for the skills-use library v0.1. The model follows the progressive disclosure pattern: lightweight metadata loaded during discovery, full content loaded on invocation.
+This document defines the core data model for the skills-use library, including entities, relationships, validation rules, and state transitions. The design follows a two-tier progressive disclosure pattern for memory efficiency.
 
 ---
 
 ## Core Entities
 
-### 1. SkillMetadata
+### 1. SkillMetadata (Tier 1 - Lightweight)
 
-**Purpose**: Lightweight skill information loaded during discovery phase. Contains only YAML frontmatter data without markdown content.
-
-**Location**: `src/skills_use/core/models.py`
+**Purpose**: Represents discovered skill information without loading full content. Enables browsing and selection of skills with minimal memory footprint.
 
 **Definition**:
 ```python
-@dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
+
+@dataclass(frozen=True, slots=True)
 class SkillMetadata:
+    """Lightweight skill metadata loaded during discovery phase.
+
+    Memory: ~400-800 bytes per instance (Python 3.10+)
+    Immutable: frozen=True prevents accidental mutation
+    Optimized: slots=True reduces memory by 60%
     """
-    Lightweight metadata for a skill.
-    Loaded during discovery without reading full content.
-    """
+
     name: str
+    """Unique skill identifier (from YAML frontmatter)."""
+
     description: str
+    """Human-readable description of skill purpose."""
+
     skill_path: Path
-    allowed_tools: Optional[List[str]] = None
+    """Absolute path to SKILL.md file."""
+
+    allowed_tools: tuple[str, ...] = field(default_factory=tuple)
+    """Tool names allowed for this skill (optional, not enforced in v0.1)."""
 
     def __post_init__(self):
-        """Validate required fields."""
-        if not self.name:
-            raise ValueError("Skill name is required")
-        if not self.description:
-            raise ValueError("Skill description is required")
-        if not isinstance(self.skill_path, Path):
-            self.skill_path = Path(self.skill_path)
+        """Validate skill path exists on construction."""
+        if not self.skill_path.exists():
+            raise ValueError(f"Skill path does not exist: {self.skill_path}")
 ```
 
-**Fields**:
-
-| Field | Type | Required | Description | Validation |
-|-------|------|----------|-------------|------------|
-| `name` | `str` | ✅ Yes | Unique skill identifier (e.g., "code-reviewer") | Non-empty string |
-| `description` | `str` | ✅ Yes | Brief description of skill purpose (used by LLM for selection) | Non-empty string |
-| `skill_path` | `Path` | ✅ Yes | Absolute path to SKILL.md file | Must be valid Path object |
-| `allowed_tools` | `Optional[List[str]]` | ❌ No | List of tools skill can use (e.g., ["read", "grep"]) | None or list of strings |
-
-**Usage**:
-```python
-metadata = SkillMetadata(
-    name="code-reviewer",
-    description="Reviews Python code for common mistakes",
-    skill_path=Path("/Users/.../.claude/skills/code-reviewer/SKILL.md"),
-    allowed_tools=["read", "grep"]
-)
-```
-
-**State Transitions**: Immutable once created (read-only dataclass)
-
----
-
-### 2. Skill
-
-**Purpose**: Full skill object with loaded content. Created on-demand during invocation phase.
-
-**Location**: `src/skills_use/core/models.py`
-
-**Definition**:
-```python
-@dataclass
-class Skill:
-    """
-    Full skill object with content loaded.
-    Created on-demand during invocation.
-    """
-    metadata: SkillMetadata
-    content: str
-    base_directory: Path
-
-    def invoke(self, arguments: str = "") -> str:
-        """
-        Process skill content with arguments.
-
-        Args:
-            arguments: User-provided arguments to substitute into skill
-
-        Returns:
-            Processed skill content ready for LLM consumption
-        """
-        from skills_use.core.invocation import process_skill_content
-        return process_skill_content(self, arguments)
-```
-
-**Fields**:
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `metadata` | `SkillMetadata` | ✅ Yes | Associated skill metadata (name, description, etc.) |
-| `content` | `str` | ✅ Yes | Full markdown content from SKILL.md (after frontmatter) |
-| `base_directory` | `Path` | ✅ Yes | Parent directory of SKILL.md (for file references) |
-
-**Usage**:
-```python
-skill = Skill(
-    metadata=metadata,
-    content="You are a code reviewer. Review: $ARGUMENTS",
-    base_directory=Path("/Users/.../.claude/skills/code-reviewer")
-)
-
-result = skill.invoke("def foo(): return x/0")
-```
-
-**State Transitions**: Immutable once created; invocation creates new processed string
-
----
-
-### 3. SkillDiscovery
-
-**Purpose**: Discovers SKILL.md files from filesystem.
-
-**Location**: `src/skills_use/core/discovery.py`
-
-**Definition**:
-```python
-class SkillDiscovery:
-    """
-    Discovers SKILL.md files from .claude/skills/ directory.
-    v0.1: Single hardcoded path, flat structure only.
-    """
-    DEFAULT_SKILLS_DIR = Path.home() / ".claude" / "skills"
-
-    def __init__(self, skills_directory: Optional[Path] = None):
-        self.skills_directory = skills_directory or self.DEFAULT_SKILLS_DIR
-
-    def discover_skills(self) -> List[Path]:
-        """
-        Discover all SKILL.md files in skills directory.
-        Returns: List of Path objects pointing to SKILL.md files
-        """
-        ...
-```
-
-**State**:
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `skills_directory` | `Path` | Directory to scan for skills (default: `~/.claude/skills/`) |
-
-**Operations**:
-- `discover_skills() -> List[Path]`: Scan directory and return SKILL.md paths
-- `_find_skill_file(directory: Path) -> Optional[Path]`: Case-insensitive SKILL.md lookup
-
----
-
-### 4. SkillParser
-
-**Purpose**: Parses SKILL.md files and extracts YAML frontmatter + markdown content.
-
-**Location**: `src/skills_use/core/parser.py`
-
-**Definition**:
-```python
-class SkillParser:
-    """
-    Parses SKILL.md files with YAML frontmatter.
-    v0.1: Minimal parsing - name, description, allowed-tools only.
-    """
-    FRONTMATTER_DELIMITER = "---"
-
-    def parse_skill_file(self, skill_path: Path) -> SkillMetadata:
-        """Parse SKILL.md and extract metadata."""
-        ...
-
-    def load_full_content(self, skill_path: Path) -> str:
-        """Load full skill content (without frontmatter)."""
-        ...
-```
-
-**State**: Stateless (no instance variables)
-
-**Operations**:
-- `parse_skill_file(path) -> SkillMetadata`: Extract frontmatter → SkillMetadata
-- `load_full_content(path) -> str`: Extract markdown content only
-- `_extract_frontmatter(content) -> Tuple[Dict, str]`: Split frontmatter/content
-
----
-
-### 5. SkillManager
-
-**Purpose**: Central orchestration layer managing skill discovery, loading, and invocation.
-
-**Location**: `src/skills_use/core/manager.py`
-
-**Definition**:
-```python
-class SkillManager:
-    """
-    Central coordinator for skill discovery, loading, and invocation.
-    v0.1: Simple dict-based storage, no caching optimization.
-    """
-    def __init__(self, skills_directory: Optional[Path] = None):
-        self.discovery = SkillDiscovery(skills_directory)
-        self.parser = SkillParser()
-        self._skills: Dict[str, SkillMetadata] = {}
-        self._initialized = False
-
-    def discover(self) -> None: ...
-    def list_skills(self) -> List[SkillMetadata]: ...
-    def get_skill(self, name: str) -> SkillMetadata: ...
-    def load_skill(self, name: str) -> Skill: ...
-    def invoke_skill(self, name: str, arguments: str = "") -> str: ...
-```
-
-**State**:
-
-| Attribute | Type | Description | Lifecycle |
-|-----------|------|-------------|-----------|
-| `discovery` | `SkillDiscovery` | Filesystem scanner | Created in `__init__` |
-| `parser` | `SkillParser` | YAML/markdown parser | Created in `__init__` |
-| `_skills` | `Dict[str, SkillMetadata]` | Skill registry (name → metadata) | Populated in `discover()` |
-| `_initialized` | `bool` | Whether discovery has run | False → True on first `discover()` |
-
-**Operations**:
-- `discover()`: Scan filesystem, populate `_skills` registry
-- `list_skills() -> List[SkillMetadata]`: Return all discovered skills
-- `get_skill(name) -> SkillMetadata`: Lookup skill by name (raises SkillNotFoundError)
-- `load_skill(name) -> Skill`: Load full skill with content
-- `invoke_skill(name, arguments) -> str`: Load + process + return content
-
-**State Transitions**:
-```
-[Created] --discover()--> [Initialized]
-                           |
-                           |--list_skills()--> return _skills.values()
-                           |--get_skill()----> return _skills[name]
-                           |--load_skill()---> [Load content] --> return Skill
-                           |--invoke_skill()-> [Load + process] --> return str
-```
-
----
-
-## Relationships
-
-```
-SkillManager
-    ├── has-a: SkillDiscovery (filesystem scanner)
-    ├── has-a: SkillParser (file parser)
-    └── has-many: SkillMetadata (skill registry)
-
-Skill
-    ├── has-a: SkillMetadata (associated metadata)
-    └── references: base_directory (for file operations)
-
-SkillMetadata
-    └── references: skill_path (Path to SKILL.md)
-```
-
----
-
-## Exception Hierarchy
-
-**Location**: `src/skills_use/exceptions.py`
-
-```python
-SkillsUseError (Base)
-├── SkillParsingError      # Malformed SKILL.md
-├── SkillNotFoundError     # Skill doesn't exist
-└── SkillInvocationError   # Runtime failure (future)
-```
-
-**Usage**:
-```python
-try:
-    manager.invoke_skill("nonexistent-skill")
-except SkillNotFoundError as e:
-    print(f"Skill not found: {e}")
-except SkillsUseError as e:
-    print(f"General error: {e}")
-```
-
----
-
-## LangChain Integration Models
-
-**Location**: `src/skills_use/integrations/langchain.py`
-
-### SkillInput (Pydantic Model)
-
-**Purpose**: Input schema for LangChain StructuredTool validation.
-
-**Definition**:
-```python
-class SkillInput(BaseModel):
-    """Input schema for LangChain skill tools."""
-    arguments: str = Field(
-        default="",
-        description="Arguments to pass to the skill"
-    )
-```
-
-**Fields**:
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `arguments` | `str` | `""` | User-provided arguments for skill invocation |
-
-**Usage**:
-```python
-tool = StructuredTool(
-    name="code-reviewer",
-    description="Reviews Python code",
-    func=skill_func,
-    args_schema=SkillInput  # Pydantic validation
-)
-```
-
----
-
-## Invocation Processing
-
-**Location**: `src/skills_use/core/invocation.py`
-
-**Function**: `process_skill_content(skill: Skill, arguments: str = "") -> str`
-
-**Algorithm**:
-```
-1. Inject base directory: "Base directory for this skill: {path}\n\n"
-2. If "$ARGUMENTS" in content:
-   - Replace all occurrences with arguments
-3. Else if arguments provided:
-   - Append "\n\nARGUMENTS: {arguments}"
-4. Return processed content
-```
-
-**Transformations**:
-
-| Input Content | Arguments | Output Content |
-|---------------|-----------|----------------|
-| `Review: $ARGUMENTS` | `"code"` | `Base directory: /path\n\nReview: code` |
-| `$ARGUMENTS\n$ARGUMENTS` | `"test"` | `Base directory: /path\n\ntest\ntest` |
-| `Review code` | `"foo"` | `Base directory: /path\n\nReview code\n\nARGUMENTS: foo` |
-
----
-
-## SKILL.md File Format
-
-**Location**: User's filesystem (`~/.claude/skills/skill-name/SKILL.md`)
-
-**Structure**:
-```markdown
----
-name: skill-name
-description: Brief description
-allowed-tools: ["tool1", "tool2"]  # Optional
----
-
-Markdown content with $ARGUMENTS placeholder.
-```
+**Attributes**:
+- `name` (str, required): Skill identifier from YAML `name` field
+- `description` (str, required): Skill purpose from YAML `description` field
+- `skill_path` (Path, required): Absolute path to SKILL.md file
+- `allowed_tools` (tuple[str, ...], optional): Tool restrictions (default: empty tuple)
 
 **Validation Rules**:
+- ✅ `name` must be non-empty string after `.strip()`
+- ✅ `description` must be non-empty string after `.strip()`
+- ✅ `skill_path` must exist on filesystem (checked in `__post_init__`)
+- ✅ `allowed_tools` must be tuple of strings (converted from list during parsing)
+- ✅ Immutable after construction (`frozen=True`)
 
-| Field | Requirement | Error if Missing |
-|-------|-------------|------------------|
-| `---` delimiters | Required | SkillParsingError: "No valid YAML frontmatter found" |
-| `name` | Required, non-empty string | SkillParsingError: "Missing required field 'name'" |
-| `description` | Required, non-empty string | SkillParsingError: "Missing required field 'description'" |
-| `allowed-tools` | Optional, list of strings | Warning logged if invalid type |
+**Memory Characteristics**:
+- Python 3.10+: ~400-800 bytes per instance (`slots=True`)
+- Python 3.9: ~1-2KB per instance (no slots support)
+- 100 instances: ~40-200KB total
 
 ---
 
-## Data Flow
+### 2. Skill (Tier 2 - Full with Lazy Content)
 
-### Discovery Phase
-```
-Filesystem
-    ↓
-SkillDiscovery.discover_skills()
-    ↓ (List[Path])
-SkillParser.parse_skill_file()
-    ↓ (SkillMetadata)
-SkillManager._skills[name] = metadata
+**Purpose**: Represents a fully loaded skill with content. Content is loaded on-demand via `@cached_property` for efficiency.
+
+**Definition**:
+```python
+from dataclasses import dataclass, field
+from functools import cached_property
+from pathlib import Path
+
+@dataclass(frozen=True, slots=True)  # slots=True requires Python 3.10+
+class Skill:
+    """Full skill with lazy-loaded content.
+
+    Memory: ~400-800 bytes wrapper + ~50-200KB content (when loaded)
+    Content loading: On-demand via @cached_property
+    Processing: Via CompositeProcessor (base directory + arguments)
+
+    Note: For Python 3.9, remove slots=True from this class only.
+          SkillMetadata retains slots for memory optimization.
+    """
+
+    metadata: SkillMetadata
+    """Lightweight metadata from discovery phase."""
+
+    base_directory: Path
+    """Base directory context for skill execution."""
+
+    _processor: 'CompositeProcessor' = field(init=False, repr=False)
+    """Content processor chain (initialized in __post_init__)."""
+
+    def __post_init__(self):
+        """Initialize processor chain (avoids inline imports anti-pattern)."""
+        from skills_use.core.processors import (
+            CompositeProcessor,
+            BaseDirectoryProcessor,
+            ArgumentSubstitutionProcessor
+        )
+
+        # Use object.__setattr__ because dataclass is frozen
+        object.__setattr__(
+            self,
+            '_processor',
+            CompositeProcessor([
+                BaseDirectoryProcessor(),
+                ArgumentSubstitutionProcessor()
+            ])
+        )
+
+    @cached_property
+    def content(self) -> str:
+        """Lazy load content only when accessed.
+
+        Raises:
+            ContentLoadError: If file cannot be read (deleted, permissions, encoding)
+        """
+        from skills_use.core.exceptions import ContentLoadError
+
+        try:
+            return self.metadata.skill_path.read_text(encoding="utf-8")
+        except FileNotFoundError as e:
+            raise ContentLoadError(
+                f"Skill file not found: {self.metadata.skill_path}. "
+                f"File may have been deleted after discovery."
+            ) from e
+        except PermissionError as e:
+            raise ContentLoadError(
+                f"Permission denied reading skill: {self.metadata.skill_path}"
+            ) from e
+        except UnicodeDecodeError as e:
+            raise ContentLoadError(
+                f"Skill file contains invalid UTF-8: {self.metadata.skill_path}"
+            ) from e
+
+    def invoke(self, arguments: str = "") -> str:
+        """Process skill content with arguments.
+
+        Args:
+            arguments: User-provided arguments for skill invocation
+
+        Returns:
+            Processed skill content with base directory + argument substitution
+
+        Raises:
+            ContentLoadError: If content cannot be loaded
+            ArgumentProcessingError: If argument processing fails
+            SizeLimitExceededError: If arguments exceed 1MB
+        """
+        context = {
+            "arguments": arguments,
+            "base_directory": str(self.base_directory),
+            "skill_name": self.metadata.name
+        }
+        return self._processor.process(self.content, context)
 ```
 
-### Invocation Phase
-```
-User calls manager.invoke_skill(name, arguments)
-    ↓
-SkillManager.get_skill(name) → SkillMetadata
-    ↓
-SkillParser.load_full_content(path) → str
-    ↓
-Create Skill(metadata, content, base_directory)
-    ↓
-process_skill_content(skill, arguments) → str
-    ↓
-Return processed content to user
+**Attributes**:
+- `metadata` (SkillMetadata, required): Lightweight metadata from discovery
+- `base_directory` (Path, required): Base directory for skill context
+- `_processor` (CompositeProcessor, internal): Content processing chain
+- `content` (str, lazy property): Full SKILL.md markdown content
+
+**Validation Rules**:
+- ✅ Content loaded with UTF-8 encoding (security requirement)
+- ✅ Content cached after first access (`@cached_property`)
+- ✅ Processor chain initialized in `__post_init__` (not inline)
+- ✅ Immutable after construction (`frozen=True`)
+
+**Memory Characteristics**:
+- Wrapper: ~400-800 bytes (Python 3.10+), ~1-2KB (Python 3.9)
+- Content: ~50-200KB per skill (only when `content` property accessed)
+- 100 skills with 10% usage: ~2-2.5MB total (80% reduction vs eager loading)
+
+**State Lifecycle**:
+1. **Discovered**: SkillMetadata created, no content loaded
+2. **Loaded**: Skill instance created, content still not loaded
+3. **Invoked**: `content` property accessed, file read and cached
+4. **Processed**: `invoke()` called, content transformed with arguments
+
+---
+
+### 3. SkillManager (Orchestration Layer)
+
+**Purpose**: Central registry managing skill discovery, access, and invocation. Single entry point for all skill operations.
+
+**Definition**:
+```python
+from pathlib import Path
+from typing import List, Dict
+
+class SkillManager:
+    """Central skill registry with discovery and invocation capabilities.
+
+    Discovery: Graceful degradation (log errors, continue processing)
+    Invocation: Strict validation (raise specific exceptions)
+    Thread-safety: Not guaranteed in v0.1 (single-threaded usage assumed)
+    """
+
+    def __init__(self, skills_dir: Path | None = None):
+        """Initialize skill manager.
+
+        Args:
+            skills_dir: Path to skills directory (default: ~/.claude/skills/)
+        """
+        from pathlib import Path
+
+        if skills_dir is None:
+            skills_dir = Path.home() / ".claude" / "skills"
+
+        self.skills_dir = skills_dir
+        self._skills: Dict[str, SkillMetadata] = {}
+        self._parser = SkillParser()
+        self._discovery = SkillDiscovery()
+
+    def discover(self) -> None:
+        """Discover skills from skills_dir (graceful degradation)."""
+        # Implementation: See contracts/public-api.md
+        pass
+
+    def list_skills(self) -> List[SkillMetadata]:
+        """Return all discovered skill metadata (lightweight)."""
+        return list(self._skills.values())
+
+    def get_skill(self, name: str) -> SkillMetadata:
+        """Get skill metadata by name (strict validation).
+
+        Raises:
+            SkillNotFoundError: If skill name not in registry
+        """
+        # Implementation: See contracts/public-api.md
+        pass
+
+    def load_skill(self, name: str) -> Skill:
+        """Load full skill instance (content loaded lazily)."""
+        # Implementation: See contracts/public-api.md
+        pass
+
+    def invoke_skill(self, name: str, arguments: str = "") -> str:
+        """Load and invoke skill in one call (convenience method)."""
+        # Implementation: See contracts/public-api.md
+        pass
 ```
 
-### LangChain Integration
+**Attributes**:
+- `skills_dir` (Path): Root directory for skill discovery
+- `_skills` (Dict[str, SkillMetadata]): Internal skill registry (name → metadata)
+- `_parser` (SkillParser): YAML frontmatter parser
+- `_discovery` (SkillDiscovery): Filesystem scanner
+
+**Validation Rules**:
+- ✅ Discovery: Continue on individual skill errors (graceful degradation)
+- ✅ Invocation: Raise exceptions on errors (strict validation)
+- ✅ Duplicate names: First discovered skill wins, log WARNING
+- ✅ Empty directory: Return empty list, log INFO
+
+---
+
+### 4. ContentProcessor (Strategy Pattern)
+
+**Purpose**: Provides pluggable content processing strategies. Enables composition of processing steps (base directory injection, argument substitution, future extensions).
+
+**Definition**:
+```python
+from abc import ABC, abstractmethod
+
+class ContentProcessor(ABC):
+    """Abstract base for content processing strategies."""
+
+    @abstractmethod
+    def process(self, content: str, context: dict) -> str:
+        """Process content with given context.
+
+        Args:
+            content: Raw skill content
+            context: Processing context (arguments, base_directory, skill_name)
+
+        Returns:
+            Processed content
+
+        Raises:
+            Various processing-specific exceptions
+        """
+        pass
+
+class BaseDirectoryProcessor(ContentProcessor):
+    """Injects base directory context at beginning."""
+
+    def process(self, content: str, context: dict) -> str:
+        base_dir = context.get("base_directory", "")
+        return f"Base directory for this skill: {base_dir}\n\n{content}"
+
+class ArgumentSubstitutionProcessor(ContentProcessor):
+    """Handles $ARGUMENTS placeholder using string.Template."""
+
+    PLACEHOLDER_NAME = "ARGUMENTS"
+    MAX_ARGUMENT_LENGTH = 1_000_000  # 1MB
+
+    def process(self, content: str, context: dict) -> str:
+        # Implementation: See research.md Decision 3
+        pass
+
+class CompositeProcessor(ContentProcessor):
+    """Chains multiple processors in order."""
+
+    def __init__(self, processors: list[ContentProcessor]):
+        self.processors = processors
+
+    def process(self, content: str, context: dict) -> str:
+        result = content
+        for processor in self.processors:
+            result = processor.process(result, context)
+        return result
 ```
-create_langchain_tools(manager)
-    ↓
-manager.list_skills() → List[SkillMetadata]
-    ↓
-For each metadata:
-    Create StructuredTool(name, description, func, args_schema)
-    ↓
-Return List[StructuredTool]
+
+**Design Benefits**:
+- ✅ Single Responsibility: Each processor handles one concern
+- ✅ Open/Closed Principle: Add new processors without modifying existing
+- ✅ Testability: Each processor tested in isolation
+- ✅ Extensibility: Chain processors in any order
+
+---
+
+## Entity Relationships
+
 ```
+SkillManager (1) ──discovers──> (N) SkillMetadata
+     │
+     └──loads──> (N) Skill
+                   │
+                   ├──contains──> (1) SkillMetadata
+                   └──processes_via──> (1) CompositeProcessor
+                                           │
+                                           └──chains──> (N) ContentProcessor
+```
+
+**Cardinality**:
+- SkillManager : SkillMetadata = 1 : N (one manager, many skills)
+- SkillManager : Skill = 1 : N (manager loads many skills on-demand)
+- Skill : SkillMetadata = 1 : 1 (each skill has one metadata)
+- CompositeProcessor : ContentProcessor = 1 : N (one composite, many strategies)
+
+**Ownership**:
+- SkillManager owns SkillMetadata instances (stored in `_skills` dict)
+- Skill references SkillMetadata (composition, not ownership)
+- Skill owns CompositeProcessor (created in `__post_init__`)
+
+---
+
+## State Transitions
+
+### Skill Discovery Lifecycle
+
+```
+[Filesystem] → [Discovery] → [Parsing] → [Validation] → [Registry]
+     │              │            │            │              │
+     │              ├─error──────┴────log─────┘              │
+     │              └─continue_with_next──────────────────────┘
+     │
+     └─empty_dir────────────────────────────────────────────>[]
+```
+
+**States**:
+1. **Undiscovered**: Skill exists on filesystem, not yet scanned
+2. **Discovered**: SkillMetadata created, stored in registry
+3. **Error**: Parsing failed, logged and skipped (graceful degradation)
+
+### Skill Invocation Lifecycle
+
+```
+[Get Metadata] → [Load Skill] → [Access Content] → [Process] → [Return]
+       │              │                │              │
+       └─not_found────┴─exception──────┴──exception───┘
+```
+
+**States**:
+1. **Metadata Retrieved**: SkillManager.get_skill(name) succeeds
+2. **Skill Loaded**: Skill instance created (content not yet loaded)
+3. **Content Loaded**: `content` property accessed, file read and cached
+4. **Processed**: `invoke()` called, content transformed with context
+5. **Returned**: Processed string returned to caller
 
 ---
 
 ## Validation Rules Summary
 
 ### SkillMetadata Validation
-- ✅ `name`: Non-empty string
-- ✅ `description`: Non-empty string
-- ✅ `skill_path`: Valid Path object
-- ⚠️ `allowed_tools`: None or list of strings (warning if invalid)
+- ✅ `name` non-empty after `.strip()`
+- ✅ `description` non-empty after `.strip()`
+- ✅ `skill_path` exists on filesystem
+- ✅ `allowed_tools` is tuple of strings (empty tuple if missing)
+- ✅ Immutable after construction
 
-### SKILL.md Validation
-- ✅ Frontmatter delimiters (`---`) present
-- ✅ Valid YAML between delimiters
-- ✅ Required fields: `name`, `description`
-- ✅ UTF-8 encoding
+### Skill Validation
+- ✅ Content encoding UTF-8 with BOM auto-stripping (`utf-8-sig`)
+- ✅ Content cached after first access
+- ✅ Processor chain initialized correctly
+- ✅ Immutable after construction
 
 ### Invocation Validation
-- ✅ Skill must exist in registry (raises SkillNotFoundError)
-- ✅ Content must be loadable (raises SkillParsingError)
-- ✅ Arguments can be any string (including empty)
+- ✅ Skill name exists in registry (raise SkillNotFoundError)
+- ✅ Arguments size ≤ 1MB (raise SizeLimitExceededError)
+- ✅ Suspicious patterns logged (defense-in-depth, not blocked)
+- ✅ Content file readable (raise ContentLoadError)
+
+### YAML Frontmatter Validation
+- ✅ Delimiters present (`---` at start and end)
+- ✅ Valid YAML syntax (raise InvalidYAMLError with line/column)
+- ✅ Required fields present (`name`, `description`)
+- ✅ Optional fields well-formed (`allowed-tools` is list of strings)
+- ✅ Unknown fields ignored with DEBUG log (forward compatibility)
+
+---
+
+## Data Flow
+
+### Discovery Flow
+
+```
+1. SkillManager.discover()
+   └─> SkillDiscovery.scan(skills_dir)
+       └─> For each skill directory:
+           ├─> SkillParser.parse_skill_file(SKILL.md)
+           │   └─> Extract YAML frontmatter
+           │   └─> Validate required fields
+           │   └─> Create SkillMetadata
+           └─> Store in SkillManager._skills dict
+               (handle duplicates: log WARNING, keep first)
+```
+
+### Invocation Flow
+
+```
+2. SkillManager.invoke_skill(name, arguments)
+   └─> SkillManager.load_skill(name)
+       ├─> SkillManager.get_skill(name) → SkillMetadata
+       └─> Create Skill(metadata, base_directory)
+   └─> Skill.invoke(arguments)
+       ├─> Access Skill.content (lazy load, cache)
+       └─> CompositeProcessor.process(content, context)
+           ├─> BaseDirectoryProcessor.process()
+           └─> ArgumentSubstitutionProcessor.process()
+   └─> Return processed string
+```
+
+### LangChain Integration Flow
+
+```
+3. create_langchain_tools(manager)
+   └─> For each SkillMetadata in manager.list_skills():
+       └─> Create StructuredTool
+           ├─> name = metadata.name
+           ├─> description = metadata.description
+           ├─> args_schema = SkillInput (single string parameter)
+           └─> func = lambda args: manager.invoke_skill(name, args)
+               (with closure capture via default parameter)
+```
 
 ---
 
 ## Performance Characteristics
 
-| Entity | Memory Footprint | Load Time |
-|--------|------------------|-----------|
-| SkillMetadata | ~1-5KB | ~5-10ms (YAML parsing) |
-| Skill (full content) | ~50-200KB | ~10-20ms (file I/O) |
-| SkillManager (10 skills) | ~10-50KB | ~100ms (discovery phase) |
+### Memory Usage
+- **Discovery**: ~40-200KB for 100 skills (metadata only)
+- **Invocation**: +50-200KB per skill when content loaded
+- **Total (10% usage)**: ~2-2.5MB for 100 skills (80% reduction vs eager)
+
+### Latency
+- **Discovery**: ~5-10ms per skill (YAML parsing dominates)
+- **Invocation**: ~10-25ms overhead (10-20ms file I/O + 1-5ms processing)
+- **LLM inference**: ~2000-5000ms (dominates total latency)
+
+### Scalability
+- **Target**: 10-20 skills for v0.1 users
+- **Design supports**: 100+ skills via progressive disclosure
+- **Bottleneck**: Filesystem I/O during discovery (parallelization deferred to v0.3)
 
 ---
 
-## Future Extensions (v0.2+)
+## Python Version Compatibility
 
-### Planned Additions
-- **SkillCache**: TTL-based content caching (v0.3)
-- **SkillValidator**: Tool restriction enforcement (v0.2)
-- **AsyncSkillManager**: Async methods (`adiscover`, `ainvoke_skill`) (v0.2)
-- **SkillMetrics**: Invocation tracking, performance monitoring (v0.3)
+**Python 3.10+ (Recommended)**:
+- Full `slots=True` support on both SkillMetadata and Skill
+- Memory: ~2.0MB for 100 skills with 10% usage
+- Performance: Optimal
 
-### Not In Scope for v0.1
-- ❌ Skill versioning
-- ❌ Skill dependencies
-- ❌ Skill marketplace integration
-- ❌ Multiple search paths
-- ❌ Plugin discovery
+**Python 3.9 (Supported)**:
+- `slots=True` on SkillMetadata only (remove from Skill class)
+- Memory: ~2.5MB for 100 skills with 10% usage (~25% increase)
+- Performance: Acceptable (still 80% reduction vs eager loading)
+
+**Rationale**: Minor memory trade-off acceptable to avoid attrs dependency (conflicts with zero-dependency core goal).
+
+---
+
+## Future Enhancements (Deferred)
+
+**v0.2**:
+- Async methods: `adiscover()`, `aload_skill()`, `ainvoke_skill()`
+- Enhanced error handling: More granular exception types
+- Caching: In-memory cache for frequently used skills
+
+**v0.3**:
+- Multiple search paths: Prioritized skill directories
+- Plugin integration: Dynamic skill loading from plugins
+- Tool restriction enforcement: Validate allowed-tools at runtime
+
+**v1.0**:
+- Nested directory support: Skills organized in subdirectories
+- Skill versioning: Version constraints and compatibility checks
+- Conflict resolution: Priority-based duplicate handling
 
 ---
 
 **Document Version**: 1.0
-**Last Updated**: November 3, 2025
-**Status**: Complete
+**Date**: November 4, 2025
+**Status**: Phase 1 Complete - Ready for contracts generation
