@@ -210,4 +210,5 @@ __marimo__/
 
 *.local.*
 
+.DS_Store
 */.DS_Store

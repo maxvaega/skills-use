@@ -285,6 +285,8 @@ skills-use/
 - **Modern packaging**: PEP 621 `pyproject.toml` with optional dependencies (`[langchain]`, `[dev]`)
 
 ## Active Technologies
+- Python 3.10+ (test on 3.10 using `python3` alias, validate compatibility with 3.9-3.12) (001-pytest-test-scripts)
+- Filesystem-based test fixtures in `tests/fixtures/skills/` (SKILL.md files) (001-pytest-test-scripts)
 
 ### Python Version (001-mvp-langchain-core)
 - **Minimum**: Python 3.10 (supported with minor memory trade-offs)

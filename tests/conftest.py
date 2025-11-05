@@ -1,80 +1,217 @@
-"""Shared pytest fixtures for skills-use tests."""
+"""
+Shared pytest fixtures and configuration for skills-use test suite.
 
+This module provides:
+- temp_skills_dir: Temporary directory for test skills
+- skill_factory: Factory function for creating SKILL.md files programmatically
+- sample_skills: Pre-created set of 5 diverse sample skills
+- fixtures_dir: Path to static test fixtures
+- Helper functions for common assertions and complex skill creation
+"""
+
+import os
+import sys
 from pathlib import Path
+from typing import Any, Callable, List, Optional
 
 import pytest
+
+from skills_use.core.models import SkillMetadata
+
+
+@pytest.fixture
+def temp_skills_dir(tmp_path: Path) -> Path:
+    """
+    Create temporary skills directory for testing.
+
+    Returns:
+        Path: Path to temporary skills directory (automatically cleaned up after test)
+    """
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    return skills_dir
+
+
+@pytest.fixture
+def skill_factory(temp_skills_dir: Path) -> Callable[..., Path]:
+    """
+    Factory for creating test SKILL.md files programmatically.
+
+    Args:
+        temp_skills_dir: Temporary skills directory fixture
+
+    Returns:
+        Callable: Function that creates SKILL.md files
+
+    Example:
+        >>> skill_dir = skill_factory("my-skill", "My test skill", "Content here")
+        >>> assert (skill_dir / "SKILL.md").exists()
+    """
+    created_skills: List[Path] = []
+
+    def _create_skill(
+        name: str,
+        description: str,
+        content: str,
+        allowed_tools: Optional[List[str]] = None,
+        **extra_frontmatter: Any,
+    ) -> Path:
+        """
+        Create a SKILL.md file in temp directory.
+
+        Args:
+            name: Skill name (frontmatter field)
+            description: Skill description (frontmatter field)
+            content: Skill content body (after frontmatter)
+            allowed_tools: Optional list of allowed tools
+            **extra_frontmatter: Additional YAML fields to include
+
+        Returns:
+            Path: Path to created skill directory
+
+        Raises:
+            ValueError: If skill directory already exists
+        """
+        skill_dir = temp_skills_dir / name
+        if skill_dir.exists():
+            raise ValueError(f"Skill {name} already exists in temp directory")
+
+        skill_dir.mkdir()
+        skill_file = skill_dir / "SKILL.md"
+
+        # Build YAML frontmatter
+        frontmatter_lines = ["---", f"name: {name}", f"description: {description}"]
+
+        if allowed_tools:
+            frontmatter_lines.append(f"allowed-tools: {allowed_tools}")
+
+        for key, value in extra_frontmatter.items():
+            frontmatter_lines.append(f"{key}: {value}")
+
+        frontmatter_lines.append("---")
+        frontmatter = "\n".join(frontmatter_lines)
+
+        # Write file
+        skill_file.write_text(f"{frontmatter}\n\n{content}", encoding="utf-8")
+        created_skills.append(skill_dir)
+
+        return skill_dir
+
+    return _create_skill
+
+
+@pytest.fixture
+def sample_skills(skill_factory: Callable[..., Path]) -> List[Path]:
+    """
+    Create 5 diverse sample skills for discovery tests.
+
+    Returns:
+        List[Path]: List of paths to created skill directories
+    """
+    skills = [
+        skill_factory("skill-1", "First skill", "Content 1"),
+        skill_factory("skill-2", "Second skill", "Content 2 with $ARGUMENTS"),
+        skill_factory("skill-3", "Third skill", "Unicode content: 你好 🎉"),
+        skill_factory("skill-4", "Fourth skill", "Long content " * 100),
+        skill_factory("skill-5", "Fifth skill", "Special chars: <>&\"'"),
+    ]
+    return skills
 
 
 @pytest.fixture
 def fixtures_dir() -> Path:
-    """Return path to test fixtures directory.
+    """
+    Return path to static test fixtures directory.
 
     Returns:
-        Absolute path to tests/fixtures/ directory
+        Path: Path to tests/fixtures/skills/ directory
     """
-    return Path(__file__).parent / "fixtures"
+    return Path(__file__).parent / "fixtures" / "skills"
 
 
-@pytest.fixture
-def skills_dir(fixtures_dir: Path) -> Path:
-    """Return path to test skills directory.
+# Helper Functions
+
+
+def assert_skill_metadata_valid(metadata: SkillMetadata) -> None:
+    """
+    Helper to validate SkillMetadata structure.
 
     Args:
-        fixtures_dir: Path to fixtures directory (from fixtures_dir fixture)
+        metadata: SkillMetadata instance to validate
 
-    Returns:
-        Absolute path to tests/fixtures/skills/ directory
+    Raises:
+        AssertionError: If metadata is invalid
     """
-    return fixtures_dir / "skills"
+    assert metadata.name, "Metadata name should not be empty"
+    assert metadata.description, "Metadata description should not be empty"
+    assert metadata.skill_path.exists(), f"Skill path {metadata.skill_path} should exist"
+    assert (
+        metadata.skill_path.name == "SKILL.md"
+    ), f"Skill path should end with SKILL.md, got {metadata.skill_path.name}"
 
 
-@pytest.fixture
-def valid_skill_path(skills_dir: Path) -> Path:
-    """Return path to valid skill fixture.
+def create_large_skill(temp_skills_dir: Path, size_kb: int = 500) -> Path:
+    """
+    Create a skill with large content (for lazy loading tests).
 
     Args:
-        skills_dir: Path to skills directory (from skills_dir fixture)
+        temp_skills_dir: Temporary skills directory
+        size_kb: Size of content in kilobytes (default: 500KB)
 
     Returns:
-        Absolute path to valid-skill/SKILL.md
+        Path: Path to created skill directory
     """
-    return skills_dir / "valid-skill" / "SKILL.md"
+    skill_dir = temp_skills_dir / "large-skill"
+    skill_dir.mkdir()
+    skill_file = skill_dir / "SKILL.md"
+
+    frontmatter = """---
+name: large-skill
+description: Large skill for testing lazy loading
+---
+
+"""
+    # Generate content to reach desired size
+    content_chunk = "This is a large skill content. " * 100  # ~3KB per chunk
+    chunks_needed = (size_kb * 1024) // len(content_chunk.encode("utf-8"))
+    large_content = content_chunk * chunks_needed
+
+    skill_file.write_text(frontmatter + large_content, encoding="utf-8")
+    return skill_dir
 
 
-@pytest.fixture
-def missing_name_skill_path(skills_dir: Path) -> Path:
-    """Return path to missing-name skill fixture.
+def create_permission_denied_skill(temp_skills_dir: Path) -> Path:
+    """
+    Create a skill with permission denied (Unix-only).
+
+    This function creates a SKILL.md file and removes all read permissions,
+    simulating a permission denied error during discovery.
 
     Args:
-        skills_dir: Path to skills directory (from skills_dir fixture)
+        temp_skills_dir: Temporary skills directory
 
     Returns:
-        Absolute path to missing-name-skill/SKILL.md
+        Path: Path to created skill directory
+
+    Note:
+        This function only works on Unix-like systems. Tests using this
+        should be marked with @pytest.mark.skipif(sys.platform == "win32")
     """
-    return skills_dir / "missing-name-skill" / "SKILL.md"
+    skill_dir = temp_skills_dir / "permission-denied-skill"
+    skill_dir.mkdir()
+    skill_file = skill_dir / "SKILL.md"
 
+    frontmatter = """---
+name: permission-denied-skill
+description: Skill with no read permissions
+---
 
-@pytest.fixture
-def invalid_yaml_skill_path(skills_dir: Path) -> Path:
-    """Return path to invalid-yaml skill fixture.
+This skill should trigger a permission error.
+"""
+    skill_file.write_text(frontmatter, encoding="utf-8")
 
-    Args:
-        skills_dir: Path to skills directory (from skills_dir fixture)
+    # Remove read permissions (Unix-only)
+    if sys.platform != "win32":
+        os.chmod(skill_file, 0o000)
 
-    Returns:
-        Absolute path to invalid-yaml-skill/SKILL.md
-    """
-    return skills_dir / "invalid-yaml-skill" / "SKILL.md"
-
-
-@pytest.fixture
-def arguments_test_skill_path(skills_dir: Path) -> Path:
-    """Return path to arguments-test skill fixture.
-
-    Args:
-        skills_dir: Path to skills directory (from skills_dir fixture)
-
-    Returns:
-        Absolute path to arguments-test-skill/SKILL.md
-    """
-    return skills_dir / "arguments-test-skill" / "SKILL.md"
+    return skill_dir

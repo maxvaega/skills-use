@@ -82,14 +82,18 @@ def create_langchain_tools(manager: "SkillManager") -> List[StructuredTool]:
     for skill_metadata in manager.list_skills():
         # CRITICAL: Use default parameter to capture skill name at function creation
         # Without this, all functions would reference the final loop value (Python late binding)
-        def invoke_skill(skill_input: SkillInput, skill_name: str = skill_metadata.name) -> str:
+        def invoke_skill(arguments: str = "", skill_name: str = skill_metadata.name) -> str:
             """Invoke skill with arguments.
 
             This function is created dynamically for each skill, with the skill
             name captured via default parameter to avoid late-binding issues.
 
+            Note: LangChain's StructuredTool unpacks the Pydantic model fields
+            as kwargs, so we accept 'arguments' as a kwarg directly rather than
+            receiving a SkillInput object.
+
             Args:
-                skill_input: Pydantic model containing arguments
+                arguments: Arguments to pass to the skill (from SkillInput.arguments)
                 skill_name: Skill name (captured from outer scope via default)
 
             Returns:
@@ -105,7 +109,7 @@ def create_langchain_tools(manager: "SkillManager") -> List[StructuredTool]:
             # 1. Let skills-use exceptions bubble up (detailed error messages)
             # 2. LangChain catches and formats them for agent
             # 3. Agent decides whether to retry or report to user
-            return manager.invoke_skill(skill_name, skill_input.arguments)
+            return manager.invoke_skill(skill_name, arguments)
 
         # Create StructuredTool with skill metadata
         tool = StructuredTool(

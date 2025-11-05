@@ -269,9 +269,12 @@ pip install -e ".[dev]"
 
 ### Run tests
 
+The project includes a comprehensive pytest-based test suite with 70%+ coverage validating core functionality, integrations, and edge cases.
+For detailed testing instructions, test organization, markers, and debugging tips, see **[tests/README.md](tests/README.md)**.
+
 ```bash
 pytest
-pytest --cov=skills_use --cov-report=html
+pytest --cov=src/skills_use --cov-report=html
 ```
 
 ### Type checking
