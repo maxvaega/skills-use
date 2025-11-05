@@ -30,19 +30,23 @@ class SkillManager:
         _discovery: Filesystem scanner
     """
 
-    def __init__(self, skills_dir: Path | None = None) -> None:
+    def __init__(self, skills_dir: Path | str | None = None) -> None:
         """Initialize skill manager.
 
         Args:
             skills_dir: Path to skills directory (default: ./.claude/skills/)
+                       Can be either a Path object or a string path.
 
         Example:
             >>> from pathlib import Path
             >>> manager = SkillManager()  # Uses ./.claude/skills/ (current directory)
             >>> custom_manager = SkillManager(Path("/custom/skills"))
+            >>> str_manager = SkillManager("/custom/skills")  # String also works
         """
         if skills_dir is None:
             skills_dir = Path.cwd() / ".claude" / "skills"
+        elif isinstance(skills_dir, str):
+            skills_dir = Path(skills_dir)
 
         self.skills_dir = skills_dir
         self._skills: Dict[str, SkillMetadata] = {}

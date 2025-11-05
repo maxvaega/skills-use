@@ -7,6 +7,33 @@
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each test category.
 
+---
+
+## 📊 Overall Progress (November 5, 2025)
+
+**Status**: 🔧 **89% Complete** - Core functionality validated, 8 API fixes remaining
+
+**Test Results**:
+- **Passing**: 65/73 tests (89%)
+- **Coverage**: 86.39% (exceeds 70% target by 16.39%) ✅
+- **Failing**: 8 tests (API mismatches between SkillMetadata and Skill objects)
+
+**Phase Completion**:
+- ✅ Phase 1: Setup (5/5 tasks - 100%)
+- ✅ Phase 2: Foundational (7/7 tasks - 100%)
+- ✅ Phase 3: User Story 1 - Core Functionality (34/34 tasks - 100%)
+- ✅ Phase 4: User Story 2 - LangChain Integration (10/10 tasks - 100%)
+- 🔧 Phase 5: User Story 3 - Edge Cases (11/11 tasks - implemented, 5 need fixes)
+- 🔧 Phase 6: User Story 4 - Performance (5/5 tasks - implemented, 3 need fixes)
+- ✅ Phase 7: User Story 5 - Installation (6/6 tasks - 100%)
+- 🔧 Phase 8: Polish (3/11 tasks - 27%)
+
+**Total**: 81/89 tasks complete (91%) + 8 fixes needed
+
+**Next Steps**: Fix 8 API mismatches → Full test validation → Coverage report → Documentation
+
+---
+
 ## Format: `- [ ] [ID] [P?] [Story?] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
@@ -49,7 +76,7 @@
 
 **Independent Test**: Run `pytest tests/test_discovery.py tests/test_parser.py tests/test_models.py tests/test_processors.py tests/test_manager.py -v` and verify all pass
 
-**Status**: 🔧 IN PROGRESS - Infrastructure complete, tests need API fixes
+**Status**: 🔧 IN PROGRESS - 86.39% coverage achieved, 65/73 tests passing, 8 tests need API fixes
 
 ### Static Test Fixtures for User Story 1 ✅ COMPLETE
 
@@ -150,20 +177,20 @@
 
 ### Additional Static Fixtures for User Story 3
 
-- [ ] T064 [P] [US3] Create `tests/fixtures/skills/edge-large-content/SKILL.md` (500KB+ content file using script)
-- [ ] T065 [P] [US3] Create `tests/fixtures/skills/edge-special-chars/SKILL.md` (arguments with <>& and injection patterns)
+- [X] T064 [P] [US3] Create `tests/fixtures/skills/edge-large-content/SKILL.md` (500KB+ content file using script)
+- [X] T065 [P] [US3] Create `tests/fixtures/skills/edge-special-chars/SKILL.md` (arguments with <>& and injection patterns)
 
 ### Edge Case Tests (test_edge_cases.py)
 
-- [ ] T066 [US3] Create `tests/test_edge_cases.py` with imports and file header
-- [ ] T067 [P] [US3] Write `test_missing_required_field_logs_error_and_continues` - validates discovery skips invalid skill with ERROR log
-- [ ] T068 [P] [US3] Write `test_invalid_yaml_syntax_raises_validation_error` - validates helpful error message for YAML errors
-- [ ] T069 [P] [US3] Write `test_content_load_error_when_file_deleted_after_discovery` - validates ContentLoadError with clear message
-- [ ] T070 [P] [US3] Write `test_duplicate_skill_names_first_wins_with_warning` - validates first skill wins, WARNING logged
-- [ ] T071 [P] [US3] Write `test_permission_denied_skill_logs_error_and_continues` (Unix-only with skipif) - validates graceful handling
-- [ ] T072 [P] [US3] Write `test_large_skill_lazy_loading_works` - validates 500KB+ content loads correctly
-- [ ] T073 [P] [US3] Write `test_symlink_in_skill_directory_handled` - validates symlinks followed/handled correctly
-- [ ] T074 [P] [US3] Write `test_windows_line_endings_handled_on_unix` - validates \r\n line endings work
+- [X] T066 [US3] Create `tests/test_edge_cases.py` with imports and file header
+- [X] T067 [P] [US3] Write `test_missing_required_field_logs_error_and_continues` - validates discovery skips invalid skill with ERROR log
+- [X] T068 [P] [US3] Write `test_invalid_yaml_syntax_raises_validation_error` - validates helpful error message for YAML errors
+- [X] T069 [P] [US3] Write `test_content_load_error_when_file_deleted_after_discovery` - validates ContentLoadError with clear message
+- [X] T070 [P] [US3] Write `test_duplicate_skill_names_first_wins_with_warning` - validates first skill wins, WARNING logged
+- [X] T071 [P] [US3] Write `test_permission_denied_skill_logs_error_and_continues` (Unix-only with skipif) - validates graceful handling
+- [X] T072 [P] [US3] Write `test_large_skill_lazy_loading_works` - validates 500KB+ content loads correctly
+- [X] T073 [P] [US3] Write `test_symlink_in_skill_directory_handled` - validates symlinks followed/handled correctly
+- [X] T074 [P] [US3] Write `test_windows_line_endings_handled_on_unix` - validates \r\n line endings work
 
 **Checkpoint**: All edge cases validated - library handles errors gracefully
 
@@ -177,11 +204,11 @@
 
 ### Performance Tests (test_performance.py)
 
-- [ ] T075 [US4] Create `tests/test_performance.py` with imports and performance marker
-- [ ] T076 [P] [US4] Write `test_discovery_time_50_skills` - validates discovery <500ms for 50 generated skills (using time.perf_counter)
-- [ ] T077 [P] [US4] Write `test_invocation_overhead_100_invocations` - validates avg <25ms for 100 sequential invocations
-- [ ] T078 [P] [US4] Write `test_memory_usage_50_skills_10_percent_usage` - validates <5MB memory for 50 skills with 10% loaded (sys.getsizeof)
-- [ ] T079 [P] [US4] Write `test_cache_effectiveness_no_repeated_file_reads` - validates content cached (mock file I/O or track calls)
+- [X] T075 [US4] Create `tests/test_performance.py` with imports and performance marker
+- [X] T076 [P] [US4] Write `test_discovery_time_50_skills` - validates discovery <500ms for 50 generated skills (using time.perf_counter)
+- [X] T077 [P] [US4] Write `test_invocation_overhead_100_invocations` - validates avg <25ms for 100 sequential invocations
+- [X] T078 [P] [US4] Write `test_memory_usage_50_skills_10_percent_usage` - validates <5MB memory for 50 skills with 10% loaded (sys.getsizeof)
+- [X] T079 [P] [US4] Write `test_cache_effectiveness_no_repeated_file_reads` - validates content cached (mock file I/O or track calls)
 
 **Checkpoint**: Performance validated - library meets documented targets
 
@@ -195,12 +222,12 @@
 
 ### Installation Tests (test_installation.py)
 
-- [ ] T080 [US5] Create `tests/test_installation.py` with imports and file header
-- [ ] T081 [P] [US5] Write `test_core_imports_without_extras` - validates `from skills_use import *` works without [langchain]
-- [ ] T082 [P] [US5] Write `test_langchain_import_with_extras` - validates `from skills_use.integrations.langchain import *` works with [langchain]
-- [ ] T083 [P] [US5] Write `test_langchain_import_fails_without_extras` - validates ImportError when langchain not installed
-- [ ] T084 [P] [US5] Write `test_package_version_metadata` - validates `skills_use.__version__ == "0.1.0"`
-- [ ] T085 [P] [US5] Write `test_package_metadata_attributes` - validates `__author__`, `__license__` attributes exist
+- [X] T080 [US5] Create `tests/test_installation.py` with imports and file header
+- [X] T081 [P] [US5] Write `test_core_imports_without_extras` - validates `from skills_use import *` works without [langchain]
+- [X] T082 [P] [US5] Write `test_langchain_import_with_extras` - validates `from skills_use.integrations.langchain import *` works with [langchain]
+- [X] T083 [P] [US5] Write `test_langchain_import_fails_without_extras` - validates ImportError when langchain not installed
+- [X] T084 [P] [US5] Write `test_package_version_metadata` - validates `skills_use.__version__ == "0.1.0"`
+- [X] T085 [P] [US5] Write `test_package_metadata_attributes` - validates `__author__`, `__license__` attributes exist
 
 **Checkpoint**: Installation validated - package structure correct
 
@@ -210,16 +237,37 @@
 
 **Purpose**: Final touches and validation across all test files
 
-- [ ] T086 [P] Add docstrings to all test functions explaining what they test
-- [ ] T087 [P] Review all test files for consistent naming conventions (test_<module>_<scenario>)
-- [ ] T088 [P] Add type hints to helper functions in conftest.py
-- [ ] T089 Run full test suite: `pytest -v` and verify all tests pass
-- [ ] T090 Run coverage check: `pytest --cov=src/skills_use --cov-fail-under=70` and verify >=70%
-- [ ] T091 Generate HTML coverage report: `pytest --cov=src/skills_use --cov-report=html` and review
-- [ ] T092 Test on Python 3.10 (default python3 alias) - all tests must pass
-- [ ] T093 [P] Validate quickstart.md examples work (run basic usage examples from docs)
-- [ ] T094 [P] Update README.md with "Running Tests" section referencing quickstart.md
-- [ ] T095 Final validation: Run `pytest -n auto` (parallel execution) and verify no flaky tests
+**Status**: 🔧 IN PROGRESS - 8 tests need API fixes, then final validation
+
+- [X] T086 [P] Add docstrings to all test functions explaining what they test
+- [X] T087 [P] Review all test files for consistent naming conventions (test_<module>_<scenario>)
+- [X] T088 [P] Add type hints to helper functions in conftest.py
+- [ ] T089 Fix remaining 8 API mismatches in edge case and performance tests
+- [ ] T090 Run full test suite: `pytest -v` and verify all tests pass
+- [ ] T091 Run coverage check: `pytest --cov=src/skills_use --cov-fail-under=70` and verify >=70% (currently 86.39% ✅)
+- [ ] T092 Generate HTML coverage report: `pytest --cov=src/skills_use --cov-report=html` and review
+- [ ] T093 Test on Python 3.10 (default python3 alias) - all tests must pass
+- [ ] T094 [P] Validate quickstart.md examples work (run basic usage examples from docs)
+- [ ] T095 [P] Update tests/README.md with current statistics
+- [ ] T096 Final validation: Run `pytest -n auto` (parallel execution) and verify no flaky tests
+
+### Remaining Fixes for T089
+
+**Issue**: Tests confusing `SkillMetadata` (from `list_skills()`) with `Skill` objects (from `get_skill()`)
+
+8 tests need to call `manager.get_skill(name)` before accessing `.content` or `.invoke()`:
+
+1. **test_edge_cases.py**:
+   - `test_missing_required_field_logs_error_and_continues` - Fix log assertion
+   - `test_content_load_error_when_file_deleted_after_discovery` - Use `get_skill()`
+   - `test_duplicate_skill_names_first_wins_with_warning` - Fix discovery logic
+   - `test_large_skill_lazy_loading_works` - Use `get_skill()`
+   - `test_windows_line_endings_handled_on_unix` - Fix metadata access
+
+2. **test_performance.py**:
+   - `test_invocation_overhead_100_invocations` - Already gets skill, check invoke call
+   - `test_memory_usage_50_skills_10_percent_usage` - Use `get_skill()` for content access
+   - `test_cache_effectiveness_no_repeated_file_reads` - Already gets skill, verify logic
 
 ---
 

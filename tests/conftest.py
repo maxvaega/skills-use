@@ -180,38 +180,45 @@ description: Large skill for testing lazy loading
     return skill_dir
 
 
-def create_permission_denied_skill(temp_skills_dir: Path) -> Path:
+@pytest.fixture
+def create_permission_denied_skill(temp_skills_dir: Path) -> Callable[[str], Path]:
     """
-    Create a skill with permission denied (Unix-only).
-
-    This function creates a SKILL.md file and removes all read permissions,
-    simulating a permission denied error during discovery.
-
-    Args:
-        temp_skills_dir: Temporary skills directory
+    Fixture that returns a factory for creating skills with permission denied (Unix-only).
 
     Returns:
-        Path: Path to created skill directory
+        Callable: Function that creates SKILL.md files with no read permissions
 
     Note:
         This function only works on Unix-like systems. Tests using this
         should be marked with @pytest.mark.skipif(sys.platform == "win32")
     """
-    skill_dir = temp_skills_dir / "permission-denied-skill"
-    skill_dir.mkdir()
-    skill_file = skill_dir / "SKILL.md"
 
-    frontmatter = """---
-name: permission-denied-skill
+    def _create_permission_denied(skill_name: str) -> Path:
+        """Create a skill with no read permissions.
+
+        Args:
+            skill_name: Name of the skill directory
+
+        Returns:
+            Path: Path to created skill directory
+        """
+        skill_dir = temp_skills_dir / skill_name
+        skill_dir.mkdir(exist_ok=True)
+        skill_file = skill_dir / "SKILL.md"
+
+        frontmatter = f"""---
+name: {skill_name}
 description: Skill with no read permissions
 ---
 
 This skill should trigger a permission error.
 """
-    skill_file.write_text(frontmatter, encoding="utf-8")
+        skill_file.write_text(frontmatter, encoding="utf-8")
 
-    # Remove read permissions (Unix-only)
-    if sys.platform != "win32":
-        os.chmod(skill_file, 0o000)
+        # Remove read permissions (Unix-only)
+        if sys.platform != "win32":
+            os.chmod(skill_file, 0o000)
 
-    return skill_dir
+        return skill_dir
+
+    return _create_permission_denied
