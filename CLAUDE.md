@@ -115,8 +115,8 @@ This project uses Python Python 3.10+ .
 
 **Virtual Environment Setup**:
 ```bash
-python3.10 -m venv venv
-source venv/bin/activate
+python3.10 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 

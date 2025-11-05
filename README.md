@@ -262,8 +262,8 @@ logging.getLogger('skillkit.core.discovery').setLevel(logging.DEBUG)
 ```bash
 git clone https://github.com/maxvaega/skillkit.git
 cd skillkit
-python3.10 -m venv venv
-source venv/bin/activate
+python3.10 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
@@ -355,17 +355,6 @@ For comprehensive contribution guidelines, including:
 - Bug reporting and feature requests
 
 Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed information.
-
-### Development Setup
-
-```bash
-git clone https://github.com/maxvaega/skillkit.git
-cd skillkit
-python3.10 -m venv venv
-source venv/bin/activate
-pip install -e ".[dev,langchain]"
-pytest
-```
 
 ## Support
 
