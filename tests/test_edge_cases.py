@@ -58,7 +58,11 @@ def test_missing_required_field_logs_error_and_continues(
     assert skills[0].name == "valid-skill"
 
     # Verify ERROR was logged for invalid skill
-    assert any("error" in record.message.lower() for record in caplog.records)
+    # Check both message and levelname since the error is in the exception message
+    assert any(
+        "error" in record.message.lower() or record.levelname == "ERROR"
+        for record in caplog.records
+    )
 
 
 def test_invalid_yaml_syntax_raises_validation_error(temp_skills_dir: Path):
@@ -92,7 +96,7 @@ def test_content_load_error_when_file_deleted_after_discovery(
 
     manager = SkillManager(str(temp_skills_dir))
     manager.discover()
-    skill = manager.get_skill("test-skill")
+    skill = manager.load_skill("test-skill")
 
     # Delete the skill file
     skill_path = temp_skills_dir / "test-skill" / "SKILL.md"
@@ -111,13 +115,14 @@ def test_duplicate_skill_names_first_wins_with_warning(
     """Test that first skill wins when duplicates exist, with WARNING logged."""
     # Create two skills with same name in different directories manually
     # (can't use skill_factory since it checks for duplicates)
-    dir1 = temp_skills_dir / "dir1" / "duplicate-skill"
+    # Use flat structure: immediate subdirectories of skills_dir
+    dir1 = temp_skills_dir / "duplicate-skill-first"
     dir1.mkdir(parents=True, exist_ok=True)
     (dir1 / "SKILL.md").write_text(
         "---\nname: duplicate-skill\ndescription: First skill\n---\nFirst content"
     )
 
-    dir2 = temp_skills_dir / "dir2" / "duplicate-skill"
+    dir2 = temp_skills_dir / "duplicate-skill-second"
     dir2.mkdir(parents=True, exist_ok=True)
     (dir2 / "SKILL.md").write_text(
         "---\nname: duplicate-skill\ndescription: Second skill\n---\nSecond content"
@@ -134,8 +139,8 @@ def test_duplicate_skill_names_first_wins_with_warning(
     assert skills[0].name == "duplicate-skill"
 
     # Verify first skill's description was kept
-    skill = manager.get_skill("duplicate-skill")
-    assert "First skill" in skill.metadata.description
+    metadata = manager.get_skill("duplicate-skill")
+    assert "First skill" in metadata.description
 
     # Verify WARNING was logged
     assert any("duplicate" in record.message.lower() for record in caplog.records)
@@ -179,7 +184,7 @@ def test_large_skill_lazy_loading_works(fixtures_dir: Path):
     # Discover and load skill
     manager = SkillManager(str(fixtures_dir))
     manager.discover()
-    skill = manager.get_skill("large-content-skill")
+    skill = manager.load_skill("large-content-skill")
 
     # Content should load successfully
     content = skill.content
@@ -227,7 +232,7 @@ def test_windows_line_endings_handled_on_unix(temp_skills_dir: Path):
     # Discover and load skill
     manager = SkillManager(str(temp_skills_dir))
     manager.discover()
-    skill = manager.get_skill("windows-skill")
+    skill = manager.load_skill("windows-skill")
 
     # Should parse correctly
     assert skill.metadata.name == "windows-skill"

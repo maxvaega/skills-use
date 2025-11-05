@@ -60,10 +60,10 @@ def test_invocation_overhead_100_invocations(temp_skills_dir: Path, skill_factor
         content="Result: $ARGUMENTS",
     )
 
-    # Discover and get skill
+    # Discover and load skill
     manager = SkillManager(str(temp_skills_dir))
     manager.discover()
-    skill = manager.get_skill("perf-skill")
+    skill = manager.load_skill("perf-skill")
 
     # First invocation to trigger content loading (not counted)
     _ = skill.invoke(arguments="warmup")
@@ -115,7 +115,7 @@ def test_memory_usage_50_skills_10_percent_usage(temp_skills_dir: Path, skill_fa
     # Load 10% of skills (5 skills)
     loaded_skills = []
     for i in range(5):
-        skill = manager.get_skill(f"mem-skill-{i:03d}")
+        skill = manager.load_skill(f"mem-skill-{i:03d}")
         _ = skill.content  # Force content loading
         loaded_skills.append(skill)
 
@@ -152,10 +152,10 @@ def test_cache_effectiveness_no_repeated_file_reads(
         content="Original content with $ARGUMENTS",
     )
 
-    # Discover and get skill
+    # Discover and load skill
     manager = SkillManager(str(temp_skills_dir))
     manager.discover()
-    skill = manager.get_skill("cache-skill")
+    skill = manager.load_skill("cache-skill")
 
     # Track file reads
     original_read_text = Path.read_text
