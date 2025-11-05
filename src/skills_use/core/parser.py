@@ -123,10 +123,11 @@ class SkillParser:
         except yaml.YAMLError as e:
             # Extract line/column if available
             line = getattr(e, "problem_mark", None)
+            problem = getattr(e, "problem", str(e))
             if line:
                 raise InvalidYAMLError(
                     f"Invalid YAML syntax in {skill_path} at line {line.line + 1}, "
-                    f"column {line.column + 1}: {e.problem}",
+                    f"column {line.column + 1}: {problem}",
                     line=line.line + 1,
                     column=line.column + 1,
                 ) from e

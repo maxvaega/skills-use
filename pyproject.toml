@@ -9,15 +9,24 @@ description = "Python library implementing Anthropic's Agent Skills functionalit
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Massimo Olivieri", email = "massimo@example.com"}
+    {name = "Massimo Olivieri", email = "olivmassimo@gmail.com"}
 ]
-requires-python = ">=3.9"
+keywords = [
+    "anthropic",
+    "claude",
+    "skills",
+    "agents",
+    "llm",
+    "langchain",
+    "ai",
+    "prompt-engineering",
+]
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -93,7 +102,7 @@ exclude_lines = [
 ]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -118,7 +127,7 @@ disallow_untyped_calls = false
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = [

@@ -335,12 +335,37 @@ MIT License - see LICENSE file for details.
 
 ## Contributing
 
-Contributions welcome! Please:
+We welcome contributions from the community! Whether you're fixing bugs, adding features, improving documentation, or creating new example skills, your help is appreciated.
+
+### Quick Start for Contributors
+
 1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes and add tests
 4. Ensure all tests pass (`pytest`)
-5. Submit a pull request
+5. Ensure code quality checks pass (`ruff check`, `mypy --strict`)
+6. Submit a pull request
+
+### Detailed Guidelines
+
+For comprehensive contribution guidelines, including:
+- Development environment setup
+- Code style and testing requirements
+- PR submission process
+- Bug reporting and feature requests
+
+Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed information.
+
+### Development Setup
+
+```bash
+git clone https://github.com/maxvaega/skills-use.git
+cd skills-use
+python3.10 -m venv venv
+source venv/bin/activate
+pip install -e ".[dev,langchain]"
+pytest
+```
 
 ## Support
 

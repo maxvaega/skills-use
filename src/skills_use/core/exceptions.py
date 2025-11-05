@@ -4,8 +4,6 @@ This module defines all custom exceptions used throughout the library,
 following a hierarchical structure for granular error handling.
 """
 
-from typing import Optional
-
 
 class SkillsUseError(Exception):
     """Base exception for all skills-use errors.
@@ -29,8 +27,8 @@ class InvalidYAMLError(SkillParsingError):
     def __init__(
         self,
         message: str,
-        line: Optional[int] = None,
-        column: Optional[int] = None,
+        line: int | None = None,
+        column: int | None = None,
     ) -> None:
         """Initialize InvalidYAMLError with line/column details.
 
@@ -51,7 +49,7 @@ class MissingRequiredFieldError(SkillParsingError):
         field_name: Name of missing field
     """
 
-    def __init__(self, message: str, field_name: Optional[str] = None) -> None:
+    def __init__(self, message: str, field_name: str | None = None) -> None:
         """Initialize MissingRequiredFieldError with field name.
 
         Args:
