@@ -143,6 +143,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+test_venv/
+.test_venv/
 
 # Spyder project settings
 .spyderproject
@@ -205,3 +207,5 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+*.local.*

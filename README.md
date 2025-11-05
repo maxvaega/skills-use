@@ -1,15 +1,40 @@
 # skills-use
 
-Python library implementing Anthropic's Agent Skills functionality, enabling LLM-powered agents to autonomously discover and utilize packaged expertise.
+Enables Anthropic's Agent Skills functionality to any python agent, unleashing LLM-powered agents to autonomously discover and utilize packaged expertise, regardless of their framework.
+Skills-use is compatible with existings skills (SKILL.md), so you can browse and use any skill available on the web
 
 ## Features
 
+- **Framework-free**: can be used without any framework, or with other frameworks (currently only compatible with LangChain - more coming in the future!)
 - **Multi-source skill discovery** from local directories
 - **YAML frontmatter parsing** with comprehensive validation
 - **Progressive disclosure pattern** (metadata-first loading, 80% memory reduction)
-- **Framework integrations**: LangChain (more coming in v0.2+)
 - **Security features**: Input validation, size limits, suspicious pattern detection
-- **Model-agnostic design**: Works with Claude, GPT, Gemini, and open-source LLMs
+- **Model-agnostic design**: Works with any LLM
+
+## Why Skills Matter?
+
+### What Skills Are
+
+**Agent Skills** are modular capability packages that work like "onboarding guides" for AI. Each skill is a folder containing a **SKILL.md** file (with YAML metadata + Markdown instructions) plus optional supporting files like scripts, templates, and documentation. The Agent autonomously discovers and loads skills based on task relevance using a progressive disclosure model—first reading just the name/description metadata, then the full SKILL.md if needed, and finally any referenced files only when required.
+
+---
+
+### Why Skills Matter
+
+**-  Transform AI from assistant to operational team member** — Skills let you encode your organization's procedural knowledge, workflows, and domain expertise into reusable capabilities that Claude can invoke autonomously. Instead of repeatedly prompting Claude with the same context, you create persistent "muscle memory" that integrates AI into real business processes, making it a specialized professional rather than a generic chatbot.
+
+**-  Achieve scalable efficiency through progressive disclosure** — Unlike traditional prompting where everything loads into context, skills use a three-tier discovery system (metadata → full instructions → supplementary files) that **keeps Claude's context window lean**. This architecture allows unlimited expertise to be available without token bloat, dramatically **reducing running costs** while supporting dozens of skills simultaneously.
+
+**-  Combine AI reasoning with deterministic code execution** — Skills can bundle Python scripts and executables alongside natural language instructions, letting Claude use traditional programming for tasks where LLMs are wasteful or unreliable (like sorting lists, filling PDF forms, or data transformations). This hybrid approach delivers the reliability of code with the flexibility of AI reasoning, ensuring consistent, auditable results for mission-critical operations. ⚠️ **Warning** Code execution feature is not currently active and will be released in future versions of skills-use
+
+### Where can i find ready-to-use skills?
+
+The web is full of great skills! here are some repositories you can check out:
+- [Anthropic Skills Library](https://github.com/anthropics/skills)
+- [Claude-Plugins.dev Library](https://claude-plugins.dev/skills)
+- [travisvn/awesome-claude-skills repo](https://github.com/travisvn/awesome-claude-skills)
+- [maxvaega/awesome-skills repo](https://github.com/maxvaega/awesome-skills)
 
 ## Installation
 
