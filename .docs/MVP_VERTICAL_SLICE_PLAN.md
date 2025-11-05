@@ -813,7 +813,7 @@ Status: ⏳ to be started
 - ReadTheDocs documentation site (DR-3, DR-4)
 - Comprehensive user guides and tutorials (DR-5)
 - Changelog and migration guide (DR-7)
-- Multi-version Python testing (3.8, 3.9, 3.10, 3.11, 3.12)
+- Multi-version Python testing (3.10, 3.11, 3.12)
 - Code quality badges (coverage, tests, PyPI version)
 - Security audit and documentation (DR-11)
 - 90%+ test coverage
@@ -862,7 +862,7 @@ Status: ⏳ to be started
 - ✅ All core functionality working (discovery, parsing, invocation, LangChain)
 - ✅ 70%+ test coverage
 - ✅ Zero critical bugs in core paths
-- ✅ Works with Python 3.9+ (no multi-version testing yet)
+- ✅ Works with Python 3.10+ (no multi-version testing yet)
 
 **User Metrics:**
 - ✅ 3-5 beta testers successfully install and use

@@ -796,7 +796,7 @@ def test_nullhandler_configured():
 ---
 name: skill-name
 description: Brief description of skill purpose
-allowed-tools: ["tool1", "tool2"]  # Optional
+allowed-tools: Tool1, Tool2  # Optional
 ---
 
 Markdown content with $ARGUMENTS placeholder.
@@ -985,7 +985,7 @@ InvalidFrontmatterError(SkillParsingError)
 ---
 name: skill-v2
 description: Uses v0.2 features
-allowed-tools: ["read"]
+allowed-tools: Read
 cache-ttl: 300  # v0.2 feature - v0.1 ignores without error (DEBUG log)
 async-mode: true  # v0.2 feature - v0.1 ignores without error (DEBUG log)
 ---

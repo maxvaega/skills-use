@@ -63,7 +63,7 @@ Create `~/.claude/skills/code-reviewer/SKILL.md`:
 ---
 name: code-reviewer
 description: Reviews Python code for common mistakes and bugs
-allowed-tools: ["read", "grep"]
+allowed-tools: Read, Grep
 ---
 
 You are an expert Python code reviewer.
@@ -314,7 +314,7 @@ result = manager.invoke_skill(
 ---
 name: markdown-formatter
 description: Formats and validates markdown documents
-allowed-tools: ["read", "write"]
+allowed-tools: Read, Write
 ---
 
 You are a markdown formatting expert.
@@ -340,7 +340,7 @@ Return the corrected markdown.
 ---
 name: git-helper
 description: Helps with git commands and workflows
-allowed-tools: ["bash"]
+allowed-tools: Bash
 ---
 
 You are a git expert assistant.

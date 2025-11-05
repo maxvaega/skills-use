@@ -368,7 +368,7 @@ class SkillParser:
 ---
 name: skill-name
 description: Brief description
-allowed-tools: ["tool1", "tool2"]
+allowed-tools: Tool1, Tool2
 ---
 
 Skill content in markdown format.
@@ -958,7 +958,7 @@ disallow_untyped_defs = false
 - `dev` extra: pytest, coverage, linting, type checking
 - `all` extra: everything
 
-**Python Support:** 3.9+ (modern but not bleeding-edge)
+**Python Support:** 3.10+ (modern but not bleeding-edge)
 
 **Installation:**
 ```bash
@@ -1432,7 +1432,7 @@ def test_langchain_tool_error_handling()
 ---
 name: code-reviewer
 description: Reviews Python code for common mistakes
-allowed-tools: ["read", "grep"]
+allowed-tools: Read, Grep
 ---
 
 You are a code reviewer. Review the following code for:
@@ -1482,7 +1482,7 @@ open htmlcov/index.html
 **Deferred to v0.2:**
 - GitHub Actions workflow
 - Automated testing on push/PR
-- Multi-version Python testing (3.9, 3.10, 3.11, 3.12)
+- Multi-version Python testing (3.10, 3.11, 3.12)
 - Coverage reporting
 - PyPI publishing automation
 
@@ -1757,7 +1757,7 @@ if tool_name not in skill.metadata.allowed_tools:
 
 1. **Review this specification** - Ensure alignment with MVP plan
 2. **Setup development environment**
-   - Python 3.9+ virtual environment
+   - Python 3.10+ virtual environment
    - Install dev dependencies
    - Configure IDE (VSCode/PyCharm)
 3. **Create project structure** - Initialize repository

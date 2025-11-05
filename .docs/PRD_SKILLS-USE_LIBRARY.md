@@ -2056,7 +2056,7 @@ CrewAI is a lean, lightning-fast Python framework built entirely from scratch fo
 
 - Automated testing on every PR and push
 - Test matrix:
-  - Python versions: 3.8, 3.9, 3.10, 3.11, 3.12
+  - Python versions: 3.10, 3.11, 3.12
   - Operating systems: Ubuntu, macOS, Windows
   - Optional: Test with minimum vs latest dependencies
 - Linting with ruff or flake8
@@ -2113,7 +2113,7 @@ CrewAI is a lean, lightning-fast Python framework built entirely from scratch fo
 9.2. **Multi-Version Testing**
 
 - Test on all supported Python versions in CI
-- Test on Python 3.8, 3.9, 3.10, 3.11, 3.12
+- Test on Python 3.10, 3.11, 3.12
 - Consider testing on pre-release Python versions (optional)
 
 9.3. **Version Deprecation Policy**

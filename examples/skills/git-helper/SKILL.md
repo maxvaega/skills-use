@@ -1,8 +1,7 @@
 ---
 name: git-helper
 description: Generate git commit messages and help with git workflows
-allowed-tools:
-  - bash
+allowed-tools: Bash
 ---
 
 # Git Helper Skill

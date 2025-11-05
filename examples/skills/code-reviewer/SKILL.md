@@ -1,9 +1,7 @@
 ---
 name: code-reviewer
 description: Review code for best practices, potential bugs, security vulnerabilities, and performance issues
-allowed-tools:
-  - read
-  - grep
+allowed-tools: Read, Grep
 ---
 
 # Code Reviewer Skill

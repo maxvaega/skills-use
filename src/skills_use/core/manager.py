@@ -34,15 +34,15 @@ class SkillManager:
         """Initialize skill manager.
 
         Args:
-            skills_dir: Path to skills directory (default: ~/.claude/skills/)
+            skills_dir: Path to skills directory (default: ./.claude/skills/)
 
         Example:
             >>> from pathlib import Path
-            >>> manager = SkillManager()  # Uses ~/.claude/skills/
+            >>> manager = SkillManager()  # Uses ./.claude/skills/ (current directory)
             >>> custom_manager = SkillManager(Path("/custom/skills"))
         """
         if skills_dir is None:
-            skills_dir = Path.home() / ".claude" / "skills"
+            skills_dir = Path.cwd() / ".claude" / "skills"
 
         self.skills_dir = skills_dir
         self._skills: Dict[str, SkillMetadata] = {}

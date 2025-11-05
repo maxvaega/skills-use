@@ -207,7 +207,7 @@ Read in this order to understand the v0.1 MVP implementation:
 
 ## Development Environment
 
-This project uses Python 3.9+ (Python 3.10+ recommended for optimal memory efficiency).
+This project uses Python Python 3.10+ .
 
 **Virtual Environment Setup**:
 ```bash
@@ -287,7 +287,7 @@ skills-use/
 ## Active Technologies
 
 ### Python Version (001-mvp-langchain-core)
-- **Minimum**: Python 3.9 (supported with minor memory trade-offs)
+- **Minimum**: Python 3.10 (supported with minor memory trade-offs)
 - **Recommended**: Python 3.10+ (optimal memory efficiency via slots + cached_property)
 - **Memory impact**: Python 3.10+ provides 60% memory reduction per instance via `slots=True`
 

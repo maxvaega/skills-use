@@ -12,13 +12,13 @@ Skills-use is compatible with existings skills (SKILL.md), so you can browse and
 - **Security features**: Input validation, size limits, suspicious pattern detection
 - **Model-agnostic design**: Works with any LLM
 
+---
+
 ## Why Skills Matter?
 
 ### What Skills Are
 
 **Agent Skills** are modular capability packages that work like "onboarding guides" for AI. Each skill is a folder containing a **SKILL.md** file (with YAML metadata + Markdown instructions) plus optional supporting files like scripts, templates, and documentation. The Agent autonomously discovers and loads skills based on task relevance using a progressive disclosure model—first reading just the name/description metadata, then the full SKILL.md if needed, and finally any referenced files only when required.
-
----
 
 ### Why Skills Matter
 
@@ -35,6 +35,8 @@ The web is full of great skills! here are some repositories you can check out:
 - [Claude-Plugins.dev Library](https://claude-plugins.dev/skills)
 - [travisvn/awesome-claude-skills repo](https://github.com/travisvn/awesome-claude-skills)
 - [maxvaega/awesome-skills repo](https://github.com/maxvaega/awesome-skills)
+
+---
 
 ## Installation
 
@@ -70,9 +72,7 @@ SKILL.md format:
 ---
 name: code-reviewer
 description: Review code for best practices and potential issues
-allowed-tools:
-  - read
-  - grep
+allowed-tools: Read, Grep
 ---
 
 # Code Reviewer Skill
@@ -148,9 +148,7 @@ result = agent_executor.invoke({"input": "Review my code for security issues"})
 ---
 name: git-helper
 description: Generate git commit messages and workflow guidance
-allowed-tools:
-  - bash
-  - read
+allowed-tools: Bash, Read
 ---
 
 # Git Helper Skill
@@ -253,7 +251,7 @@ logging.getLogger('skills_use.core.discovery').setLevel(logging.DEBUG)
 
 ## Requirements
 
-- **Python**: 3.9+ (3.10+ recommended)
+- **Python**: 3.10+
 - **Core dependencies**: PyYAML 6.0+
 - **Optional**: langchain-core 0.1.0+, pydantic 2.0+ (for LangChain integration)
 
