@@ -1,4 +1,4 @@
-# Data Model: Skills-use v0.1 MVP
+# Data Model: skillkit v0.1 MVP
 
 **Feature**: Core Functionality & LangChain Integration
 **Branch**: `001-mvp-langchain-core`
@@ -6,7 +6,7 @@
 
 ## Overview
 
-This document defines the core data model for the skills-use library, including entities, relationships, validation rules, and state transitions. The design follows a two-tier progressive disclosure pattern for memory efficiency.
+This document defines the core data model for the skillkit library, including entities, relationships, validation rules, and state transitions. The design follows a two-tier progressive disclosure pattern for memory efficiency.
 
 ---
 
@@ -101,7 +101,7 @@ class Skill:
 
     def __post_init__(self):
         """Initialize processor chain (avoids inline imports anti-pattern)."""
-        from skills_use.core.processors import (
+        from skillkit.core.processors import (
             CompositeProcessor,
             BaseDirectoryProcessor,
             ArgumentSubstitutionProcessor
@@ -124,7 +124,7 @@ class Skill:
         Raises:
             ContentLoadError: If file cannot be read (deleted, permissions, encoding)
         """
-        from skills_use.core.exceptions import ContentLoadError
+        from skillkit.core.exceptions import ContentLoadError
 
         try:
             return self.metadata.skill_path.read_text(encoding="utf-8")

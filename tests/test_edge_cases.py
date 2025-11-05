@@ -1,5 +1,5 @@
 """
-Edge Case Tests for skills-use Library
+Edge Case Tests for skillkit Library
 
 Tests edge cases and error handling scenarios including:
 - Missing required fields
@@ -21,8 +21,8 @@ from pathlib import Path
 
 import pytest
 
-from skills_use.core.manager import SkillManager
-from skills_use.core.exceptions import (
+from skillkit.core.manager import SkillManager
+from skillkit.core.exceptions import (
     MissingRequiredFieldError,
     InvalidYAMLError,
     ContentLoadError,

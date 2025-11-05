@@ -7,9 +7,9 @@ retrieval, caching, and end-to-end invocation workflows.
 import pytest
 from pathlib import Path
 
-from skills_use.core.manager import SkillManager
-from skills_use.core.models import SkillMetadata, Skill
-from skills_use.core.exceptions import SkillNotFoundError, ContentLoadError
+from skillkit.core.manager import SkillManager
+from skillkit.core.models import SkillMetadata, Skill
+from skillkit.core.exceptions import SkillNotFoundError, ContentLoadError
 
 
 # T048: Create test_manager.py with imports and file header ✓

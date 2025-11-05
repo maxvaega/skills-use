@@ -1,5 +1,5 @@
 """
-Performance Tests for skills-use Library
+Performance Tests for skillkit Library
 
 Tests that library meets documented performance targets:
 - Discovery: <500ms for 50 skills
@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from skills_use.core.manager import SkillManager
+from skillkit.core.manager import SkillManager
 
 
 @pytest.mark.performance

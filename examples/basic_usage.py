@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Basic usage example for skills-use library.
+"""Basic usage example for skillkit library.
 
 This script demonstrates standalone usage without framework integration.
 """
@@ -7,7 +7,7 @@ This script demonstrates standalone usage without framework integration.
 import logging
 from pathlib import Path
 
-from skills_use import SkillManager
+from skillkit import SkillManager
 
 # Configure logging to see skill discovery and invocation
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(mes
 def main() -> None:
     """Demonstrate basic skill manager usage."""
     print("=" * 60)
-    print("Skills-use: Basic Usage Example")
+    print("skillkit: Basic Usage Example")
     print("=" * 60)
 
     # Use example skills from examples/skills/ directory

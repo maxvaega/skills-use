@@ -8,8 +8,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from skills_use.core.models import SkillMetadata, Skill
-from skills_use.core.exceptions import ContentLoadError
+from skillkit.core.models import SkillMetadata, Skill
+from skillkit.core.exceptions import ContentLoadError
 
 
 # T035: Create test_models.py with imports and file header ✓

@@ -1,7 +1,7 @@
-# skills-use
+# skillkit
 
 Enables Anthropic's Agent Skills functionality to any python agent, unleashing LLM-powered agents to autonomously discover and utilize packaged expertise, regardless of their framework.
-Skills-use is compatible with existings skills (SKILL.md), so you can browse and use any skill available on the web
+skillkit is compatible with existings skills (SKILL.md), so you can browse and use any skill available on the web
 
 ## Features
 
@@ -26,7 +26,7 @@ Skills-use is compatible with existings skills (SKILL.md), so you can browse and
 
 **-  Achieve scalable efficiency through progressive disclosure** — Unlike traditional prompting where everything loads into context, skills use a three-tier discovery system (metadata → full instructions → supplementary files) that **keeps Claude's context window lean**. This architecture allows unlimited expertise to be available without token bloat, dramatically **reducing running costs** while supporting dozens of skills simultaneously.
 
-**-  Combine AI reasoning with deterministic code execution** — Skills can bundle Python scripts and executables alongside natural language instructions, letting Claude use traditional programming for tasks where LLMs are wasteful or unreliable (like sorting lists, filling PDF forms, or data transformations). This hybrid approach delivers the reliability of code with the flexibility of AI reasoning, ensuring consistent, auditable results for mission-critical operations. ⚠️ **Warning** Code execution feature is not currently active and will be released in future versions of skills-use
+**-  Combine AI reasoning with deterministic code execution** — Skills can bundle Python scripts and executables alongside natural language instructions, letting Claude use traditional programming for tasks where LLMs are wasteful or unreliable (like sorting lists, filling PDF forms, or data transformations). This hybrid approach delivers the reliability of code with the flexibility of AI reasoning, ensuring consistent, auditable results for mission-critical operations. ⚠️ **Warning** Code execution feature is not currently active and will be released in future versions of skillkit
 
 ### Where can i find ready-to-use skills?
 
@@ -43,19 +43,19 @@ The web is full of great skills! here are some repositories you can check out:
 ### Core library
 
 ```bash
-pip install skills-use
+pip install skillkit
 ```
 
 ### With LangChain integration
 
 ```bash
-pip install skills-use[langchain]
+pip install skillkit[langchain]
 ```
 
 ### Development dependencies
 
 ```bash
-pip install skills-use[dev]
+pip install skillkit[dev]
 ```
 
 ## Quick Start
@@ -90,7 +90,7 @@ $ARGUMENTS
 ### 2. Use standalone (without frameworks)
 
 ```python
-from skills_use import SkillManager
+from skillkit import SkillManager
 
 # Create manager (defaults to ~/.claude/skills/)
 manager = SkillManager()
@@ -110,8 +110,8 @@ print(result)
 ### 3. Use with LangChain
 
 ```python
-from skills_use import SkillManager
-from skills_use.integrations.langchain import create_langchain_tools
+from skillkit import SkillManager
+from skillkit.integrations.langchain import create_langchain_tools
 from langchain.agents import create_react_agent, AgentExecutor
 from langchain_openai import ChatOpenAI
 
@@ -175,7 +175,7 @@ manager = SkillManager(Path("/custom/skills"))
 ### Error handling
 
 ```python
-from skills_use import SkillNotFoundError, ContentLoadError
+from skillkit import SkillNotFoundError, ContentLoadError
 
 try:
     result = manager.invoke_skill("my-skill", args)
@@ -218,7 +218,7 @@ logging.basicConfig(level=logging.DEBUG)
 ### Module-specific logging
 
 ```python
-logging.getLogger('skills_use.core.discovery').setLevel(logging.DEBUG)
+logging.getLogger('skillkit.core.discovery').setLevel(logging.DEBUG)
 ```
 
 ### Common issues
@@ -260,8 +260,8 @@ logging.getLogger('skills_use.core.discovery').setLevel(logging.DEBUG)
 ### Setup
 
 ```bash
-git clone https://github.com/maxvaega/skills-use.git
-cd skills-use
+git clone https://github.com/maxvaega/skillkit.git
+cd skillkit
 python3.10 -m venv venv
 source venv/bin/activate
 pip install -e ".[dev]"
@@ -274,20 +274,20 @@ For detailed testing instructions, test organization, markers, and debugging tip
 
 ```bash
 pytest
-pytest --cov=src/skills_use --cov-report=html
+pytest --cov=src/skillkit --cov-report=html
 ```
 
 ### Type checking
 
 ```bash
-mypy src/skills_use --strict
+mypy src/skillkit --strict
 ```
 
 ### Linting
 
 ```bash
-ruff check src/skills_use
-ruff format src/skills_use
+ruff check src/skillkit
+ruff format src/skillkit
 ```
 
 ## Examples
@@ -359,8 +359,8 @@ Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed information.
 ### Development Setup
 
 ```bash
-git clone https://github.com/maxvaega/skills-use.git
-cd skills-use
+git clone https://github.com/maxvaega/skillkit.git
+cd skillkit
 python3.10 -m venv venv
 source venv/bin/activate
 pip install -e ".[dev,langchain]"
@@ -369,8 +369,8 @@ pytest
 
 ## Support
 
-- **Issues**: https://github.com/maxvaega/skills-use/issues
-- **Documentation**: https://github.com/maxvaega/skills-use#readme
+- **Issues**: https://github.com/maxvaega/skillkit/issues
+- **Documentation**: https://github.com/maxvaega/skillkit#readme
 
 ## Acknowledgments
 

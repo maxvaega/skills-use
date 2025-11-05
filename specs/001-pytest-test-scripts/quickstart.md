@@ -1,12 +1,12 @@
-# Quickstart: Running Tests for skills-use
+# Quickstart: Running Tests for skillkit
 
 **Feature**: 001-pytest-test-scripts
 **Date**: November 5, 2025
-**Audience**: Developers working on skills-use library
+**Audience**: Developers working on skillkit library
 
 ## Overview
 
-This guide provides a 5-minute introduction to running and writing tests for the skills-use library. The test suite uses pytest and achieves 70%+ code coverage across all modules.
+This guide provides a 5-minute introduction to running and writing tests for the skillkit library. The test suite uses pytest and achieves 70%+ code coverage across all modules.
 
 ---
 
@@ -15,8 +15,8 @@ This guide provides a 5-minute introduction to running and writing tests for the
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/maxvaega/skills-use.git
-cd skills-use
+git clone https://github.com/maxvaega/skillkit.git
+cd skillkit
 ```
 
 ### 2. Set Up Virtual Environment
@@ -40,14 +40,14 @@ pip install -e ".[dev]"
 ```
 
 This installs:
-- Core library (skills-use)
+- Core library (skillkit)
 - Test dependencies (pytest, pytest-cov)
 - LangChain integration (for integration tests)
 
 **Verify installation**:
 ```bash
 pytest --version  # Should show pytest 7.0+
-python -c "import skills_use; print(skills_use.__version__)"  # Should show 0.1.0
+python -c "import skillkit; print(skillkit.__version__)"  # Should show 0.1.0
 ```
 
 ---
@@ -122,20 +122,20 @@ pytest -k "argument"
 ### Basic Coverage Report
 
 ```bash
-pytest --cov=src/skills_use
+pytest --cov=src/skillkit
 
 # Output includes coverage summary:
 # ----------- coverage: platform darwin, python 3.10.19 -----------
 # Name                                    Stmts   Miss  Cover
 # -----------------------------------------------------------
-# src/skills_use/__init__.py                  8      0   100%
-# src/skills_use/core/discovery.py          145     25    83%
-# src/skills_use/core/parser.py             167     18    89%
-# src/skills_use/core/models.py              89      8    91%
-# src/skills_use/core/manager.py            132     30    77%
-# src/skills_use/core/processors.py         103     19    82%
-# src/skills_use/core/exceptions.py          22      5    77%
-# src/skills_use/integrations/langchain.py   68     18    74%
+# src/skillkit/__init__.py                  8      0   100%
+# src/skillkit/core/discovery.py          145     25    83%
+# src/skillkit/core/parser.py             167     18    89%
+# src/skillkit/core/models.py              89      8    91%
+# src/skillkit/core/manager.py            132     30    77%
+# src/skillkit/core/processors.py         103     19    82%
+# src/skillkit/core/exceptions.py          22      5    77%
+# src/skillkit/integrations/langchain.py   68     18    74%
 # -----------------------------------------------------------
 # TOTAL                                     734    123    83%
 ```
@@ -143,7 +143,7 @@ pytest --cov=src/skills_use
 ### Detailed HTML Coverage Report
 
 ```bash
-pytest --cov=src/skills_use --cov-report=html
+pytest --cov=src/skillkit --cov-report=html
 
 # Opens htmlcov/index.html in browser
 open htmlcov/index.html  # macOS
@@ -159,18 +159,18 @@ The HTML report shows:
 ### Show Missing Lines
 
 ```bash
-pytest --cov=src/skills_use --cov-report=term-missing
+pytest --cov=src/skillkit --cov-report=term-missing
 
 # Output shows missing line numbers:
-# src/skills_use/core/discovery.py    145     25    83%   67-72, 145, 167, 203
-# src/skills_use/core/parser.py       167     18    89%   98, 134-137, 201
+# src/skillkit/core/discovery.py    145     25    83%   67-72, 145, 167, 203
+# src/skillkit/core/parser.py       167     18    89%   98, 134-137, 201
 ```
 
 ### Enforce Coverage Threshold
 
 ```bash
 # Fail build if coverage drops below 70%
-pytest --cov=src/skills_use --cov-fail-under=70
+pytest --cov=src/skillkit --cov-fail-under=70
 
 # Exit code 0 if >=70%, exit code 1 if <70%
 ```
@@ -293,10 +293,10 @@ pytest -n 4
 Create `tests/test_example.py`:
 
 ```python
-"""Example test demonstrating skills-use testing patterns."""
+"""Example test demonstrating skillkit testing patterns."""
 
 import pytest
-from skills_use import SkillManager
+from skillkit import SkillManager
 
 
 def test_basic_discovery(temp_skills_dir, skill_factory):
@@ -488,7 +488,7 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
       - name: Run tests with coverage
-        run: pytest --cov=src/skills_use --cov-fail-under=70
+        run: pytest --cov=src/skillkit --cov-fail-under=70
       - name: Upload coverage
         uses: codecov/codecov-action@v3
 ```
@@ -497,7 +497,7 @@ jobs:
 
 ## Troubleshooting
 
-### Issue: Tests fail with "ModuleNotFoundError: No module named 'skills_use'"
+### Issue: Tests fail with "ModuleNotFoundError: No module named 'skillkit'"
 
 **Solution**: Install package in editable mode:
 ```bash
@@ -506,9 +506,9 @@ pip install -e ".[dev]"
 
 ### Issue: Coverage report shows 0% coverage
 
-**Solution**: Ensure you're using `--cov=src/skills_use` (not just `--cov`):
+**Solution**: Ensure you're using `--cov=src/skillkit` (not just `--cov`):
 ```bash
-pytest --cov=src/skills_use
+pytest --cov=src/skillkit
 ```
 
 ### Issue: LangChain integration tests fail with ImportError
@@ -567,7 +567,7 @@ Tests serve as **executable documentation** showing how to use the library:
 pytest
 
 # Run with coverage
-pytest --cov=src/skills_use --cov-report=html
+pytest --cov=src/skillkit --cov-report=html
 
 # Run specific test file
 pytest tests/test_discovery.py -v
@@ -624,7 +624,7 @@ assert "duplicate" in caplog.text.lower()
 You now know how to:
 - ✅ Install test dependencies (`pip install -e ".[dev]"`)
 - ✅ Run all tests (`pytest`)
-- ✅ Run with coverage (`pytest --cov=src/skills_use`)
+- ✅ Run with coverage (`pytest --cov=src/skillkit`)
 - ✅ Run specific tests (`pytest tests/test_discovery.py::test_name`)
 - ✅ Debug failures (`pytest --pdb -x`)
 - ✅ Write basic tests using fixtures (`temp_skills_dir`, `skill_factory`)

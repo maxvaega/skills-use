@@ -1,5 +1,5 @@
 """
-Shared pytest fixtures and configuration for skills-use test suite.
+Shared pytest fixtures and configuration for skillkit test suite.
 
 This module provides:
 - temp_skills_dir: Temporary directory for test skills
@@ -16,7 +16,7 @@ from typing import Any, Callable, List, Optional
 
 import pytest
 
-from skills_use.core.models import SkillMetadata
+from skillkit.core.models import SkillMetadata
 
 
 @pytest.fixture

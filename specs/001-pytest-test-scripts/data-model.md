@@ -6,7 +6,7 @@
 
 ## Overview
 
-This document defines the data entities, relationships, and validation rules for the pytest test suite. The test suite validates the skills-use library v0.1.0, so the primary entities are **test fixtures** (static SKILL.md files) and **test helpers** (programmatic data generation).
+This document defines the data entities, relationships, and validation rules for the pytest test suite. The test suite validates the skillkit library v0.1.0, so the primary entities are **test fixtures** (static SKILL.md files) and **test helpers** (programmatic data generation).
 
 ---
 
@@ -244,7 +244,7 @@ PerformanceMetric(
 Represents code coverage measurement results.
 
 **Attributes**:
-- `module_name` (str): Module being tested (e.g., "src/skills_use/core/discovery.py")
+- `module_name` (str): Module being tested (e.g., "src/skillkit/core/discovery.py")
 - `line_coverage` (float): Percentage of lines covered (0-100)
 - `branch_coverage` (float): Percentage of branches covered (0-100)
 - `missing_lines` (List[int]): Line numbers not covered by tests
@@ -258,7 +258,7 @@ Represents code coverage measurement results.
 **Example**:
 ```python
 CoverageReport(
-    module_name="src/skills_use/core/discovery.py",
+    module_name="src/skillkit/core/discovery.py",
     line_coverage=82.5,
     branch_coverage=75.3,
     missing_lines=[145, 167, 203],
@@ -596,7 +596,7 @@ Scopes:
 
 ## Dependencies on Production Code
 
-The test suite validates the following production entities (defined in src/skills_use/):
+The test suite validates the following production entities (defined in src/skillkit/):
 
 ### SkillMetadata (models.py)
 - Validated by: `test_models.py`, `test_discovery.py`

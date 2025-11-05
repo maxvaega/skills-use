@@ -1,4 +1,4 @@
-"""Exception hierarchy for skills-use library.
+"""Exception hierarchy for skillkit library.
 
 This module defines all custom exceptions used throughout the library,
 following a hierarchical structure for granular error handling.
@@ -6,7 +6,7 @@ following a hierarchical structure for granular error handling.
 
 
 class SkillsUseError(Exception):
-    """Base exception for all skills-use errors.
+    """Base exception for all skillkit errors.
 
     Usage: Catch this to handle any library error.
     """

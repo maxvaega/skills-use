@@ -1,9 +1,9 @@
-# Feature Specification: Automated Pytest Test Suite for skills-use v0.1.0
+# Feature Specification: Automated Pytest Test Suite for skillkit v0.1.0
 
 **Feature Branch**: `001-pytest-test-scripts`
 **Created**: November 5, 2025
 **Status**: Draft
-**Input**: User description: "pytest scripts for skills-use library (local packages before pytest upload)"
+**Input**: User description: "pytest scripts for skillkit library (local packages before pytest upload)"
 
 ## User Scenarios & Testing *(mandatory)*
 

@@ -1,10 +1,10 @@
-"""LangChain integration for skills-use library.
+"""LangChain integration for skillkit library.
 
 This module provides adapters to convert discovered skills into LangChain
 StructuredTool objects for use with LangChain agents.
 
 Installation:
-    pip install skills-use[langchain]
+    pip install skillkit[langchain]
 """
 
 from typing import TYPE_CHECKING, List
@@ -16,11 +16,11 @@ try:
 except ImportError as e:
     raise ImportError(
         "LangChain integration requires additional dependencies. "
-        "Install with: pip install skills-use[langchain]"
+        "Install with: pip install skillkit[langchain]"
     ) from e
 
 if TYPE_CHECKING:
-    from skills_use.core.manager import SkillManager
+    from skillkit.core.manager import SkillManager
 
 
 class SkillInput(BaseModel):
@@ -57,11 +57,11 @@ def create_langchain_tools(manager: "SkillManager") -> List[StructuredTool]:
         List of StructuredTool objects ready for agent use
 
     Raises:
-        Various skills-use exceptions during tool invocation (bubbled up)
+        Various skillkit exceptions during tool invocation (bubbled up)
 
     Example:
-        >>> from skills_use import SkillManager
-        >>> from skills_use.integrations.langchain import create_langchain_tools
+        >>> from skillkit import SkillManager
+        >>> from skillkit.integrations.langchain import create_langchain_tools
 
         >>> manager = SkillManager()
         >>> manager.discover()
@@ -106,7 +106,7 @@ def create_langchain_tools(manager: "SkillManager") -> List[StructuredTool]:
                 SizeLimitExceededError: If arguments exceed 1MB
             """
             # Three-layer error handling approach:
-            # 1. Let skills-use exceptions bubble up (detailed error messages)
+            # 1. Let skillkit exceptions bubble up (detailed error messages)
             # 2. LangChain catches and formats them for agent
             # 3. Agent decides whether to retry or report to user
             return manager.invoke_skill(skill_name, arguments)

@@ -7,13 +7,13 @@ injection, $ARGUMENTS substitution, escaping, size limits, and composition.
 import pytest
 from pathlib import Path
 
-from skills_use.core.processors import (
+from skillkit.core.processors import (
     ContentProcessor,
     BaseDirectoryProcessor,
     ArgumentSubstitutionProcessor,
     CompositeProcessor,
 )
-from skills_use.core.exceptions import (
+from skillkit.core.exceptions import (
     SizeLimitExceededError,
     ArgumentProcessingError,
 )

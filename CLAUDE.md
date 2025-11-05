@@ -1,6 +1,6 @@
-# Skills-use
+# skillkit
 
-**skills-use** is a Python library that implements Anthropic's Agent Skills functionality, enabling LLM-powered agents to autonomously discover and utilize packaged expertise. The library provides:
+**skillkit** is a Python library that implements Anthropic's Agent Skills functionality, enabling LLM-powered agents to autonomously discover and utilize packaged expertise. The library provides:
 
 - Multi-source skill discovery from personal directories, project directories, and plugins
 - SKILL.md parsing with YAML frontmatter validation
@@ -60,7 +60,7 @@ The **implementation roadmap** for the project. Contains:
 - Risk mitigation strategies
 - Comparison between original horizontal approach vs vertical slice
 
-### `.docs/PRD_SKILLS-USE_LIBRARY.md`
+### `.docs/PRD_skillkit_LIBRARY.md`
 The **comprehensive Product Requirements Document**. Contains:
 - Complete functional requirements (FR-1 through FR-9)
 - Technical specifications (TS-1 through TS-6)
@@ -219,16 +219,16 @@ pip install -e ".[dev]"
 **Development Commands**:
 - Run examples: `python examples/basic_usage.py`
 - Run tests: `pytest` (when test suite is added)
-- Lint code: `ruff check src/skills_use`
-- Format code: `ruff format src/skills_use`
-- Type check: `mypy src/skills_use --strict`
+- Lint code: `ruff check src/skillkit`
+- Format code: `ruff format src/skillkit`
+- Type check: `mypy src/skillkit --strict`
 
 ## Project Structure
 
 ### Repository Current Structure (Implemented)
 
 ```
-skills-use/
+skillkit/
 ├── .docs/                          # Project documentation (PRD, TECH_SPECS, etc.)
 ├── specs/                          # Feature planning (speckit workflow)
 │   └── 001-mvp-langchain-core/     # Current feature
@@ -241,7 +241,7 @@ skills-use/
 │       │   └── public-api.md       # API contract
 │       └── tasks.md                # Implementation tasks
 ├── src/
-│   └── skills_use/
+│   └── skillkit/
 │       ├── __init__.py             # Public API exports + NullHandler
 │       ├── core/                   # Framework-agnostic core
 │       │   ├── __init__.py         # Core module exports
@@ -279,8 +279,8 @@ skills-use/
 ```
 
 **Key Design Decisions**:
-- **Framework-agnostic core**: `src/skills_use/core/` has zero dependencies (stdlib + PyYAML only)
-- **Optional integrations**: `src/skills_use/integrations/` requires framework-specific extras
+- **Framework-agnostic core**: `src/skillkit/core/` has zero dependencies (stdlib + PyYAML only)
+- **Optional integrations**: `src/skillkit/integrations/` requires framework-specific extras
 - **Test structure**: Mirrors source for clarity (`test_*.py` for each module)
 - **Modern packaging**: PEP 621 `pyproject.toml` with optional dependencies (`[langchain]`, `[dev]`)
 
@@ -292,13 +292,14 @@ skills-use/
 - **Minimum**: Python 3.10 (supported with minor memory trade-offs)
 - **Recommended**: Python 3.10+ (optimal memory efficiency via slots + cached_property)
 - **Memory impact**: Python 3.10+ provides 60% memory reduction per instance via `slots=True`
+- **Important**: always run python commands inside venv for correct python library management
 
 ### Core Dependencies (Zero Framework Dependencies)
 - **PyYAML 6.0+**: YAML frontmatter parsing with `yaml.safe_load()` security
 - **Python stdlib**: pathlib, dataclasses, functools, typing, re, logging, string.Template
 
 ### Optional Dependencies
-- **langchain-core 0.1.0+**: StructuredTool integration (install: `pip install skills-use[langchain]`)
+- **langchain-core 0.1.0+**: StructuredTool integration (install: `pip install skillkit[langchain]`)
 - **pydantic 2.0+**: Input schema validation (explicit dependency despite being transitive from langchain-core)
 
 ### Development Dependencies
@@ -310,7 +311,7 @@ skills-use/
 ### Storage & Distribution
 - **Storage**: Filesystem-based (`.claude/skills/` directory with SKILL.md files)
 - **Packaging**: PEP 621 `pyproject.toml` with hatchling or setuptools 61.0+
-- **Distribution**: PyPI (`pip install skills-use`)
+- **Distribution**: PyPI (`pip install skillkit`)
 
 ### Performance Characteristics
 - **Discovery**: ~5-10ms per skill (YAML parsing dominates)
@@ -334,4 +335,4 @@ skills-use/
 - **Architectural Review**: All decisions validated against Python library best practices (scores 8-9.5/10)
 
 ### November 5, 2025 - CLAUDE.md Updated
-- The old name for the project and library 'skills-use' must be replaced with skillkit
+- The old name for the project and library 'skillkit' must be replaced with skillkit

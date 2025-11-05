@@ -428,7 +428,7 @@ def test_50_skill_discovery():
 ```python
 @pytest.mark.requires_langchain
 def test_create_langchain_tools():
-    from skills_use.integrations.langchain import create_langchain_tools
+    from skillkit.integrations.langchain import create_langchain_tools
     # Test function
     pass
 ```
@@ -594,16 +594,16 @@ pytest -m "performance and not slow"
 
 ```bash
 # Run with coverage
-pytest --cov=src/skills_use
+pytest --cov=src/skillkit
 
 # Generate HTML coverage report
-pytest --cov=src/skills_use --cov-report=html
+pytest --cov=src/skillkit --cov-report=html
 
 # Fail if coverage below 70%
-pytest --cov=src/skills_use --cov-fail-under=70
+pytest --cov=src/skillkit --cov-fail-under=70
 
 # Show missing lines
-pytest --cov=src/skills_use --cov-report=term-missing
+pytest --cov=src/skillkit --cov-report=term-missing
 ```
 
 ---
@@ -653,7 +653,7 @@ python_functions = ["test_*"]
 addopts = [
     "-v",
     "--strict-markers",
-    "--cov=src/skills_use",
+    "--cov=src/skillkit",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-fail-under=70",
@@ -668,7 +668,7 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["src/skills_use"]
+source = ["src/skillkit"]
 omit = [
     "*/tests/*",
     "*/test_*.py",

@@ -1,4 +1,4 @@
-# Tasks: Skills-use v0.1 MVP - Core Functionality & LangChain Integration
+# Tasks: skillkit v0.1 MVP - Core Functionality & LangChain Integration
 
 **Input**: Design documents from `/specs/001-mvp-langchain-core/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/public-api.md
@@ -16,7 +16,7 @@
 ## Path Conventions
 
 Single Python library structure (per plan.md):
-- `src/skills_use/` - Source code
+- `src/skillkit/` - Source code
 - `tests/` - Test suite
 - `examples/` - Example scripts
 - `.docs/` - Documentation
@@ -27,11 +27,11 @@ Single Python library structure (per plan.md):
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project structure per plan.md (src/skills_use/{core,integrations}/, tests/, examples/)
+- [ ] T001 Create project structure per plan.md (src/skillkit/{core,integrations}/, tests/, examples/)
 - [ ] T002 [P] Initialize pyproject.toml with Python 3.9+ dependencies (PyYAML 6.0+)
 - [ ] T003 [P] Configure ruff for linting and formatting in pyproject.toml
 - [ ] T004 [P] Configure mypy for strict type checking in pyproject.toml
-- [ ] T005 [P] Add py.typed marker file in src/skills_use/py.typed for PEP 561
+- [ ] T005 [P] Add py.typed marker file in src/skillkit/py.typed for PEP 561
 - [ ] T006 [P] Create .gitignore for Python project
 - [ ] T007 [P] Create LICENSE file (MIT license)
 
@@ -43,10 +43,10 @@ Single Python library structure (per plan.md):
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 [P] Implement exception hierarchy in src/skills_use/core/exceptions.py (11 exception types per research.md)
-- [ ] T009 [P] Implement SkillMetadata dataclass in src/skills_use/core/models.py (frozen=True, slots=True)
-- [ ] T010 [P] Implement Skill dataclass in src/skills_use/core/models.py (with @cached_property, Python 3.10+ slots)
-- [ ] T011 [P] Configure NullHandler logging in src/skills_use/__init__.py (Python library standard)
+- [ ] T008 [P] Implement exception hierarchy in src/skillkit/core/exceptions.py (11 exception types per research.md)
+- [ ] T009 [P] Implement SkillMetadata dataclass in src/skillkit/core/models.py (frozen=True, slots=True)
+- [ ] T010 [P] Implement Skill dataclass in src/skillkit/core/models.py (with @cached_property, Python 3.10+ slots)
+- [ ] T011 [P] Configure NullHandler logging in src/skillkit/__init__.py (Python library standard)
 - [ ] T012 [P] Create test fixtures directory structure tests/fixtures/skills/
 - [ ] T013 [P] Create conftest.py with fixtures_dir and skills_dir fixtures in tests/conftest.py
 - [ ] T014 [P] Create valid skill fixture in tests/fixtures/skills/valid-skill/SKILL.md
@@ -76,7 +76,7 @@ Single Python library structure (per plan.md):
 
 ### Implementation for User Story 1
 
-- [ ] T023 [US1] Implement SkillDiscovery class in src/skills_use/core/discovery.py (scan filesystem)
+- [ ] T023 [US1] Implement SkillDiscovery class in src/skillkit/core/discovery.py (scan filesystem)
 - [ ] T024 [US1] Implement discovery.scan_directory() method with flat structure support (FR-003)
 - [ ] T025 [US1] Implement discovery.find_skill_files() with case-insensitive SKILL.md matching (FR-002)
 - [ ] T026 [US1] Add graceful error handling for missing/empty directories in discovery (FR-004, FR-005)
@@ -101,10 +101,10 @@ Single Python library structure (per plan.md):
 
 ### Implementation for User Story 2
 
-- [ ] T032 [US2] Implement SkillManager.__init__() in src/skills_use/core/manager.py
-- [ ] T033 [US2] Implement SkillManager.discover() with graceful degradation in src/skills_use/core/manager.py
-- [ ] T034 [US2] Implement SkillManager.list_skills() returning List[SkillMetadata] in src/skills_use/core/manager.py
-- [ ] T035 [US2] Implement SkillManager.get_skill() with SkillNotFoundError in src/skills_use/core/manager.py
+- [ ] T032 [US2] Implement SkillManager.__init__() in src/skillkit/core/manager.py
+- [ ] T033 [US2] Implement SkillManager.discover() with graceful degradation in src/skillkit/core/manager.py
+- [ ] T034 [US2] Implement SkillManager.list_skills() returning List[SkillMetadata] in src/skillkit/core/manager.py
+- [ ] T035 [US2] Implement SkillManager.get_skill() with SkillNotFoundError in src/skillkit/core/manager.py
 - [ ] T036 [US2] Add duplicate skill handling (first wins, log WARNING) in SkillManager.discover()
 - [ ] T037 [US2] Add logging for discovery completion and empty directory in SkillManager
 
@@ -140,7 +140,7 @@ Single Python library structure (per plan.md):
 
 ### Implementation for User Story 5
 
-- [ ] T053 [US5] Implement SkillParser class in src/skills_use/core/parser.py
+- [ ] T053 [US5] Implement SkillParser class in src/skillkit/core/parser.py
 - [ ] T054 [US5] Add cross-platform regex pattern ([\r\n]+) for frontmatter extraction in SkillParser
 - [ ] T055 [US5] Implement yaml.safe_load() with detailed error extraction in SkillParser
 - [ ] T056 [US5] Implement required field validation (name, description non-empty) in SkillParser
@@ -180,14 +180,14 @@ Single Python library structure (per plan.md):
 
 ### Implementation for User Story 3
 
-- [ ] T077 [P] [US3] Implement ContentProcessor abstract base class in src/skills_use/core/processors.py
-- [ ] T078 [P] [US3] Implement BaseDirectoryProcessor in src/skills_use/core/processors.py (FR-022)
-- [ ] T079 [US3] Implement ArgumentSubstitutionProcessor with string.Template in src/skills_use/core/processors.py
+- [ ] T077 [P] [US3] Implement ContentProcessor abstract base class in src/skillkit/core/processors.py
+- [ ] T078 [P] [US3] Implement BaseDirectoryProcessor in src/skillkit/core/processors.py (FR-022)
+- [ ] T079 [US3] Implement ArgumentSubstitutionProcessor with string.Template in src/skillkit/core/processors.py
 - [ ] T080 [US3] Add input validation (1MB limit) to ArgumentSubstitutionProcessor
 - [ ] T081 [US3] Add suspicious pattern detection (9 patterns) to ArgumentSubstitutionProcessor
 - [ ] T082 [US3] Add typo detection (5 common patterns) to ArgumentSubstitutionProcessor
 - [ ] T083 [US3] Implement _get_identifiers() with Python 3.11+ fallback in ArgumentSubstitutionProcessor
-- [ ] T084 [P] [US3] Implement CompositeProcessor for chaining in src/skills_use/core/processors.py
+- [ ] T084 [P] [US3] Implement CompositeProcessor for chaining in src/skillkit/core/processors.py
 - [ ] T085 [US3] Implement Skill.invoke() method using CompositeProcessor
 - [ ] T086 [US3] Implement Skill.content @cached_property with error handling (ContentLoadError)
 - [ ] T087 [US3] Implement SkillManager.load_skill() method
@@ -214,13 +214,13 @@ Single Python library structure (per plan.md):
 
 ### Implementation for User Story 4
 
-- [ ] T095 [US4] Create src/skills_use/integrations/__init__.py with exports
-- [ ] T096 [US4] Implement import guards for langchain dependencies in src/skills_use/integrations/langchain.py
-- [ ] T097 [US4] Implement SkillInput Pydantic model in src/skills_use/integrations/langchain.py
-- [ ] T098 [US4] Implement create_langchain_tools() with closure capture in src/skills_use/integrations/langchain.py
+- [ ] T095 [US4] Create src/skillkit/integrations/__init__.py with exports
+- [ ] T096 [US4] Implement import guards for langchain dependencies in src/skillkit/integrations/langchain.py
+- [ ] T097 [US4] Implement SkillInput Pydantic model in src/skillkit/integrations/langchain.py
+- [ ] T098 [US4] Implement create_langchain_tools() with closure capture in src/skillkit/integrations/langchain.py
 - [ ] T099 [US4] Add error handling (3-layer approach) to tool functions in create_langchain_tools()
 - [ ] T100 [US4] Add transparency docstring about async wrapping in create_langchain_tools()
-- [ ] T101 [US4] Update src/skills_use/__init__.py to export core public API
+- [ ] T101 [US4] Update src/skillkit/__init__.py to export core public API
 
 **Checkpoint**: LangChain integration complete - agents can discover and use skills as tools
 
@@ -251,11 +251,11 @@ Single Python library structure (per plan.md):
 
 - [ ] T108 [P] Create README.md with installation, quick start, and examples (FR-046, FR-050)
 - [ ] T109 [P] Add SKILL.md format documentation to README.md
-- [ ] T110 [P] Verify all public APIs exported in src/skills_use/__init__.py
-- [ ] T111 [P] Verify all exceptions exported in src/skills_use/core/exceptions.py
-- [ ] T112 Run pytest --cov=skills_use --cov-report=html to verify 70%+ coverage (FR-043)
-- [ ] T113 Run mypy src/skills_use --strict for type checking
-- [ ] T114 Run ruff check src/skills_use for linting
+- [ ] T110 [P] Verify all public APIs exported in src/skillkit/__init__.py
+- [ ] T111 [P] Verify all exceptions exported in src/skillkit/core/exceptions.py
+- [ ] T112 Run pytest --cov=skillkit --cov-report=html to verify 70%+ coverage (FR-043)
+- [ ] T113 Run mypy src/skillkit --strict for type checking
+- [ ] T114 Run ruff check src/skillkit for linting
 - [ ] T115 Validate quickstart.md examples work without modification (FR-049)
 - [ ] T116 Create pyproject.toml [project.optional-dependencies] for langchain (FR-045)
 - [ ] T117 Add python-frontmatter to dev dependencies for future consideration
@@ -420,7 +420,7 @@ With multiple developers after Foundational phase completes:
 
 **Document Version**: 1.0
 **Generated**: November 4, 2025
-**Feature**: Skills-use v0.1 MVP - Core Functionality & LangChain Integration
+**Feature**: skillkit v0.1 MVP - Core Functionality & LangChain Integration
 **Branch**: `001-mvp-langchain-core`
 **Total Tasks**: 120 (7 setup + 10 foundational + 103 implementation/tests/polish)
 **Target Coverage**: 70%+

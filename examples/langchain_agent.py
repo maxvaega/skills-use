@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""LangChain agent integration example for skills-use library.
+"""LangChain agent integration example for skillkit library.
 
 This script demonstrates how to use discovered skills with LangChain agents.
 
 Requirements:
-    pip install skills-use[langchain]
+    pip install skillkit[langchain]
     pip install langchain-openai  # or other LLM provider
 """
 
@@ -12,7 +12,7 @@ import logging
 import os
 from pathlib import Path
 
-from skills_use import SkillManager
+from skillkit import SkillManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
@@ -21,16 +21,16 @@ logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(mes
 def main() -> None:
     """Demonstrate LangChain agent integration."""
     print("=" * 60)
-    print("Skills-use: LangChain Agent Integration Example")
+    print("skillkit: LangChain Agent Integration Example")
     print("=" * 60)
 
     # Check for LangChain availability
     try:
-        from skills_use.integrations.langchain import create_langchain_tools
+        from skillkit.integrations.langchain import create_langchain_tools
     except ImportError as e:
         print(f"\nError: {e}")
         print("\nInstall LangChain integration with:")
-        print("  pip install skills-use[langchain]")
+        print("  pip install skillkit[langchain]")
         return
 
     # Use example skills from examples/skills/ directory

@@ -1,4 +1,4 @@
-"""Skills-use: Python library for Anthropic's Agent Skills functionality.
+"""skillkit: Python library for Anthropic's Agent Skills functionality.
 
 This library implements multi-source skill discovery, YAML frontmatter parsing,
 progressive disclosure pattern, and framework integrations for LLM-powered agents.
@@ -10,7 +10,7 @@ import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 # Public API exports
-from skills_use.core.exceptions import (
+from skillkit.core.exceptions import (
     ArgumentProcessingError,
     ContentLoadError,
     InvalidFrontmatterError,
@@ -24,8 +24,8 @@ from skills_use.core.exceptions import (
     SkillsUseError,
     SuspiciousInputError,
 )
-from skills_use.core.manager import SkillManager
-from skills_use.core.models import Skill, SkillMetadata
+from skillkit.core.manager import SkillManager
+from skillkit.core.models import Skill, SkillMetadata
 
 __version__ = "0.1.0"
 

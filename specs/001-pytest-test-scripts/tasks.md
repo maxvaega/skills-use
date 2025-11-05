@@ -1,4 +1,4 @@
-# Tasks: Automated Pytest Test Suite for skills-use v0.1.0
+# Tasks: Automated Pytest Test Suite for skillkit v0.1.0
 
 **Input**: Design documents from `/specs/001-pytest-test-scripts/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/test-api.md
@@ -224,10 +224,10 @@
 ### Installation Tests (test_installation.py)
 
 - [X] T080 [US5] Create `tests/test_installation.py` with imports and file header
-- [X] T081 [P] [US5] Write `test_core_imports_without_extras` - validates `from skills_use import *` works without [langchain]
-- [X] T082 [P] [US5] Write `test_langchain_import_with_extras` - validates `from skills_use.integrations.langchain import *` works with [langchain]
+- [X] T081 [P] [US5] Write `test_core_imports_without_extras` - validates `from skillkit import *` works without [langchain]
+- [X] T082 [P] [US5] Write `test_langchain_import_with_extras` - validates `from skillkit.integrations.langchain import *` works with [langchain]
 - [X] T083 [P] [US5] Write `test_langchain_import_fails_without_extras` - validates ImportError when langchain not installed
-- [X] T084 [P] [US5] Write `test_package_version_metadata` - validates `skills_use.__version__ == "0.1.0"`
+- [X] T084 [P] [US5] Write `test_package_version_metadata` - validates `skillkit.__version__ == "0.1.0"`
 - [X] T085 [P] [US5] Write `test_package_metadata_attributes` - validates `__author__`, `__license__` attributes exist
 
 **Checkpoint**: Installation validated - package structure correct
@@ -245,8 +245,8 @@
 - [X] T088 [P] Add type hints to helper functions in conftest.py
 - [X] T089 Fix remaining 8 API mismatches in edge case and performance tests
 - [X] T090 Run full test suite: `pytest -v` and verify all tests pass
-- [X] T091 Run coverage check: `pytest --cov=src/skills_use --cov-fail-under=70` and verify >=70% (achieved 85.86% ✅)
-- [X] T092 Generate HTML coverage report: `pytest --cov=src/skills_use --cov-report=html` and review
+- [X] T091 Run coverage check: `pytest --cov=src/skillkit --cov-fail-under=70` and verify >=70% (achieved 85.86% ✅)
+- [X] T092 Generate HTML coverage report: `pytest --cov=src/skillkit --cov-report=html` and review
 - [X] T093 Test on Python 3.10 (default python3 alias) - all tests must pass
 - [X] T094 [P] Validate quickstart.md examples work (run basic usage examples from docs)
 - [X] T095 [P] Update tests/README.md with current statistics

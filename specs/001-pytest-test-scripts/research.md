@@ -6,7 +6,7 @@
 
 ## Overview
 
-This document captures the 8 critical architectural decisions for implementing a comprehensive pytest-based test suite for the skills-use library v0.1.0. Each decision is evaluated against Python testing best practices from 2024-2025 and scored for alignment with production-grade test suite requirements.
+This document captures the 8 critical architectural decisions for implementing a comprehensive pytest-based test suite for the skillkit library v0.1.0. Each decision is evaluated against Python testing best practices from 2024-2025 and scored for alignment with production-grade test suite requirements.
 
 ---
 
@@ -48,7 +48,7 @@ python_functions = ["test_*"]
 addopts = [
     "-v",                    # Verbose output
     "--strict-markers",      # Enforce marker registration
-    "--cov=src/skills_use",  # Coverage target
+    "--cov=src/skillkit",  # Coverage target
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-fail-under=70",   # Enforce 70% minimum
@@ -71,7 +71,7 @@ addopts = [
 Use **mirror structure** where test files directly mirror source module structure with `test_` prefix.
 
 ### Rationale
-1. **Predictability**: Easy to find tests for any module (src/skills_use/core/discovery.py → tests/test_discovery.py)
+1. **Predictability**: Easy to find tests for any module (src/skillkit/core/discovery.py → tests/test_discovery.py)
 2. **Import clarity**: Test imports match production imports exactly
 3. **Refactoring**: When moving/renaming modules, test files move in parallel
 4. **Coverage mapping**: Coverage tools can easily map test files to source files
@@ -84,10 +84,10 @@ Use **mirror structure** where test files directly mirror source module structur
 
 ### Implementation Details
 ```text
-src/skills_use/core/discovery.py   → tests/test_discovery.py
-src/skills_use/core/parser.py      → tests/test_parser.py
-src/skills_use/core/manager.py     → tests/test_manager.py
-src/skills_use/integrations/langchain.py → tests/test_langchain_integration.py
+src/skillkit/core/discovery.py   → tests/test_discovery.py
+src/skillkit/core/parser.py      → tests/test_parser.py
+src/skillkit/core/manager.py     → tests/test_manager.py
+src/skillkit/integrations/langchain.py → tests/test_langchain_integration.py
 ```
 
 **Exception**: Crosscutting concerns get dedicated files:
@@ -363,7 +363,7 @@ Use **line coverage with 70% minimum threshold**; track **branch coverage** for 
 # pyproject.toml
 [tool.pytest.ini_options]
 addopts = [
-    "--cov=src/skills_use",
+    "--cov=src/skillkit",
     "--cov-report=term-missing",  # Show missing lines
     "--cov-report=html",           # HTML report for detailed view
     "--cov-fail-under=70",         # Fail if below 70%
@@ -371,7 +371,7 @@ addopts = [
 
 [tool.coverage.run]
 branch = true              # Measure branch coverage
-source = ["src/skills_use"]
+source = ["src/skillkit"]
 omit = [
     "*/tests/*",
     "*/test_*.py",
@@ -547,7 +547,7 @@ pip install -e ".[dev]"
 pytest
 
 # Run with coverage
-pytest --cov=src/skills_use --cov-report=html
+pytest --cov=src/skillkit --cov-report=html
 
 # Run specific test file
 pytest tests/test_discovery.py -v

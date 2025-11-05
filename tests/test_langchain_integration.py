@@ -1,4 +1,4 @@
-"""LangChain integration tests for skills-use library.
+"""LangChain integration tests for skillkit library.
 
 Tests validate that create_langchain_tools() correctly converts discovered skills
 into LangChain StructuredTool objects that can be invoked by agents.
@@ -20,9 +20,9 @@ from pathlib import Path
 # Skip all tests in this file if langchain-core is not installed
 pytest.importorskip("langchain_core")
 
-from skills_use.core.manager import SkillManager
-from skills_use.core.exceptions import SkillNotFoundError, SizeLimitExceededError
-from skills_use.integrations.langchain import create_langchain_tools, SkillInput
+from skillkit.core.manager import SkillManager
+from skillkit.core.exceptions import SkillNotFoundError, SizeLimitExceededError
+from skillkit.integrations.langchain import create_langchain_tools, SkillInput
 from langchain_core.tools import StructuredTool
 
 
@@ -221,7 +221,7 @@ def test_langchain_tool_error_propagation(temp_skills_dir, skill_factory):
     """Test skill errors propagate to LangChain correctly.
 
     Validates:
-        - Skills-use exceptions bubble up through tool
+        - skillkit exceptions bubble up through tool
         - LangChain can catch and handle exceptions
         - Error messages preserved for agent debugging
     """

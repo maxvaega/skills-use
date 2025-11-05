@@ -8,10 +8,10 @@ import logging
 from pathlib import Path
 from typing import Dict, List
 
-from skills_use.core.discovery import SkillDiscovery
-from skills_use.core.exceptions import SkillNotFoundError, SkillsUseError
-from skills_use.core.models import Skill, SkillMetadata
-from skills_use.core.parser import SkillParser
+from skillkit.core.discovery import SkillDiscovery
+from skillkit.core.exceptions import SkillNotFoundError, SkillsUseError
+from skillkit.core.models import Skill, SkillMetadata
+from skillkit.core.parser import SkillParser
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class SkillManager:
             - Scans skills_dir for subdirectories containing SKILL.md files
             - Parses YAML frontmatter and validates required fields
             - Continues processing even if individual skills fail parsing
-            - Logs errors via module logger (skills_use.core.manager)
+            - Logs errors via module logger (skillkit.core.manager)
             - Handles duplicates: first discovered wins, logs WARNING
 
         Side Effects:

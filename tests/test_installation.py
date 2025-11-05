@@ -1,5 +1,5 @@
 """
-Installation Tests for skills-use Library
+Installation Tests for skillkit Library
 
 Tests package installation and imports across different configurations:
 - Core imports work without optional dependencies
@@ -20,11 +20,11 @@ import pytest
 def test_core_imports_without_extras():
     """Test that core functionality imports work without optional dependencies."""
     # Core imports should always work
-    from skills_use import SkillManager, SkillMetadata, Skill
-    from skills_use.core.discovery import SkillDiscovery
-    from skills_use.core.parser import SkillParser
-    from skills_use.core.processors import ContentProcessor
-    from skills_use.core.exceptions import (
+    from skillkit import SkillManager, SkillMetadata, Skill
+    from skillkit.core.discovery import SkillDiscovery
+    from skillkit.core.parser import SkillParser
+    from skillkit.core.processors import ContentProcessor
+    from skillkit.core.exceptions import (
         SkillsUseError,
         MissingRequiredFieldError,
         InvalidYAMLError,
@@ -48,7 +48,7 @@ def test_core_imports_without_extras():
 def test_langchain_import_with_extras():
     """Test that LangChain integration imports work when langchain is installed."""
     try:
-        from skills_use.integrations.langchain import create_langchain_tools
+        from skillkit.integrations.langchain import create_langchain_tools
 
         # If langchain is installed, this should work
         assert create_langchain_tools is not None
@@ -65,7 +65,7 @@ def test_langchain_import_fails_without_extras():
 
     # Try importing - it should either work (if installed) or raise ImportError
     try:
-        from skills_use.integrations.langchain import create_langchain_tools
+        from skillkit.integrations.langchain import create_langchain_tools
 
         # If this succeeds, langchain is installed - verify it works
         assert create_langchain_tools is not None
@@ -78,13 +78,13 @@ def test_langchain_import_fails_without_extras():
 
 def test_package_version_metadata():
     """Test that package version metadata is correct."""
-    import skills_use
+    import skillkit
 
     # Verify version attribute exists
-    assert hasattr(skills_use, "__version__")
+    assert hasattr(skillkit, "__version__")
 
     # Verify version format (should be semantic versioning)
-    version = skills_use.__version__
+    version = skillkit.__version__
     assert isinstance(version, str)
     assert len(version) > 0
 
@@ -99,29 +99,29 @@ def test_package_version_metadata():
 
 def test_package_metadata_attributes():
     """Test that package metadata attributes exist and are correct."""
-    import skills_use
+    import skillkit
 
     # Verify common metadata attributes exist
-    assert hasattr(skills_use, "__version__")
+    assert hasattr(skillkit, "__version__")
 
     # Check for optional metadata
     # Note: Not all packages expose these, so we just verify the module is importable
-    assert skills_use.__name__ == "skills_use"
+    assert skillkit.__name__ == "skillkit"
 
     # Verify main exports are available
     expected_exports = ["SkillManager", "SkillMetadata", "Skill"]
     for export in expected_exports:
         assert hasattr(
-            skills_use, export
-        ), f"Expected export '{export}' not found in skills_use"
+            skillkit, export
+        ), f"Expected export '{export}' not found in skillkit"
 
 
 def test_import_from_top_level():
     """Test that common classes can be imported from top-level package."""
     # These should all work from the top level
-    from skills_use import SkillManager
-    from skills_use import SkillMetadata
-    from skills_use import Skill
+    from skillkit import SkillManager
+    from skillkit import SkillMetadata
+    from skillkit import Skill
 
     # Verify they're the correct types
     assert SkillManager.__name__ == "SkillManager"
@@ -132,25 +132,25 @@ def test_import_from_top_level():
 def test_submodule_imports():
     """Test that submodules can be imported directly."""
     # Core submodules
-    from skills_use.core import discovery
-    from skills_use.core import parser
-    from skills_use.core import models
-    from skills_use.core import manager
-    from skills_use.core import processors
-    from skills_use.core import exceptions
+    from skillkit.core import discovery
+    from skillkit.core import parser
+    from skillkit.core import models
+    from skillkit.core import manager
+    from skillkit.core import processors
+    from skillkit.core import exceptions
 
     # Verify modules are loaded
-    assert discovery.__name__ == "skills_use.core.discovery"
-    assert parser.__name__ == "skills_use.core.parser"
-    assert models.__name__ == "skills_use.core.models"
-    assert manager.__name__ == "skills_use.core.manager"
-    assert processors.__name__ == "skills_use.core.processors"
-    assert exceptions.__name__ == "skills_use.core.exceptions"
+    assert discovery.__name__ == "skillkit.core.discovery"
+    assert parser.__name__ == "skillkit.core.parser"
+    assert models.__name__ == "skillkit.core.models"
+    assert manager.__name__ == "skillkit.core.manager"
+    assert processors.__name__ == "skillkit.core.processors"
+    assert exceptions.__name__ == "skillkit.core.exceptions"
 
 
 def test_type_hints_available():
     """Test that type hints are available (py.typed marker)."""
-    import skills_use
+    import skillkit
 
     # Verify py.typed marker exists (indicates PEP 561 compliance)
     # This enables type checkers to use the package's type hints
@@ -159,11 +159,11 @@ def test_type_hints_available():
     try:
         # Python 3.9+
         if hasattr(importlib.resources, "files"):
-            files = importlib.resources.files("skills_use")
+            files = importlib.resources.files("skillkit")
             py_typed_exists = (files / "py.typed").is_file()
         else:
             # Python 3.8 fallback
-            py_typed_exists = importlib.resources.is_resource("skills_use", "py.typed")
+            py_typed_exists = importlib.resources.is_resource("skillkit", "py.typed")
 
         assert py_typed_exists, "py.typed marker file not found (required for PEP 561)"
     except (TypeError, FileNotFoundError):

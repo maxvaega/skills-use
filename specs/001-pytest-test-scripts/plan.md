@@ -1,4 +1,4 @@
-# Implementation Plan: Automated Pytest Test Suite for skills-use v0.1.0
+# Implementation Plan: Automated Pytest Test Suite for skillkit v0.1.0
 
 **Branch**: `001-pytest-test-scripts` | **Date**: November 5, 2025 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-pytest-test-scripts/spec.md`
@@ -7,7 +7,7 @@
 
 ## Summary
 
-Create a comprehensive pytest-based test suite for the skills-use library that validates all core functionality (discovery, parsing, invocation), LangChain integration, edge cases, performance characteristics, and installation behavior. The test suite must achieve minimum 70% code coverage and run consistently across Python 3.9-3.12, enabling confident pre-publication validation before PyPI release.
+Create a comprehensive pytest-based test suite for the skillkit library that validates all core functionality (discovery, parsing, invocation), LangChain integration, edge cases, performance characteristics, and installation behavior. The test suite must achieve minimum 70% code coverage and run consistently across Python 3.9-3.12, enabling confident pre-publication validation before PyPI release.
 
 ## Technical Context
 
@@ -21,7 +21,7 @@ Create a comprehensive pytest-based test suite for the skills-use library that v
 **Storage**: Filesystem-based test fixtures in `tests/fixtures/skills/` (SKILL.md files)
 **Testing**: pytest with parametrized tests, fixtures in conftest.py, temp directories for isolation
 **Target Platform**: macOS, Linux (POSIX-compliant filesystem), manual Windows validation
-**Project Type**: Single Python library (testing layer for existing skills-use package)
+**Project Type**: Single Python library (testing layer for existing skillkit package)
 **Performance Goals**:
   - Discovery: <500ms for 50 skills (~5-10ms per skill)
   - Invocation overhead: <25ms average for 100 sequential invocations
@@ -50,7 +50,7 @@ Create a comprehensive pytest-based test suite for the skills-use library that v
 
 ### Library-First Approach ✅
 - **Status**: PASS
-- **Rationale**: Test suite validates the standalone skills-use library. Tests are independent, reusable, and executable via single `pytest` command. No external service dependencies.
+- **Rationale**: Test suite validates the standalone skillkit library. Tests are independent, reusable, and executable via single `pytest` command. No external service dependencies.
 
 ### Clear Dependencies ✅
 - **Status**: PASS
@@ -151,7 +151,7 @@ tests/                           # Test suite (new in this feature)
 ### Existing Source Code (context only - not modified)
 
 ```text
-src/skills_use/
+src/skillkit/
 ├── __init__.py                  # Public API exports
 ├── core/                        # Core modules to test
 │   ├── __init__.py

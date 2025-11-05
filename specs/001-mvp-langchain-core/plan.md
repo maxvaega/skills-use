@@ -1,4 +1,4 @@
-# Implementation Plan: Skills-use v0.1 MVP - Core Functionality & LangChain Integration
+# Implementation Plan: skillkit v0.1 MVP - Core Functionality & LangChain Integration
 
 **Branch**: `001-mvp-langchain-core` | **Date**: November 4, 2025 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-mvp-langchain-core/spec.md`
@@ -9,7 +9,7 @@
 
 The v0.1 MVP delivers a Python library that implements Anthropic's Agent Skills functionality with a vertical slice approach. Core features include: (1) skill discovery from `.claude/skills/` directory, (2) YAML frontmatter parsing with validation, (3) progressive disclosure pattern (metadata-first loading), (4) skill invocation with $ARGUMENTS substitution and base directory injection, (5) LangChain StructuredTool integration (sync only), (6) 70% test coverage, and (7) PyPI publishing with minimal documentation.
 
-**Technical Approach**: Framework-agnostic core with zero dependencies (stdlib + PyYAML only), optional LangChain integration via `pip install skills-use[langchain]`, frozen dataclasses with slots for memory efficiency, lazy content loading via `@cached_property`, string.Template for secure $ARGUMENTS substitution, comprehensive exception hierarchy with graceful degradation during discovery and strict validation during invocation.
+**Technical Approach**: Framework-agnostic core with zero dependencies (stdlib + PyYAML only), optional LangChain integration via `pip install skillkit[langchain]`, frozen dataclasses with slots for memory efficiency, lazy content loading via `@cached_property`, string.Template for secure $ARGUMENTS substitution, comprehensive exception hierarchy with graceful degradation during discovery and strict validation during invocation.
 
 ## Technical Context
 
@@ -48,8 +48,8 @@ The v0.1 MVP delivers a Python library that implements Anthropic's Agent Skills 
 ### Implicit Principles Applied
 
 1. **Library-First Design** ✅
-   - Core functionality (`skills_use.core`) has zero framework dependencies
-   - Framework integrations cleanly separated (`skills_use.integrations`)
+   - Core functionality (`skillkit.core`) has zero framework dependencies
+   - Framework integrations cleanly separated (`skillkit.integrations`)
    - Independently testable and documented
    - Clear purpose: Enable LLM agents to discover and use packaged expertise
 
@@ -101,9 +101,9 @@ specs/[###-feature]/
 ### Source Code (repository root)
 
 ```text
-skills-use/
+skillkit/
 ├── src/
-│   └── skills_use/
+│   └── skillkit/
 │       ├── __init__.py           # Public API exports + NullHandler configuration
 │       ├── core/
 │       │   ├── __init__.py       # Core module exports
@@ -142,8 +142,8 @@ skills-use/
 ```
 
 **Structure Decision**: Single Python library package structure (Option 1). Rationale:
-- Framework-agnostic core in `src/skills_use/core/` (zero dependencies)
-- Optional integrations in `src/skills_use/integrations/` (framework-specific)
+- Framework-agnostic core in `src/skillkit/core/` (zero dependencies)
+- Optional integrations in `src/skillkit/integrations/` (framework-specific)
 - Tests mirror source structure for clarity
 - Examples demonstrate standalone + framework usage
 - PEP 621 `pyproject.toml` for modern Python packaging
@@ -252,19 +252,19 @@ SkillsUseError (base)
 
 ### API Surface (contracts/public-api.md)
 
-**Core API** (skills_use.core)
+**Core API** (skillkit.core)
 - `SkillManager(skills_dir: Path | None = None)` - Main entry point
 - `SkillMetadata` - Dataclass (name, description, skill_path, allowed_tools)
 - `Skill` - Dataclass (metadata, base_directory, content property)
 - All exceptions from hierarchy
 
-**LangChain Integration** (skills_use.integrations.langchain)
+**LangChain Integration** (skillkit.integrations.langchain)
 - `create_langchain_tools(manager: SkillManager) -> List[StructuredTool]`
 - `SkillInput` - Pydantic model for tool input schema
 
 ### Quickstart Requirements (quickstart.md)
 
-1. **Installation**: `pip install skills-use` and `pip install skills-use[langchain]`
+1. **Installation**: `pip install skillkit` and `pip install skillkit[langchain]`
 2. **Creating Skills**: SKILL.md format with YAML frontmatter examples
 3. **Standalone Usage**: Basic SkillManager usage without frameworks
 4. **LangChain Integration**: End-to-end agent example
@@ -336,7 +336,7 @@ Expected task count: ~25-35 tasks over 4-week timeline.
 - ✅ Linting passes with ruff
 
 **Distribution Validation**:
-- ✅ Package installable via `pip install skills-use`
+- ✅ Package installable via `pip install skillkit`
 - ✅ README example runs without modification
 - ✅ LangChain integration example demonstrates end-to-end workflow
 - ✅ Published to PyPI with MIT license
@@ -372,11 +372,11 @@ Expected task count: ~25-35 tasks over 4-week timeline.
 After `/speckit.implement` completes:
 
 1. **Manual verification**: Run examples/langchain_agent.py with real LLM
-2. **Coverage report**: `pytest --cov=skills_use --cov-report=html`
-3. **Type checking**: `mypy src/skills_use --strict`
-4. **Linting**: `ruff check src/skills_use`
+2. **Coverage report**: `pytest --cov=skillkit --cov-report=html`
+3. **Type checking**: `mypy src/skillkit --strict`
+4. **Linting**: `ruff check src/skillkit`
 5. **Build package**: `python -m build`
-6. **Test installation**: `pip install dist/skills_use-0.1.0-*.whl`
+6. **Test installation**: `pip install dist/skillkit-0.1.0-*.whl`
 7. **Publish to PyPI**: `python -m twine upload dist/*`
 
 **Iteration to v0.2**: Gather user feedback, implement async support, enhance error handling

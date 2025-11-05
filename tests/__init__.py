@@ -1,1 +1,1 @@
-"""Test suite for skills-use library."""
+"""Test suite for skillkit library."""

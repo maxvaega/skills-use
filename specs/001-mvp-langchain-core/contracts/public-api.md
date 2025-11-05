@@ -1,4 +1,4 @@
-# Public API Contract: Skills-use v0.1 MVP
+# Public API Contract: skillkit v0.1 MVP
 
 **Feature**: Core Functionality & LangChain Integration
 **Branch**: `001-mvp-langchain-core`
@@ -6,15 +6,15 @@
 
 ## Overview
 
-This document defines the complete public API contract for the skills-use library v0.1, including type signatures, method specifications, exception handling, and usage examples. All public APIs are subject to semantic versioning guarantees.
+This document defines the complete public API contract for the skillkit library v0.1, including type signatures, method specifications, exception handling, and usage examples. All public APIs are subject to semantic versioning guarantees.
 
 ---
 
-## Core API (`skills_use.core`)
+## Core API (`skillkit.core`)
 
 ### SkillManager Class
 
-**Module**: `skills_use.core.manager`
+**Module**: `skillkit.core.manager`
 
 **Purpose**: Central registry for skill discovery, access, and invocation.
 
@@ -50,7 +50,7 @@ class SkillManager:
             - Scans skills_dir for subdirectories containing SKILL.md files
             - Parses YAML frontmatter and validates required fields
             - Continues processing even if individual skills fail parsing
-            - Logs errors via module logger (skills_use.core.manager)
+            - Logs errors via module logger (skillkit.core.manager)
             - Handles duplicates: first discovered wins, logs WARNING
 
         Side Effects:
@@ -171,7 +171,7 @@ class SkillManager:
 
 ### SkillMetadata Dataclass
 
-**Module**: `skills_use.core.models`
+**Module**: `skillkit.core.models`
 
 **Purpose**: Lightweight skill metadata for browsing and selection.
 
@@ -211,7 +211,7 @@ class SkillMetadata:
 **Usage Example**:
 ```python
 >>> from pathlib import Path
->>> from skills_use.core.models import SkillMetadata
+>>> from skillkit.core.models import SkillMetadata
 
 >>> metadata = SkillMetadata(
 ...     name="code-reviewer",
@@ -232,7 +232,7 @@ AttributeError: can't set attribute
 
 ### Skill Dataclass
 
-**Module**: `skills_use.core.models`
+**Module**: `skillkit.core.models`
 
 **Purpose**: Full skill with lazy-loaded content and invocation capabilities.
 
@@ -328,13 +328,13 @@ class Skill:
 
 ### Exception Hierarchy
 
-**Module**: `skills_use.core.exceptions`
+**Module**: `skillkit.core.exceptions`
 
 **Purpose**: Comprehensive exception types for specific error handling.
 
 ```python
 class SkillsUseError(Exception):
-    """Base exception for all skills-use errors.
+    """Base exception for all skillkit errors.
 
     Usage: Catch this to handle any library error
     """
@@ -384,7 +384,7 @@ class SizeLimitExceededError(SkillSecurityError):
 
 **Usage Examples**:
 ```python
-from skills_use.core.exceptions import (
+from skillkit.core.exceptions import (
     SkillsUseError,
     SkillNotFoundError,
     ContentLoadError,
@@ -410,11 +410,11 @@ except SizeLimitExceededError:
 
 ---
 
-## LangChain Integration API (`skills_use.integrations.langchain`)
+## LangChain Integration API (`skillkit.integrations.langchain`)
 
 ### create_langchain_tools Function
 
-**Module**: `skills_use.integrations.langchain`
+**Module**: `skillkit.integrations.langchain`
 
 **Purpose**: Convert discovered skills into LangChain StructuredTool objects.
 
@@ -441,8 +441,8 @@ def create_langchain_tools(manager: 'SkillManager') -> List[StructuredTool]:
         List of StructuredTool objects ready for agent use
 
     Example:
-        >>> from skills_use import SkillManager
-        >>> from skills_use.integrations.langchain import create_langchain_tools
+        >>> from skillkit import SkillManager
+        >>> from skillkit.integrations.langchain import create_langchain_tools
 
         >>> manager = SkillManager()
         >>> manager.discover()
@@ -464,7 +464,7 @@ def create_langchain_tools(manager: 'SkillManager') -> List[StructuredTool]:
 
 ### SkillInput Pydantic Model
 
-**Module**: `skills_use.integrations.langchain`
+**Module**: `skillkit.integrations.langchain`
 
 **Purpose**: Pydantic schema for LangChain tool input validation.
 
@@ -491,7 +491,7 @@ class SkillInput(BaseModel):
 
 **Usage Example**:
 ```python
->>> from skills_use.integrations.langchain import SkillInput
+>>> from skillkit.integrations.langchain import SkillInput
 
 >>> input_data = SkillInput(arguments="  review main.py  ")
 >>> print(repr(input_data.arguments))
@@ -502,17 +502,17 @@ class SkillInput(BaseModel):
 
 ## Import Guards (Optional Dependencies)
 
-**LangChain Integration**: Requires `pip install skills-use[langchain]`
+**LangChain Integration**: Requires `pip install skillkit[langchain]`
 
 ```python
-# In skills_use/integrations/langchain.py
+# In skillkit/integrations/langchain.py
 try:
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, ConfigDict, Field
 except ImportError as e:
     raise ImportError(
         "LangChain integration requires additional dependencies. "
-        "Install with: pip install skills-use[langchain]"
+        "Install with: pip install skillkit[langchain]"
     ) from e
 ```
 
@@ -520,7 +520,7 @@ except ImportError as e:
 ```python
 # Check availability before importing
 try:
-    from skills_use.integrations import langchain
+    from skillkit.integrations import langchain
     HAS_LANGCHAIN = True
 except ImportError:
     HAS_LANGCHAIN = False
@@ -528,7 +528,7 @@ except ImportError:
 if HAS_LANGCHAIN:
     tools = langchain.create_langchain_tools(manager)
 else:
-    print("LangChain not available. Install with: pip install skills-use[langchain]")
+    print("LangChain not available. Install with: pip install skillkit[langchain]")
 ```
 
 ---
@@ -538,7 +538,7 @@ else:
 **NullHandler Setup** (Python library standard):
 
 ```python
-# In skills_use/__init__.py
+# In skillkit/__init__.py
 import logging
 
 # Add NullHandler to prevent "No handlers found" warnings
@@ -550,16 +550,16 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 ```python
 import logging
 
-# Configure skills-use logging
-logging.getLogger('skills_use').setLevel(logging.INFO)
+# Configure skillkit logging
+logging.getLogger('skillkit').setLevel(logging.INFO)
 
 # Enable debug for discovery only
-logging.getLogger('skills_use.core.discovery').setLevel(logging.DEBUG)
+logging.getLogger('skillkit.core.discovery').setLevel(logging.DEBUG)
 
 # Add handler to see logs
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
-logging.getLogger('skills_use').addHandler(handler)
+logging.getLogger('skillkit').addHandler(handler)
 ```
 
 **Logging Levels**:
@@ -652,9 +652,9 @@ logging.getLogger('skills_use').addHandler(handler)
 import logging
 from pathlib import Path
 
-from skills_use import SkillManager
-from skills_use.integrations.langchain import create_langchain_tools
-from skills_use.core.exceptions import (
+from skillkit import SkillManager
+from skillkit.integrations.langchain import create_langchain_tools
+from skillkit.core.exceptions import (
     SkillNotFoundError,
     ContentLoadError,
     SizeLimitExceededError
@@ -662,7 +662,7 @@ from skills_use.core.exceptions import (
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('skills_use')
+logger = logging.getLogger('skillkit')
 
 def main():
     # 1. Create manager with custom skills directory

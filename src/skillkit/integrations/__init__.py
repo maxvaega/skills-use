@@ -1,4 +1,4 @@
-"""Framework integrations for skills-use library.
+"""Framework integrations for skillkit library.
 
 This module contains framework-specific adapters that require optional
 dependencies. Each integration is independently importable.

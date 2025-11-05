@@ -1,4 +1,4 @@
-"""Core data models for skills-use library.
+"""Core data models for skillkit library.
 
 This module defines the SkillMetadata and Skill dataclasses that implement
 the progressive disclosure pattern for memory-efficient skill management.
@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from skills_use.core.processors import CompositeProcessor
+    from skillkit.core.processors import CompositeProcessor
 
 # Check Python version for slots support on all dataclasses
 PYTHON_310_PLUS = sys.version_info >= (3, 10)
@@ -73,7 +73,7 @@ class Skill:
         Side Effects:
             Creates CompositeProcessor with BaseDirectoryProcessor + ArgumentSubstitutionProcessor
         """
-        from skills_use.core.processors import (
+        from skillkit.core.processors import (
             ArgumentSubstitutionProcessor,
             BaseDirectoryProcessor,
             CompositeProcessor,
@@ -105,7 +105,7 @@ class Skill:
             - First access: ~10-20ms (file I/O)
             - Subsequent: <1μs (cached)
         """
-        from skills_use.core.exceptions import ContentLoadError
+        from skillkit.core.exceptions import ContentLoadError
 
         try:
             return self.metadata.skill_path.read_text(encoding="utf-8-sig")

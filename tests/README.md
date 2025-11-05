@@ -1,6 +1,6 @@
-# skills-use Test Suite
+# skillkit Test Suite
 
-Comprehensive pytest-based test suite for the skills-use library, validating all core functionality, integrations, edge cases, and performance characteristics.
+Comprehensive pytest-based test suite for the skillkit library, validating all core functionality, integrations, edge cases, and performance characteristics.
 
 ## Quick Start
 
@@ -11,7 +11,7 @@ pytest
 
 ### Run with coverage report
 ```bash
-pytest --cov=src/skills_use --cov-report=html
+pytest --cov=src/skillkit --cov-report=html
 # View report: open htmlcov/index.html
 ```
 
@@ -167,10 +167,10 @@ Available markers:
 
 ```bash
 # Check coverage with failure on <70%
-pytest --cov=src/skills_use --cov-fail-under=70
+pytest --cov=src/skillkit --cov-fail-under=70
 
 # Generate detailed HTML report
-pytest --cov=src/skills_use --cov-report=html
+pytest --cov=src/skillkit --cov-report=html
 open htmlcov/index.html
 ```
 
@@ -278,7 +278,7 @@ Tests are designed to run in automated environments:
 # Example GitHub Actions workflow
 - name: Run tests
   run: |
-    pytest --cov=src/skills_use --cov-fail-under=70 --cov-report=xml
+    pytest --cov=src/skillkit --cov-fail-under=70 --cov-report=xml
 
 - name: Upload coverage
   uses: codecov/codecov-action@v3
@@ -353,7 +353,7 @@ pytest -m "not unix_only"
 pip install pytest-cov
 
 # Verify source path is correct
-pytest --cov=src/skills_use --cov-report=term
+pytest --cov=src/skillkit --cov-report=term
 ```
 
 ## Contributing
@@ -362,8 +362,8 @@ When adding new features:
 
 1. Write tests first (TDD approach)
 2. Ensure tests pass: `pytest`
-3. Verify coverage: `pytest --cov=src/skills_use`
-4. Run type checking: `mypy src/skills_use --strict`
+3. Verify coverage: `pytest --cov=src/skillkit`
+4. Run type checking: `mypy src/skillkit --strict`
 5. Format code: `ruff format tests/`
 6. Lint code: `ruff check tests/`
 

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from skills_use import SkillManager
+from skillkit import SkillManager
 
 
 def test_discover_empty_directory(temp_skills_dir: Path) -> None:

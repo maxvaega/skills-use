@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from string import Template
 from typing import Any, Dict, List
 
-from skills_use.core.exceptions import (
+from skillkit.core.exceptions import (
     ArgumentProcessingError,
     SizeLimitExceededError,
 )

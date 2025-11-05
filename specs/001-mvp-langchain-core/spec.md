@@ -1,9 +1,9 @@
-# Feature Specification: Skills-use v0.1 MVP - Core Functionality & LangChain Integration
+# Feature Specification: skillkit v0.1 MVP - Core Functionality & LangChain Integration
 
 **Feature Branch**: `001-mvp-langchain-core`
 **Created**: October 28, 2025
 **Status**: Draft
-**Input**: User description: "Skills-use v0.1 MVP: Core skill discovery, parsing, metadata management, invocation, and LangChain integration with progressive disclosure pattern"
+**Input**: User description: "skillkit v0.1 MVP: Core skill discovery, parsing, metadata management, invocation, and LangChain integration with progressive disclosure pattern"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -191,7 +191,7 @@ A developer evaluating the library wants to see working examples of skills that 
 - **FR-045**: System MUST include `pyproject.toml` with package metadata and dependencies
 - **FR-046**: System MUST include README.md with installation instructions and basic example
 - **FR-047**: System MUST include LICENSE file (MIT license)
-- **FR-048**: System MUST be installable via `pip install skills-use`
+- **FR-048**: System MUST be installable via `pip install skillkit`
 - **FR-049**: System MUST have README example that is copy-pasteable and works without modification
 - **FR-050**: System MUST include basic SKILL.md format documentation in README
 
@@ -211,7 +211,7 @@ A developer evaluating the library wants to see working examples of skills that 
 
 - **LangChainTool**: Adapter wrapping skill as LangChain StructuredTool
   - Attributes: name (from skill), description (from skill), args_schema (single string parameter)
-  - Purpose: Bridge between skills-use library and LangChain framework
+  - Purpose: Bridge between skillkit library and LangChain framework
 
 ## Success Criteria *(mandatory)*
 

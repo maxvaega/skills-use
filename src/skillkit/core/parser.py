@@ -11,12 +11,12 @@ from typing import Any, Dict
 
 import yaml
 
-from skills_use.core.exceptions import (
+from skillkit.core.exceptions import (
     InvalidFrontmatterError,
     InvalidYAMLError,
     MissingRequiredFieldError,
 )
-from skills_use.core.models import SkillMetadata
+from skillkit.core.models import SkillMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class SkillParser:
             >>> print(f"{metadata.name}: {metadata.description}")
             code-reviewer: Review code for best practices
         """
-        from skills_use.core.exceptions import ContentLoadError
+        from skillkit.core.exceptions import ContentLoadError
 
         # Read file with UTF-8-sig encoding (auto-strips BOM)
         try:

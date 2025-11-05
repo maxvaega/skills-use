@@ -1,4 +1,4 @@
-# Research Document: Skills-use v0.1 MVP
+# Research Document: skillkit v0.1 MVP
 
 **Feature**: Core Functionality & LangChain Integration
 **Date**: November 3, 2025
@@ -6,7 +6,7 @@
 
 ## Overview
 
-This document consolidates research findings and architectural decisions for the skills-use v0.1 MVP. All technical decisions are derived from the comprehensive TECH_SPECS.md document which provides detailed implementation blueprints.
+This document consolidates research findings and architectural decisions for the skillkit v0.1 MVP. All technical decisions are derived from the comprehensive TECH_SPECS.md document which provides detailed implementation blueprints.
 
 ---
 
@@ -61,7 +61,7 @@ class Skill:
 
     def __post_init__(self):
         """Initialize processor - avoids inline imports anti-pattern."""
-        from skills_use.core.processors import CompositeProcessor, \
+        from skillkit.core.processors import CompositeProcessor, \
             BaseDirectoryProcessor, ArgumentSubstitutionProcessor
 
         # Use object.__setattr__ because dataclass is frozen
@@ -309,7 +309,7 @@ While `attrs` provides full slots support on Python 3.9, it conflicts with the "
 **Implementation**:
 ```python
 # Core: stdlib + PyYAML only
-src/skills_use/core/
+src/skillkit/core/
   - discovery.py    # Filesystem operations
   - parser.py       # YAML parsing
   - models.py       # Pure dataclasses
@@ -317,7 +317,7 @@ src/skills_use/core/
   - invocation.py   # String processing
 
 # Integrations: framework-specific
-src/skills_use/integrations/
+src/skillkit/integrations/
   - langchain.py    # Requires langchain-core, pydantic
   - llamaindex.py   # Future: v1.1
   - crewai.py       # Future: v1.1
@@ -334,24 +334,24 @@ langchain = [
     "pydantic>=2.0.0"  # Already a transitive dep of langchain-core, but explicit for clarity
 ]
 dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0", "mypy>=1.0.0", "ruff>=0.1.0"]
-all = ["skills-use[langchain,dev]"]
+all = ["skillkit[langchain,dev]"]
 ```
 
 **Import Guard Pattern** (for optional integrations):
 ```python
-# src/skills_use/integrations/langchain.py
+# src/skillkit/integrations/langchain.py
 try:
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, ConfigDict, Field
 except ImportError as e:
     raise ImportError(
         "LangChain integration requires additional dependencies. "
-        "Install with: pip install skills-use[langchain]"
+        "Install with: pip install skillkit[langchain]"
     ) from e
 
 # User code can check availability
 try:
-    from skills_use.integrations import langchain
+    from skillkit.integrations import langchain
     HAS_LANGCHAIN = True
 except ImportError:
     HAS_LANGCHAIN = False
@@ -367,7 +367,7 @@ While `pydantic>=2.0.0` is a transitive dependency of `langchain-core`, we list 
 **Alternatives Considered**:
 - **Tightly coupled design**: Import LangChain in core modules - Rejected due to forced dependency and testing complexity
 - **Plugin architecture**: Dynamic loading of integrations - Rejected as over-engineering for v0.1 (3 integrations max)
-- **Separate packages**: Publish `skills-use-core` and `skills-use-langchain` separately - Rejected due to maintenance overhead
+- **Separate packages**: Publish `skillkit-core` and `skillkit-langchain` separately - Rejected due to maintenance overhead
 
 ---
 
@@ -582,7 +582,7 @@ SkillsUseError                      # Base exception (catch-all)
 
 **🚨 CRITICAL: Logging Configuration (MUST DO for v0.1)**:
 ```python
-# src/skills_use/__init__.py
+# src/skillkit/__init__.py
 import logging
 
 # Add NullHandler to prevent "No handlers found" warnings
@@ -604,12 +604,12 @@ logger = logging.getLogger()  # Root logger!
 
 # ✅ CORRECT - Use module name
 import logging
-logger = logging.getLogger(__name__)  # Creates 'skills_use.core.discovery', etc.
+logger = logging.getLogger(__name__)  # Creates 'skillkit.core.discovery', etc.
 ```
 
 **Why Module-Specific Loggers**:
 - Application developers can configure per-module verbosity
-- Example: `logging.getLogger('skills_use.core.discovery').setLevel(logging.DEBUG)`
+- Example: `logging.getLogger('skillkit.core.discovery').setLevel(logging.DEBUG)`
 - Follows "Explicit is better than implicit" (PEP 20)
 
 **Logging Levels**:
@@ -720,7 +720,7 @@ def test_invocation_raises_on_missing_skill():
 
 # Test NullHandler configuration
 def test_nullhandler_configured():
-    logger = logging.getLogger('skills_use')
+    logger = logging.getLogger('skillkit')
     assert any(isinstance(h, logging.NullHandler) for h in logger.handlers)
 ```
 
@@ -749,16 +749,16 @@ def test_nullhandler_configured():
    ```python
    import logging
 
-   # Configure skills-use logging
-   logging.getLogger('skills_use').setLevel(logging.INFO)
+   # Configure skillkit logging
+   logging.getLogger('skillkit').setLevel(logging.INFO)
 
    # Enable debug for discovery only
-   logging.getLogger('skills_use.core.discovery').setLevel(logging.DEBUG)
+   logging.getLogger('skillkit.core.discovery').setLevel(logging.DEBUG)
 
    # Add handler to see logs
    handler = logging.StreamHandler()
    handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
-   logging.getLogger('skills_use').addHandler(handler)
+   logging.getLogger('skillkit').addHandler(handler)
    ```
 
 3. **Exception Reference Table**:
@@ -1219,7 +1219,7 @@ tests/
 1. **pytest-cov dependency** (5 minutes setup)
    - Required to measure 70% coverage goal
    - Add to pyproject.toml: `dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0"]`
-   - Command: `pytest --cov=skills_use --cov-report=term-missing`
+   - Command: `pytest --cov=skillkit --cov-report=term-missing`
    - Rationale: Can't validate coverage target without measurement tool
 
 2. **Minimal conftest.py** (30 minutes setup, saves 2+ hours)
@@ -1354,8 +1354,8 @@ tool = StructuredTool(
 
 ### Distribution
 - **hatchling** or **setuptools 61.0+**: Modern `pyproject.toml` build backend
-- **PyPI**: Package distribution via `pip install skills-use`
-- **Optional extras**: `pip install skills-use[langchain]` for LangChain integration
+- **PyPI**: Package distribution via `pip install skillkit`
+- **Optional extras**: `pip install skillkit[langchain]` for LangChain integration
 
 ---
 
@@ -1434,7 +1434,7 @@ All open points from PRD are resolved for v0.1:
 **Status**: ✅ All research complete, implementation can begin immediately
 
 **Next Steps**:
-1. Create project structure (`src/skills_use/`, `tests/`)
+1. Create project structure (`src/skillkit/`, `tests/`)
 2. Implement `models.py` and `exceptions.py` (foundational)
 3. Implement `discovery.py` with tests
 4. Implement `parser.py` with tests

@@ -7,8 +7,8 @@ from SKILL.md files, including error handling for malformed inputs.
 import pytest
 from pathlib import Path
 
-from skills_use.core.parser import SkillParser
-from skills_use.core.exceptions import (
+from skillkit.core.parser import SkillParser
+from skillkit.core.exceptions import (
     MissingRequiredFieldError,
     InvalidYAMLError,
     InvalidFrontmatterError,

@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Skills-use v0.1 MVP - Core Functionality & LangChain Integration
+# Specification Quality Checklist: skillkit v0.1 MVP - Core Functionality & LangChain Integration
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: October 28, 2025

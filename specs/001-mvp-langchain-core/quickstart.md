@@ -1,4 +1,4 @@
-# Quickstart Guide: Skills-use v0.1 MVP
+# Quickstart Guide: skillkit v0.1 MVP
 
 **Version**: 0.1.0
 **Date**: November 3, 2025
@@ -6,7 +6,7 @@
 
 ## Overview
 
-This guide will get you up and running with skills-use in under 5 minutes. You'll learn how to:
+This guide will get you up and running with skillkit in under 5 minutes. You'll learn how to:
 
 1. Install the library
 2. Create your first skill
@@ -20,19 +20,19 @@ This guide will get you up and running with skills-use in under 5 minutes. You'l
 ### Core Library Only
 
 ```bash
-pip install skills-use
+pip install skillkit
 ```
 
 ### With LangChain Integration
 
 ```bash
-pip install skills-use[langchain]
+pip install skillkit[langchain]
 ```
 
 ### For Development
 
 ```bash
-pip install skills-use[dev]
+pip install skillkit[dev]
 ```
 
 ---
@@ -94,7 +94,7 @@ Provide a clear, actionable summary of issues found.
 ### Basic Usage
 
 ```python
-from skills_use import SkillManager
+from skillkit import SkillManager
 
 # Initialize manager
 manager = SkillManager()
@@ -163,7 +163,7 @@ Provide a clear, actionable summary of issues found.
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from skills_use.integrations.langchain import create_langchain_tools
+from skillkit.integrations.langchain import create_langchain_tools
 
 # Create skills as LangChain tools
 tools = create_langchain_tools()
@@ -219,7 +219,7 @@ print(result["output"])
 
 ```python
 from pathlib import Path
-from skills_use import SkillManager
+from skillkit import SkillManager
 
 # Use project-local skills directory
 manager = SkillManager(skills_directory=Path("./my-skills"))
@@ -229,7 +229,7 @@ manager.discover()
 ### Pattern 2: Error Handling
 
 ```python
-from skills_use import SkillNotFoundError, SkillParsingError
+from skillkit import SkillNotFoundError, SkillParsingError
 
 try:
     result = manager.invoke_skill("my-skill", "test")
@@ -383,7 +383,7 @@ ls -la ~/.claude/skills/
 ### Validate SKILL.md Format
 
 ```python
-from skills_use.core.parser import SkillParser
+from skillkit.core.parser import SkillParser
 from pathlib import Path
 
 parser = SkillParser()
@@ -468,7 +468,7 @@ allowed-tools: []       # Optional
 
 **Solution**:
 ```bash
-pip install skills-use[langchain]
+pip install skillkit[langchain]
 ```
 
 ---
@@ -530,11 +530,11 @@ $ARGUMENTS
 
 ```python
 #!/usr/bin/env python3
-"""Complete example: Skills-use with LangChain agent."""
+"""Complete example: skillkit with LangChain agent."""
 
 from pathlib import Path
-from skills_use import SkillManager
-from skills_use.integrations.langchain import create_langchain_tools
+from skillkit import SkillManager
+from skillkit.integrations.langchain import create_langchain_tools
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -600,7 +600,7 @@ python example.py
 ## Summary
 
 You've learned:
-- ✅ How to install skills-use
+- ✅ How to install skillkit
 - ✅ How to create SKILL.md files
 - ✅ How to use skills standalone
 - ✅ How to integrate with LangChain agents

@@ -1,11 +1,11 @@
-"""Core module for skills-use library.
+"""Core module for skillkit library.
 
 This module contains the framework-agnostic core functionality with zero
 framework dependencies (stdlib + PyYAML only).
 """
 
-from skills_use.core.discovery import SkillDiscovery
-from skills_use.core.exceptions import (
+from skillkit.core.discovery import SkillDiscovery
+from skillkit.core.exceptions import (
     ArgumentProcessingError,
     ContentLoadError,
     InvalidFrontmatterError,
@@ -19,10 +19,10 @@ from skills_use.core.exceptions import (
     SkillsUseError,
     SuspiciousInputError,
 )
-from skills_use.core.manager import SkillManager
-from skills_use.core.models import Skill, SkillMetadata
-from skills_use.core.parser import SkillParser
-from skills_use.core.processors import (
+from skillkit.core.manager import SkillManager
+from skillkit.core.models import Skill, SkillMetadata
+from skillkit.core.parser import SkillParser
+from skillkit.core.processors import (
     ArgumentSubstitutionProcessor,
     BaseDirectoryProcessor,
     CompositeProcessor,

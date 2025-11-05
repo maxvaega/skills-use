@@ -1,6 +1,6 @@
-# Contributing to skills-use
+# Contributing to skillkit
 
-Thank you for your interest in contributing to skills-use! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to skillkit! This document provides guidelines and instructions for contributing to the project.
 
 ## Table of Contents
 
@@ -41,7 +41,7 @@ We are committed to providing a welcoming and inclusive environment for all cont
 
 ### Finding Ways to Contribute
 
-1. **Browse open issues**: Check the [issue tracker](https://github.com/maxvaega/skills-use/issues) for bugs and feature requests
+1. **Browse open issues**: Check the [issue tracker](https://github.com/maxvaega/skillkit/issues) for bugs and feature requests
 2. **Documentation**: Help improve documentation, examples, or tutorials
 3. **Bug fixes**: Fix bugs and submit pull requests
 4. **New features**: Propose and implement new features (discuss first in an issue)
@@ -54,8 +54,8 @@ We are committed to providing a welcoming and inclusive environment for all cont
 
 ```bash
 # Fork the repository on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/skills-use.git
-cd skills-use
+git clone https://github.com/YOUR_USERNAME/skillkit.git
+cd skillkit
 ```
 
 ### 2. Install Development Dependencies
@@ -96,17 +96,17 @@ Before committing, ensure all checks pass:
 
 ```bash
 # Run tests with coverage
-pytest --cov=src/skills_use --cov-report=html
-pytest --cov=src/skills_use --cov-report=term-missing
+pytest --cov=src/skillkit --cov-report=html
+pytest --cov=src/skillkit --cov-report=term-missing
 
 # Type checking
-mypy src/skills_use --strict
+mypy src/skillkit --strict
 
 # Linting
-ruff check src/skills_use
+ruff check src/skillkit
 
 # Format code
-ruff format src/skills_use
+ruff format src/skillkit
 ```
 
 ### 4. Commit Your Changes
@@ -146,8 +146,8 @@ Add tests for argument substitution edge cases
 
 ```python
 import pytest
-from skills_use import SkillManager
-from skills_use.core.exceptions import SkillNotFoundError
+from skillkit import SkillManager
+from skillkit.core.exceptions import SkillNotFoundError
 
 def test_feature_success_case(tmp_path):
     """Test successful execution of feature."""
@@ -195,7 +195,7 @@ pytest -m "not slow"
 pytest -v
 
 # Run with coverage
-pytest --cov=src/skills_use --cov-report=html
+pytest --cov=src/skillkit --cov-report=html
 ```
 
 ## Code Style
@@ -275,7 +275,7 @@ git push origin feature/your-feature-name
 
 ### 2. Create Pull Request
 
-1. Go to the [skills-use repository](https://github.com/maxvaega/skills-use)
+1. Go to the [skillkit repository](https://github.com/maxvaega/skillkit)
 2. Click "New Pull Request"
 3. Select your fork and branch
 4. Fill out the PR template with:
@@ -316,7 +316,7 @@ When reporting bugs, include:
 4. **Actual behavior**: What actually happens
 5. **Environment**:
    - Python version
-   - skills-use version
+   - skillkit version
    - Operating system
    - Relevant dependencies
 
@@ -331,7 +331,7 @@ SkillManager.discover() raises FileNotFoundError when skill directories contain 
 **Steps to reproduce:**
 ```python
 from pathlib import Path
-from skills_use import SkillManager
+from skillkit import SkillManager
 
 # Create skill directory with space
 skill_dir = Path("~/.claude/skills/my skill")
@@ -346,7 +346,7 @@ manager.discover()  # Fails here
 
 **Environment:**
 - Python 3.10.19
-- skills-use 0.1.0
+- skillkit 0.1.0
 - macOS 14.0
 
 ## Feature Requests
@@ -395,7 +395,7 @@ logging.basicConfig(level=logging.DEBUG)
 Module-specific logging:
 
 ```python
-logging.getLogger('skills_use.core.discovery').setLevel(logging.DEBUG)
+logging.getLogger('skillkit.core.discovery').setLevel(logging.DEBUG)
 ```
 
 ### Performance Testing
@@ -407,7 +407,7 @@ Test with many skills:
 python tests/generate_test_skills.py
 
 # Measure discovery time
-python -m timeit "from skills_use import SkillManager; m=SkillManager(); m.discover()"
+python -m timeit "from skillkit import SkillManager; m=SkillManager(); m.discover()"
 ```
 
 ### Memory Profiling
@@ -426,7 +426,7 @@ def test_memory():
 
 ## Questions?
 
-- Open a [discussion](https://github.com/maxvaega/skills-use/discussions)
+- Open a [discussion](https://github.com/maxvaega/skillkit/discussions)
 
 ## License
 
@@ -434,4 +434,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ## Acknowledgments
 
-Thank you for contributing to skills-use! Your contributions help make AI agents more capable and easier to develop.
+Thank you for contributing to skillkit! Your contributions help make AI agents more capable and easier to develop.
