@@ -1,0 +1,321 @@
+# Contributing to MyPackage
+
+Thank you for your interest in contributing to MyPackage! This document provides guidelines and instructions for getting involved.
+
+## Code of Conduct
+
+This project adheres to the Contributor Covenant [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [maintainer-email@example.com].
+
+## Getting Started
+
+### Development Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/username/mypackage.git
+   cd mypackage
+   ```
+
+2. **Create a virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install development dependencies**
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+4. **Install pre-commit hooks**
+   ```bash
+   pre-commit install
+   ```
+
+### Testing Your Setup
+
+Run the test suite to verify everything works:
+
+```bash
+pytest
+```
+
+## How to Contribute
+
+### Report Bugs
+
+**Before creating a bug report:**
+- Check existing issues to avoid duplicates
+- Verify the issue reproduces on the latest main branch
+
+**When creating a bug report, include:**
+- Clear, descriptive title
+- Exact steps to reproduce
+- Expected vs actual behavior
+- Python version and OS
+- Relevant code snippets
+- Full error traceback if applicable
+
+### Suggest Enhancements
+
+**Before requesting a feature:**
+- Check existing issues and discussions
+- Ensure it aligns with the library's scope
+
+**When suggesting an enhancement:**
+- Clear use case and motivation
+- Example of how you'd use the feature
+- Possible drawbacks or alternatives
+
+### Code Contributions
+
+We follow a standard fork-and-pull-request workflow:
+
+1. **Fork the repository** on GitHub
+
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+3. **Make your changes**
+   - Follow the code style guidelines below
+   - Add tests for new functionality
+   - Update documentation as needed
+
+4. **Run checks locally**
+   ```bash
+   # Format code
+   black src/ tests/
+
+   # Lint code
+   ruff check --fix src/ tests/
+
+   # Type check
+   mypy src/
+
+   # Run tests
+   pytest
+
+   # Check coverage
+   pytest --cov=src/mypackage
+   ```
+
+5. **Commit with clear messages**
+   ```bash
+   git commit -m "feat: Add new feature"
+   git commit -m "fix: Resolve bug in validator"
+   ```
+   Use conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`
+
+6. **Push and create a pull request**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+   Open a PR on GitHub with a clear description
+
+## Code Style Guidelines
+
+### Python Style
+
+We use the following tools to maintain consistent code style:
+
+- **Black** for code formatting (88-character line length)
+- **Ruff** for linting
+- **mypy** for type checking (strict mode)
+- **isort** for import sorting
+
+### Type Hints
+
+All public APIs **must** have type hints:
+
+```python
+from typing import Optional
+from collections.abc import Sequence
+
+def process_items(
+    items: Sequence[str],
+    limit: Optional[int] = None
+) -> dict[str, int]:
+    """Process items and return frequency map.
+
+    Args:
+        items: Items to process
+        limit: Optional limit on items to process
+
+    Returns:
+        Frequency map of items
+    """
+    ...
+```
+
+### Docstrings
+
+Use Google-style docstrings for all public functions and classes:
+
+```python
+def calculate(x: int, y: int) -> int:
+    """Calculate sum of two numbers.
+
+    Args:
+        x: First number
+        y: Second number
+
+    Returns:
+        Sum of x and y
+
+    Raises:
+        TypeError: If inputs are not integers
+
+    Example:
+        >>> calculate(2, 3)
+        5
+    """
+    ...
+```
+
+### Naming Conventions
+
+- **Functions/variables**: `lowercase_with_underscores`
+- **Classes**: `PascalCase`
+- **Constants**: `UPPER_CASE_WITH_UNDERSCORES`
+- **Private/internal**: `_leading_underscore`
+
+## Testing Guidelines
+
+### Writing Tests
+
+Tests go in the `tests/` directory and use pytest:
+
+```python
+import pytest
+from mypackage.core import process
+
+def test_process_basic():
+    """Test basic processing."""
+    result = process("input")
+    assert result == "expected_output"
+
+@pytest.mark.parametrize("input,expected", [
+    ("a", "A"),
+    ("b", "B"),
+])
+def test_process_varied(input, expected):
+    """Test with varied inputs."""
+    assert process(input) == expected
+
+def test_process_error():
+    """Test error handling."""
+    with pytest.raises(ValueError):
+        process(None)
+```
+
+### Coverage Requirements
+
+- Aim for >90% code coverage on public APIs
+- All error paths should be tested
+- Both success and failure cases
+
+Run tests with coverage:
+
+```bash
+pytest --cov=src/mypackage --cov-report=html
+```
+
+## Documentation
+
+### Updating Documentation
+
+Documentation lives in `docs/source/`:
+
+1. **API Documentation**: Generated from docstrings via Sphinx
+   - Keep docstrings up-to-date with code changes
+   - Use type hints and examples
+
+2. **User Guides**: In `docs/source/guide/`
+   - Explain concepts with examples
+   - Show common use cases
+
+3. **README.md**:
+   - Keep quick-start examples current
+   - Update feature list
+
+### Building Documentation Locally
+
+```bash
+cd docs
+make html
+# View at docs/build/html/index.html
+```
+
+## Commit Message Conventions
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+Types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation
+- `style`: Code style (formatting, etc.)
+- `refactor`: Code refactoring
+- `test`: Adding/updating tests
+- `chore`: Build, dependencies, etc.
+
+Example:
+```
+feat(processor): Add batch processing support
+
+Implements parallel processing for large datasets.
+Improves performance by 3x for typical use cases.
+
+Closes #42
+```
+
+## Pull Request Process
+
+1. **Update CHANGELOG.md** with your changes
+2. **Ensure tests pass** and coverage is maintained
+3. **Get review approval** from maintainers
+4. **Squash commits** if requested (keep history clean)
+5. **PR gets merged** once approved
+
+### PR Guidelines
+
+- **One feature per PR** (unless closely related)
+- **Descriptive title and description**
+- **Reference issues** with "Closes #123" or "Fixes #123"
+- **Keep scope focused** (avoid mixing refactoring with features)
+
+## Release Process
+
+Maintainers handle releases following semantic versioning:
+
+- **MAJOR**: Breaking changes
+- **MINOR**: New features (backwards compatible)
+- **PATCH**: Bug fixes (backwards compatible)
+
+Releases are tagged, published to PyPI, and documented in CHANGELOG.md.
+
+## Asking for Help
+
+- **Questions about code**: Open a discussion on GitHub
+- **Design feedback**: Comment on relevant issues
+- **Need guidance**: Check documentation or ask maintainers
+- **Found a problem**: Open an issue with details
+
+## Recognition
+
+Contributors are recognized in:
+- CHANGELOG.md (for significant contributions)
+- GitHub contributors page
+- Release notes
+
+Thank you for contributing! 🎉

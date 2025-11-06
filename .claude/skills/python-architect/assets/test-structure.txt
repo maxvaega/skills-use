@@ -1,0 +1,332 @@
+RECOMMENDED TEST STRUCTURE
+==========================
+
+tests/
+├── __init__.py                 # Makes tests a package
+├── conftest.py                 # Shared fixtures and pytest config
+│
+├── unit/                       # Unit tests (fast, isolated)
+│   ├── test_core.py
+│   ├── test_validator.py
+│   ├── test_config.py
+│   └── test_utils.py
+│
+├── integration/                # Integration tests (workflows, slower)
+│   ├── test_basic_workflow.py
+│   ├── test_advanced_workflow.py
+│   └── test_error_handling.py
+│
+├── fixtures/                   # Test data files
+│   ├── sample_data.json
+│   ├── sample_config.yaml
+│   └── expected_output.json
+│
+└── helpers.py                  # Shared test utilities
+
+
+TEST ORGANIZATION PHILOSOPHY
+=============================
+
+Unit Tests (tests/unit/):
+- Test individual functions/classes in isolation
+- Mock external dependencies
+- Fast execution (milliseconds)
+- High coverage (>90% target)
+- Test success and error paths
+
+Integration Tests (tests/integration/):
+- Test complete workflows
+- May use real objects/connections (or well-mocked)
+- Test API contracts
+- Slower but more realistic
+
+Fixtures (tests/fixtures/):
+- Sample data for tests
+- Configuration files
+- Expected outputs
+- Keep separate from code
+
+
+CONFTEST.PY TEMPLATE
+====================
+
+"""Shared pytest fixtures and configuration."""
+
+import pytest
+from mypackage.config import Config
+
+
+@pytest.fixture
+def sample_config():
+    """Create a test configuration."""
+    return Config(
+        timeout=10,
+        retries=2,
+        debug=True
+    )
+
+
+@pytest.fixture
+def sample_data():
+    """Load sample data for tests."""
+    return {
+        "name": "test",
+        "value": 42,
+        "items": ["a", "b", "c"]
+    }
+
+
+@pytest.fixture
+def mock_processor(mocker):
+    """Create a mocked processor."""
+    processor = mocker.Mock()
+    processor.process.return_value = {"result": "success"}
+    return processor
+
+
+# Pytest configuration
+def pytest_configure(config):
+    """Configure pytest."""
+    config.addinivalue_line(
+        "markers", "unit: Unit tests (fast, isolated)"
+    )
+    config.addinivalue_line(
+        "markers", "integration: Integration tests (may be slower)"
+    )
+    config.addinivalue_line(
+        "markers", "slow: Slow running tests"
+    )
+
+
+UNIT TEST EXAMPLE
+=================
+
+# tests/unit/test_core.py
+
+import pytest
+from mypackage.core import process
+from mypackage.exceptions import ValidationError
+
+
+class TestProcess:
+    """Test suite for process function."""
+
+    def test_process_basic(self):
+        """Test basic processing."""
+        result = process("test_input")
+        assert result == "expected_output"
+
+    @pytest.mark.parametrize("input,expected", [
+        ("input1", "output1"),
+        ("input2", "output2"),
+        ("", "default_output"),
+    ])
+    def test_process_varied_inputs(self, input, expected):
+        """Test with varied inputs."""
+        result = process(input)
+        assert result == expected
+
+    def test_process_with_config(self, sample_config):
+        """Test with configuration."""
+        result = process("input", config=sample_config)
+        assert result is not None
+
+    def test_process_invalid_input(self):
+        """Test error handling for invalid input."""
+        with pytest.raises(ValidationError):
+            process(None)
+
+    def test_process_large_input(self):
+        """Test with large input (edge case)."""
+        large_input = "x" * 10000
+        result = process(large_input)
+        assert result is not None
+
+    def test_process_empty_input(self):
+        """Test with empty input (edge case)."""
+        with pytest.raises(ValidationError):
+            process("")
+
+
+INTEGRATION TEST EXAMPLE
+========================
+
+# tests/integration/test_workflow.py
+
+import pytest
+from mypackage import Client, Config
+
+
+class TestBasicWorkflow:
+    """Test basic client workflow."""
+
+    def test_create_and_process(self):
+        """Test creating client and processing data."""
+        config = Config(timeout=30)
+        client = Client(config=config)
+
+        result = client.process("test_data")
+
+        assert result is not None
+        assert "success" in result
+
+    def test_error_recovery(self):
+        """Test client recovers from errors."""
+        config = Config(timeout=5, retries=3)
+        client = Client(config=config)
+
+        # Should retry and eventually succeed
+        result = client.process("flaky_data")
+        assert result is not None
+
+    @pytest.mark.slow
+    def test_large_batch_processing(self):
+        """Test processing large batches."""
+        config = Config(timeout=60)
+        client = Client(config=config)
+
+        results = []
+        for i in range(1000):
+            result = client.process(f"item_{i}")
+            results.append(result)
+
+        assert len(results) == 1000
+        assert all(r is not None for r in results)
+
+
+PYTEST.INI CONFIGURATION
+========================
+
+[pytest]
+# Test discovery
+testpaths = tests
+python_files = test_*.py
+python_classes = Test*
+python_functions = test_*
+
+# Markers
+markers =
+    unit: Unit tests (fast, isolated)
+    integration: Integration tests (may be slower)
+    slow: Slow running tests
+    requires_network: Tests requiring network access
+
+# Output
+addopts =
+    --verbose
+    --strict-markers
+    --cov=src/mypackage
+    --cov-report=term-missing
+    --cov-report=html
+    --cov-fail-under=90
+
+# Coverage
+[coverage:run]
+source = src/mypackage
+branch = true
+
+[coverage:report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+
+KEY TESTING PRINCIPLES
+======================
+
+1. UNIT TESTS SHOULD BE FAST
+   - Mock external dependencies (files, network, databases)
+   - Test single functions/methods
+   - Run in milliseconds
+   - Can be run frequently during development
+
+2. INTEGRATION TESTS VERIFY WORKFLOWS
+   - Test interactions between components
+   - May use slower operations
+   - Test the complete flow
+   - Run less frequently (but required before commits)
+
+3. TEST ERROR PATHS
+   - What happens with invalid input?
+   - What happens with edge cases?
+   - What happens when dependencies fail?
+   - Test both success and failure
+
+4. USE FIXTURES FOR SETUP
+   - Avoid code duplication in tests
+   - Conftest.py for shared fixtures
+   - Fixture scopes: function, class, module, session
+
+5. PARAMETRIZED TESTS FOR VARIATIONS
+   - @pytest.mark.parametrize for similar tests with different inputs
+   - Reduces code duplication
+   - Clearer what variations are tested
+
+6. MOCK EXTERNAL DEPENDENCIES
+   - Use pytest-mock or unittest.mock
+   - Don't depend on network/files in unit tests
+   - Make tests deterministic and fast
+
+7. CLEAR TEST NAMES
+   - test_<function>_<scenario>
+   - test_<function>_<input>_<expected>
+   - Example: test_validate_empty_input_raises_error
+
+8. ORGANIZE TESTS IN CLASSES
+   - Group related tests in TestClass
+   - Better organization and scoping
+   - Share fixtures at class level
+
+
+COVERAGE TARGETS
+================
+
+Public APIs:
+- Aim for >90% line coverage
+- 100% coverage of error paths
+- All branches exercised
+
+Private/internal code:
+- High coverage encouraged (70%+)
+- Less critical than public API
+- Focus on complex logic
+
+Performance-critical code:
+- Extra test coverage
+- Profile to verify behavior
+- Test with realistic data sizes
+
+Generated code:
+- May exclude from coverage
+- Document exclusions
+
+
+MOCKING BEST PRACTICES
+======================
+
+# Mock external dependencies
+def test_with_mock_api(mocker):
+    mock_api = mocker.patch('mypackage.api.Client')
+    mock_api.return_value.call.return_value = {"result": "success"}
+
+    result = my_function_that_calls_api()
+    assert result == {"result": "success"}
+
+# Don't mock what you're testing
+def test_validation():
+    # Test real validation logic, don't mock it
+    with pytest.raises(ValueError):
+        validate(invalid_input)
+
+# Verify interactions
+def test_api_called_correctly(mocker):
+    mock_api = mocker.patch('mypackage.api.call')
+
+    my_function(param="value")
+
+    mock_api.assert_called_once_with(param="value")

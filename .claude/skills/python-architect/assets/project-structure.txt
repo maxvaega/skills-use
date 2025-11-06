@@ -1,0 +1,208 @@
+RECOMMENDED PROJECT STRUCTURE (src/ layout)
+==========================================
+
+mypackage/                      # Repository root
+│
+├── .github/                    # GitHub specific
+│   ├── workflows/
+│   │   ├── ci.yml             # CI/CD pipeline
+│   │   └── release.yml        # Release automation
+│   └── ISSUE_TEMPLATE/
+│
+├── src/                        # Source code (src/ layout required!)
+│   └── mypackage/              # Main package
+│       ├── __init__.py         # Public API exports
+│       ├── __version__.py      # Version string
+│       ├── exceptions.py       # Custom exception hierarchy
+│       ├── core/               # Core functionality
+│       │   ├── __init__.py
+│       │   ├── processor.py
+│       │   └── validator.py
+│       ├── utils/              # Utility functions
+│       │   ├── __init__.py
+│       │   ├── helpers.py
+│       │   └── decorators.py
+│       ├── config.py           # Configuration classes
+│       └── _internal/          # Private/internal modules
+│           ├── __init__.py
+│           └── backend.py
+│
+├── tests/                      # Test suite
+│   ├── __init__.py
+│   ├── conftest.py            # pytest fixtures and config
+│   ├── unit/                  # Unit tests (test individual components)
+│   │   ├── test_core.py
+│   │   ├── test_validator.py
+│   │   └── test_config.py
+│   ├── integration/           # Integration tests (test workflows)
+│   │   ├── test_workflow_a.py
+│   │   └── test_workflow_b.py
+│   └── fixtures/              # Test data and fixtures
+│       └── sample_data.json
+│
+├── docs/                       # Documentation
+│   ├── source/
+│   │   ├── conf.py            # Sphinx config
+│   │   ├── index.rst
+│   │   ├── guide/
+│   │   │   ├── installation.rst
+│   │   │   ├── quickstart.rst
+│   │   │   └── advanced.rst
+│   │   ├── api/
+│   │   │   └── index.rst      # API reference (auto-generated from docstrings)
+│   │   └── changelog.rst
+│   ├── build/                 # Built docs (generated)
+│   └── Makefile              # Documentation build
+│
+├── scripts/                    # Development scripts
+│   ├── check_types.sh
+│   ├── run_tests.sh
+│   └── build_release.sh
+│
+├── .gitignore                 # Git ignore rules
+├── .gitattributes            # Git attributes
+├── .pre-commit-config.yaml   # Pre-commit hooks
+│
+├── pyproject.toml            # Project metadata & build config (PEP 517/518)
+├── README.md                 # Project overview
+├── CHANGELOG.md              # Version history
+├── CONTRIBUTING.md           # Contributing guidelines
+├── CODE_OF_CONDUCT.md        # Community guidelines
+├── LICENSE                   # License (MIT, Apache, etc.)
+├── SECURITY.md               # Security policy
+│
+├── Makefile                  # Development convenience commands
+└── tox.ini                   # Test automation config
+
+
+KEY STRUCTURE DECISIONS
+=======================
+
+1. SRC/ LAYOUT (REQUIRED)
+   - src/ prevents accidentally importing from source during tests
+   - Ensures you always test the installed version
+   - Industry standard for modern Python packages
+
+2. INTERNAL UNDERSCORE CONVENTION
+   - Public modules: no leading underscore (src/mypackage/core.py)
+   - Private modules: leading underscore (src/mypackage/_internal.py)
+   - Signals to users: this is implementation detail, don't depend on it
+
+3. FLAT HIERARCHY
+   - Avoid deep nesting (keep 2-3 levels maximum)
+   - Package structure is implementation detail
+   - Expose public API at package level via __init__.py
+
+4. SEPARATION OF CONCERNS
+   - core/: Main algorithm/logic
+   - utils/: Helper functions and utilities
+   - config.py: Configuration classes
+   - exceptions.py: Custom exception hierarchy
+   - _internal/: Implementation details
+
+5. TEST STRUCTURE
+   - unit/: Test individual components (fast, no I/O)
+   - integration/: Test workflows (may be slower)
+   - conftest.py: Shared fixtures and setup
+   - fixtures/: Sample data needed for tests
+
+6. DOCUMENTATION
+   - README.md: Quick start and overview
+   - docs/source/: Full documentation (Sphinx)
+   - Docstrings: API documentation in code
+   - CONTRIBUTING.md: How to contribute
+   - CHANGELOG.md: Version history
+
+
+PUBLIC API DESIGN
+=================
+
+In src/mypackage/__init__.py:
+
+```python
+"""MyPackage - [One-line description]."""
+
+from mypackage._version import __version__
+from mypackage.exceptions import MyPackageError, ValidationError
+from mypackage.core.processor import Processor
+from mypackage.core.validator import validate
+from mypackage.config import Config
+
+__all__ = [
+    "__version__",
+    "Config",
+    "Processor",
+    "validate",
+    "MyPackageError",
+    "ValidationError",
+]
+```
+
+Users import like:
+- `from mypackage import Processor`
+- `import mypackage`
+- `mypackage.Processor()`
+
+NOT:
+- `from mypackage.core.processor import Processor`  (internal detail)
+- `from mypackage._internal import Backend`       (private)
+
+
+MODULE ORGANIZATION PATTERNS
+============================
+
+Pattern 1: Function-based core
+- core/
+  ├── __init__.py (exports main functions)
+  ├── processor.py (main algorithm)
+  ├── validator.py (validation logic)
+  └── transformer.py (transformation logic)
+
+Pattern 2: Class-based core with strategy pattern
+- core/
+  ├── __init__.py (exports main classes)
+  ├── base.py (abstract classes)
+  ├── default.py (default implementation)
+  └── specialized.py (specialized implementations)
+
+Pattern 3: Large library with submodules
+- core/
+  - processing/
+    - __init__.py
+    - (modules)
+  - validation/
+    - __init__.py
+    - (modules)
+  - storage/
+    - __init__.py
+    - (modules)
+
+All expose high-level API at package level!
+
+
+SIZE GUIDELINES
+===============
+
+Small library (< 100 functions):
+- src/mypackage/
+  ├── __init__.py
+  ├── core.py (main logic)
+  └── utils.py (helpers)
+
+Medium library (100-500 functions):
+- src/mypackage/
+  ├── __init__.py
+  ├── core/
+  ├── utils/
+  └── cli/ (optional)
+
+Large library (500+ functions):
+- src/mypackage/
+  ├── __init__.py
+  ├── core/
+  ├── processing/
+  ├── storage/
+  ├── utils/
+  └── _internal/
+
+Don't over-organize! Flat is better than nested.

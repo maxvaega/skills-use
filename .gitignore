@@ -143,6 +143,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+test_venv/
+.test_venv/
 
 # Spyder project settings
 .spyderproject
@@ -206,7 +208,11 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-.claude/
+*.local.*
+
+.DS_Store
+*/.DS_Store
+
+.docs/
 .specify/
-CLAUDE.md
-.docs/*.*
+.claude/commands/
