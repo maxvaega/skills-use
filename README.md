@@ -313,18 +313,27 @@ python examples/langchain_agent.py  # Requires langchain extras
 - ✅ LangChain integration (sync only)
 - ✅ 70% test coverage
 
-### v0.2 (Planned)
+### v0.2 (Planned) 👈 we are here
 - Async support (`adiscover()`, `ainvoke_skill()`)
+- Advanced Discovery (multiple search paths, plugin directory support, nested skill structure, skill name conflict resolution)
+- File reference resolution (supporting file access from scripts/, templates/ and docs/)
+
+### v0.3 (Planned)
+- Script Execution (script detection, execution with variables, stdout/stderr capture, sandboxing)
+- Tool restriction enforcement (allowed-tools enforcement, tool filtering, violation error handling)
+
+### v0.4 (Planned)
+- Plugin integration
 - Enhanced error handling and recovery
 - Performance optimizations
 
-### v0.3 (Planned)
-- Multiple search paths for skills
-- Plugin integration for dynamic skill loading
-- Tool restriction enforcement
+### v0.5 (Planned)
+- Additional Frameworks integration
 
 ### v1.0 (Planned)
+- Plugin integration for dynamic skill loading
 - Nested directory support
+- Advanced arguments schemas
 - Skill versioning and compatibility checks
 - Comprehensive documentation
 - 90% test coverage
