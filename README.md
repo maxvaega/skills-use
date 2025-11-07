@@ -13,8 +13,6 @@ skillkit is compatible with existings skills (SKILL.md), so you can browse and u
     <img src="https://img.shields.io/pypi/v/skillkit" /></a>
 <a href="ttps://github.com/maxvaega/skillkit/releases">
     <img src="https://img.shields.io/github/v/release/maxvaega/skillkit" /></a>
-<a href="https://github.com/maxvaega/skillkit/releases">
-    <img src="https://img.shields.io/github/v/release/maxvaega/skillkit" /></a>
 <a href="https://github.com/maxvaega/skillkit/stargazers">
     <img src="https://img.shields.io/github/stars/maxvaega/skillkit" /></a>
 </p>
