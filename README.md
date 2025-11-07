@@ -131,14 +131,11 @@ agent = create_agent(
     tools, 
     system_prompt=prompt
     )
-agent_executor = AgentExecutor(agent=agent, tools=tools)
 
 # Use agent
 query="What are Common Architectural Scenarios in python?"
 messages = [HumanMessage(content=query)]
-messages = agent.invoke({"messages": messages})
-for m in messages["messages"]:
-    m.pretty_print()
+result = agent.invoke({"messages": messages})
 ```
 
 ## SKILL.md Format
