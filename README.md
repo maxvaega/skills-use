@@ -92,7 +92,7 @@ $ARGUMENTS
 ```python
 from skillkit import SkillManager
 
-# Create manager (defaults to ~/.claude/skills/)
+# Create manager (defaults to /.claude/skills/)
 manager = SkillManager()
 
 # Discover skills
@@ -330,7 +330,6 @@ python examples/langchain_agent.py  # Requires langchain extras
 
 ### v0.3 (Planned)
 - Script Execution (script detection, execution with variables, stdout/stderr capture, sandboxing)
-- Tool restriction enforcement (allowed-tools enforcement, tool filtering, violation error handling)
 
 ### v0.4 (Planned)
 - Plugin integration
@@ -339,6 +338,9 @@ python examples/langchain_agent.py  # Requires langchain extras
 
 ### v0.5 (Planned)
 - Additional Frameworks integration
+
+### v0.5 (Planned)
+- Tool restriction enforcement (allowed-tools enforcement, tool filtering, violation error handling)
 
 ### v1.0 (Planned)
 - Plugin integration for dynamic skill loading
