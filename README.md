@@ -112,8 +112,9 @@ print(result)
 ```python
 from skillkit import SkillManager
 from skillkit.integrations.langchain import create_langchain_tools
-from langchain.agents import create_react_agent, AgentExecutor
+from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
+from langchain.messages import HumanMessage
 
 # Discover skills
 manager = SkillManager()
@@ -124,11 +125,20 @@ tools = create_langchain_tools(manager)
 
 # Create agent
 llm = ChatOpenAI(model="gpt-4")
-agent = create_react_agent(llm, tools, prompt)
+prompt = "You are a helpful assistant. use the available skills tools to answer the user queries."
+agent = create_agent(
+    llm, 
+    tools, 
+    system_prompt=prompt
+    )
 agent_executor = AgentExecutor(agent=agent, tools=tools)
 
 # Use agent
-result = agent_executor.invoke({"input": "Review my code for security issues"})
+query="What are Common Architectural Scenarios in python?"
+messages = [HumanMessage(content=query)]
+messages = agent.invoke({"messages": messages})
+for m in messages["messages"]:
+    m.pretty_print()
 ```
 
 ## SKILL.md Format
