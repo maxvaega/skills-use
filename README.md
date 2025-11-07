@@ -1,7 +1,25 @@
-# skillkit
+<div align="center">
+<h1 align="center" style="font-size:4em">skillkit</h1>
+</div>
+<p align="center" style="max-width:80%; margin-bottom:40px">Enables Anthropic's Agent Skills functionality to any python agent, unleashing LLM-powered agents to <b>autonomously discover and utilize packaged expertise</b> in a token-efficient way.
+skillkit is compatible with existings skills (SKILL.md), so you can browse and use any skill available on the web</p>
 
-Enables Anthropic's Agent Skills functionality to any python agent, unleashing LLM-powered agents to autonomously discover and utilize packaged expertise, regardless of their framework.
-skillkit is compatible with existings skills (SKILL.md), so you can browse and use any skill available on the web
+<p align="center">
+<a href="https://www.python.org/downloads/">
+    <img src="https://img.shields.io/badge/python-3.10%2B-blue" /></a>
+<a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a>
+<a href="https://pypi.org/project/skillkit/">
+    <img src="https://img.shields.io/pypi/v/skillkit" /></a>
+<a href="ttps://github.com/maxvaega/skillkit/releases">
+    <img src="https://img.shields.io/github/v/release/maxvaega/skillkit" /></a>
+<a href="https://github.com/maxvaega/skillkit/releases">
+    <img src="https://img.shields.io/github/v/release/maxvaega/skillkit" /></a>
+<a href="https://github.com/maxvaega/skillkit/stargazers">
+    <img src="https://img.shields.io/github/stars/maxvaega/skillkit" /></a>
+</p>
+
+---
 
 ## Features
 
