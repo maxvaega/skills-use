@@ -1,5 +1,13 @@
 # skillkit
 
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI](https://img.shields.io/pypi/v/skillkit)](https://pypi.org/project/skillkit/)
+[![GitHub Release](https://img.shields.io/github/v/release/maxvaega/skillkit)](https://github.com/maxvaega/skillkit/releases)
+[![GitHub Start](https://img.shields.io/github/stars/maxvaega/skillkit)](https://github.com/maxvaega/skillkit/stargazers)
+
+
+
 Enables Anthropic's Agent Skills functionality to any python agent, unleashing LLM-powered agents to autonomously discover and utilize packaged expertise, regardless of their framework.
 skillkit is compatible with existings skills (SKILL.md), so you can browse and use any skill available on the web
 
