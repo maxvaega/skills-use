@@ -1,67 +1,93 @@
 # Implementation Plan: v0.2 - Async Support, Advanced Discovery & File Resolution
 
-**Branch**: `001-v0-2-async-discovery-files` | **Date**: 2025-11-08 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-v0-2-async-discovery-files` | **Date**: 2025-11-12 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-v0-2-async-discovery-files/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-This feature completes the v0.2 milestone by adding three major enhancements to skillkit:
+This feature completes the v0.2 release by implementing three major capabilities:
 
-1. **Async Support (IR-2.4)**: Non-blocking async methods for skill discovery and invocation, enabling integration with async frameworks (FastAPI, async LangChain agents) via `adiscover()`, `ainvoke_skill()`, and LangChain `ainvoke` support
-2. **Advanced Discovery (FR-1)**: Multi-source skill discovery from project, Anthropic, and plugin directories with priority-based conflict resolution, plugin manifest parsing, nested directory structures, and fully qualified naming
-3. **File Reference Resolution (FR-5)**: Secure relative path resolution for skill supporting files (scripts, templates, docs) with path traversal prevention
+1. **Async Support**: Non-blocking skill discovery and invocation via `adiscover()` and `ainvoke_skill()` methods, with async file I/O and full LangChain `ainvoke` integration
+2. **Advanced Discovery**: Multiple skill sources (project/anthropic/plugins), plugin manifest parsing, nested directory structures, and fully qualified skill names for conflict resolution
+3. **File Reference Resolution**: Secure relative path resolution for skill supporting files with directory traversal prevention
 
-The implementation maintains 100% backward compatibility with v0.1's sync API while adding async capabilities as a parallel code path. Memory efficiency is preserved through lazy loading, and security is enhanced through path validation.
+The implementation maintains backward compatibility with v0.1 sync APIs while adding async as an optional enhancement. Priority order for skill conflicts is: project > anthropic > plugins > additional paths.
 
 ## Technical Context
 
-**Language/Version**: Python 3.10+ (minimum 3.10, recommended 3.11+ for optimal memory efficiency)
-**Primary Dependencies**:
-- Core: PyYAML 6.0+ (YAML parsing), aiofiles 23.0+ (async file I/O - NEW for v0.2)
-- Optional: langchain-core 0.1.0+, pydantic 2.0+ (LangChain integration)
-- Dev: pytest 7.0+, pytest-asyncio 0.21+ (NEW for v0.2), pytest-cov 4.0+, ruff 0.1.0+, mypy 1.0+
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
 
-**Storage**: Filesystem-based (.claude/skills/, project skills/, plugin directories with .claude-plugin/plugin.json manifests)
-**Testing**: pytest with pytest-asyncio for async test coverage, mypy strict mode for type safety, 70% coverage target
-**Target Platform**: Cross-platform (Linux, macOS, Windows) Python library for distribution via PyPI
-**Project Type**: Single Python library with framework-agnostic core and optional integrations
-**Performance Goals**:
-- Async discovery: <200ms for 500 skills (50% faster than sync)
-- Async invocation: <2ms overhead vs sync
-- Event loop: Never block >5ms during async operations
-- Memory: <2.5MB for 100 skills (maintain v0.1 efficiency)
-
-**Constraints**:
-- 100% backward compatibility with v0.1 sync API
-- Zero new dependencies in core (aiofiles is core, not integration)
-- Path traversal validation must be bulletproof (security-critical)
-- Async and sync APIs must produce identical results (except timing)
-
-**Scale/Scope**:
-- Support 500+ skills across multiple sources
-- Handle up to 5 levels of nested directory structures
-- Concurrent async invocations: 10+ parallel without errors
-- Plugin ecosystem: Multiple plugins with namespace isolation
+**Language/Version**: Python 3.10+ (minimum for full async support)
+**Primary Dependencies**: PyYAML 6.0+, aiofiles 23.0+ (new), langchain-core 0.1.0+, pydantic 2.0+
+**Storage**: Filesystem-based (`.claude/skills/` directories, `.claude-plugin/plugin.json` manifests)
+**Testing**: pytest 7.0+, pytest-asyncio 0.21+ (new), pytest-cov 4.0+
+**Target Platform**: Cross-platform (Linux, macOS, Windows) with asyncio event loop support
+**Project Type**: Single Python library with framework-agnostic core
+**Performance Goals**: Async discovery <200ms for 500 skills, async invocation overhead <2ms
+**Constraints**: Backward compatible with v0.1, zero new dependencies in core (aiofiles optional)
+**Scale/Scope**: Support 500+ skills across 10+ sources with nested structures up to 5 levels deep
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Status**: No project constitution file found at `.specify/memory/constitution.md`. The file contains only a template.
+### Framework-Agnostic Core Principle
 
-**Proceeding with general software engineering best practices**:
+**Status**: ✅ PASS
 
-1. ✅ **Backward Compatibility**: v0.1 sync API remains unchanged and functional
-2. ✅ **Test Coverage**: Maintaining 70% coverage requirement, adding pytest-asyncio for async paths
-3. ✅ **Type Safety**: All new async methods will have full type hints compatible with mypy strict mode
-4. ✅ **Security First**: Path traversal validation is security-critical and will be thoroughly tested
-5. ✅ **Framework Agnostic**: Core async support uses stdlib asyncio + aiofiles, no framework dependencies
-6. ✅ **Documentation**: All new APIs will be documented with examples in quickstart.md
-7. ✅ **Progressive Enhancement**: Async is additive; users can continue using sync API
+- Async support implemented in `src/skillkit/core/` using only stdlib asyncio and aiofiles
+- No framework-specific dependencies introduced to core modules
+- LangChain async integration isolated in `src/skillkit/integrations/langchain.py`
 
-**No violations detected**. Proceeding to Phase 0 research.
+### Progressive Disclosure Pattern
+
+**Status**: ✅ PASS
+
+- Maintains v0.1 lazy loading architecture (SkillMetadata + Skill two-tier pattern)
+- Async discovery loads only metadata; full content loaded on-demand via `ainvoke_skill()`
+- No changes to memory efficiency characteristics
+
+### Backward Compatibility
+
+**Status**: ✅ PASS
+
+- All v0.1 sync APIs (`discover()`, `invoke_skill()`) remain unchanged
+- Async methods are purely additive (`adiscover()`, `ainvoke_skill()`)
+- Existing code using sync methods continues working without modifications
+
+### Security-First Design
+
+**Status**: ✅ PASS
+
+- Path traversal prevention is mandatory for file reference resolution
+- Uses `pathlib.Path.resolve()` for canonical path validation
+- All resolved paths validated to stay within skill base directory
+- SecurityError raised on any traversal attempts
+
+### Testing Requirements
+
+**Status**: ✅ PASS
+
+- Maintains 70% coverage minimum from v0.1
+- Adds pytest-asyncio for async code path coverage
+- Parametrized tests for sync/async equivalence validation
+- Security fuzzing tests for path traversal edge cases
+
+### Complexity Justification
+
+**Status**: ✅ PASS (with justification)
+
+- **Async complexity**: Justified by target use case (500+ skills, high-concurrency agents)
+- **Multi-source discovery**: Required for Anthropic plugin ecosystem support
+- **Path validation**: Security-critical feature, cannot be simplified
+
+**Gates Result**: All checks PASS. Proceed to Phase 0 research.
 
 ## Project Structure
 
@@ -81,55 +107,105 @@ specs/[###-feature]/
 
 ```text
 src/skillkit/
-├── __init__.py                 # Public API exports
-├── py.typed                    # Type hints marker
-├── core/                       # Framework-agnostic core (v0.1 + v0.2 additions)
-│   ├── __init__.py             # Core exports
-│   ├── models.py               # SkillMetadata, Skill dataclasses (NEW: SkillSource, PluginManifest)
-│   ├── discovery.py            # SkillDiscovery (NEW: async, multi-source, plugin support)
-│   ├── parser.py               # SkillParser (NEW: plugin manifest parsing)
-│   ├── manager.py              # SkillManager (NEW: async methods, multi-source, path resolution)
-│   ├── processors.py           # ContentProcessor (NEW: base directory injection)
-│   ├── exceptions.py           # Exception hierarchy (NEW: SecurityError for path traversal)
-│   └── path_utils.py           # NEW: Path validation and resolution utilities
-└── integrations/               # Framework adapters
-    ├── __init__.py             # Integration exports
-    └── langchain.py            # LangChain StructuredTool (NEW: async ainvoke support)
+├── core/                          # Framework-agnostic core (v0.1 + v0.2 extensions)
+│   ├── discovery.py               # SkillDiscovery: sync + async filesystem scanning
+│   ├── parser.py                  # SkillParser: YAML parsing + plugin manifest parsing
+│   ├── models.py                  # SkillMetadata, Skill, PluginManifest, SkillSource
+│   ├── manager.py                 # SkillManager: sync/async orchestration + multi-source
+│   ├── processors.py              # ContentProcessor: $ARGUMENTS + file path injection
+│   ├── path_resolver.py           # NEW: FilePathResolver for secure relative path resolution
+│   └── exceptions.py              # Exception hierarchy (add AsyncStateError, PathSecurityError)
+├── integrations/
+│   └── langchain.py               # LangChain StructuredTool: add ainvoke support
+└── py.typed
 
-tests/                          # Test suite (mirrors src/)
-├── conftest.py                 # Shared fixtures (NEW: async fixtures)
-├── test_discovery.py           # Discovery tests (NEW: async, multi-source, plugin tests)
-├── test_parser.py              # Parser tests (NEW: plugin manifest tests)
-├── test_models.py              # Dataclass tests (NEW: SkillSource, PluginManifest tests)
-├── test_processors.py          # Processor tests (NEW: base directory injection tests)
-├── test_manager.py             # Manager tests (NEW: async, multi-source, path resolution tests)
-├── test_path_utils.py          # NEW: Path validation tests (security-critical)
-├── test_langchain.py           # LangChain integration (NEW: async ainvoke tests)
+tests/
+├── test_discovery.py              # Discovery: async tests + multi-source tests
+├── test_parser.py                 # Parser: plugin manifest parsing tests
+├── test_models.py                 # Models: new dataclasses (PluginManifest, SkillSource)
+├── test_processors.py             # Processors: file path injection tests
+├── test_path_resolver.py          # NEW: Path resolution + security validation tests
+├── test_manager.py                # Manager: async methods + multi-source orchestration
+├── test_langchain.py              # LangChain: ainvoke integration tests
 └── fixtures/
-    └── skills/                 # Test SKILL.md files
+    └── skills/                    # Test SKILL.md files
         ├── valid-skill/
-        ├── nested/             # NEW: Nested structure tests
-        │   └── group/
-        │       └── skill/
-        └── plugins/            # NEW: Plugin test fixtures
-            └── test-plugin/
-                └── .claude-plugin/
-                    └── plugin.json
+        ├── nested-skill/           # NEW: nested directory structure
+        ├── plugin-skill/           # NEW: plugin with manifest
+        └── path-traversal-skill/   # NEW: malicious path test cases
 
-examples/                       # Usage examples
-├── basic_usage.py              # Standalone usage (NEW: async examples)
-├── langchain_agent.py          # LangChain integration (NEW: async agent example)
-└── skills/                     # Example skills
+examples/
+├── async_usage.py                 # NEW: Async discovery and invocation example
+├── multi_source.py                # NEW: Multiple skill sources example
+└── file_references.py             # NEW: Supporting files example
 ```
 
-**Structure Decision**: Single Python library structure (Option 1) with framework-agnostic core and optional integrations. This matches the existing v0.1 implementation and will be extended with:
-- New `path_utils.py` module for secure path resolution
-- Extended `models.py` with SkillSource and PluginManifest dataclasses
-- Async methods added to existing modules (discovery, manager, langchain integration)
-- New test fixtures for plugins and nested structures
+**Structure Decision**: Single Python library structure maintained from v0.1. New files added for async support (`path_resolver.py`), new test fixtures for v0.2 scenarios, and new examples demonstrating async and multi-source features.
 
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
-No violations detected. This section is not applicable.
+**Status**: No violations. All complexity is justified by requirements.
+
+---
+
+## Post-Design Constitution Check
+
+*Re-evaluated after Phase 1 design completion*
+
+### Framework-Agnostic Core Principle
+
+**Status**: ✅ PASS (Confirmed)
+
+- Design maintains separation: `asyncio.to_thread()` in core (stdlib only)
+- `aiofiles` NOT used in core (deferred to optional dependency)
+- Plugin manifest parsing uses `json` module (stdlib)
+- All new entities (`SkillSource`, `PluginManifest`, `QualifiedSkillName`, `SkillPath`) are pure dataclasses
+
+### Progressive Disclosure Pattern
+
+**Status**: ✅ PASS (Confirmed)
+
+- No changes to v0.1 lazy loading architecture
+- Async methods use same two-tier pattern (metadata → full skill)
+- `FilePathResolver` is stateless utility (zero memory overhead)
+- Plugin manifests loaded once per plugin (minimal overhead: ~400 bytes each)
+
+### Backward Compatibility
+
+**Status**: ✅ PASS (Confirmed)
+
+- All v0.1 method signatures unchanged
+- New parameters are optional with sensible defaults
+- v0.1 constructor argument `skill_dir` mapped to `project_skill_dir`
+- Async methods have distinct names (`adiscover`, `ainvoke_skill`) to avoid confusion
+
+### Security-First Design
+
+**Status**: ✅ PASS (Confirmed)
+
+- `FilePathResolver.resolve_path()` implements OWASP path traversal prevention
+- Uses `Path.resolve()` + `is_relative_to()` pattern (Python 3.9+ safe)
+- All 7 attack vectors tested and documented
+- `PathSecurityError` raised on any validation failure with detailed context
+
+### Testing Requirements
+
+**Status**: ✅ PASS (Confirmed)
+
+- Test plan maintains 70% coverage target
+- Added `pytest-asyncio` for async code paths
+- Security fuzzing tests for path traversal (100+ malicious patterns)
+- Integration tests for multi-source discovery and plugin manifests
+
+### API Design Quality
+
+**Status**: ✅ PASS (New Check)
+
+- All public methods have type hints (mypy strict mode compatible)
+- Error messages include context (skill name, path, source)
+- Async methods follow Python async best practices (not blocking, proper error propagation)
+- API contracts documented with examples, exceptions, and performance characteristics
+
+**Final Gates Result**: All checks PASS. Design approved for implementation (Phase 2).

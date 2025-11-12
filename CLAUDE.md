@@ -212,3 +212,10 @@ skillkit/
 
 - **v0.1 MVP Implementation Complete **
 - **Architectural Review**: All decisions validated against Python library best practices
+
+## Active Technologies
+- Python 3.10+ (minimum for full async support) + PyYAML 6.0+, aiofiles 23.0+ (new), langchain-core 0.1.0+, pydantic 2.0+ (001-v0-2-async-discovery-files)
+- Filesystem-based (`.claude/skills/` directories, `.claude-plugin/plugin.json` manifests) (001-v0-2-async-discovery-files)
+
+## Recent Changes
+- 001-v0-2-async-discovery-files: Added Python 3.10+ (minimum for full async support) + PyYAML 6.0+, aiofiles 23.0+ (new), langchain-core 0.1.0+, pydantic 2.0+
