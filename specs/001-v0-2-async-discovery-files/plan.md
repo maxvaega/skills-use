@@ -114,7 +114,7 @@ src/skillkit/
 │   ├── manager.py                 # SkillManager: sync/async orchestration + multi-source
 │   ├── processors.py              # ContentProcessor: $ARGUMENTS + file path injection
 │   ├── path_resolver.py           # NEW: FilePathResolver for secure relative path resolution
-│   └── exceptions.py              # Exception hierarchy (add AsyncStateError, PathSecurityError)
+│   └── exceptions.py              # Exception hierarchy (add AsyncStateError, PathSecurityError, ManifestNotFoundError, ManifestParseError, ManifestValidationError)
 ├── integrations/
 │   └── langchain.py               # LangChain StructuredTool: add ainvoke support
 └── py.typed
@@ -189,6 +189,11 @@ examples/
 - Uses `Path.resolve()` + `is_relative_to()` pattern (Python 3.9+ safe)
 - All 7 attack vectors tested and documented
 - `PathSecurityError` raised on any validation failure with detailed context
+- **Plugin Manifest Security** (v0.2 additions based on technical review 2025-01-13):
+  - Path traversal prevention in `skills` field validation
+  - JSON bomb protection via 1MB file size limit
+  - Manifest version validation (supports "0.1" and "0.3")
+  - Basic field validation (no spaces in names, semver format, description length)
 
 ### Testing Requirements
 

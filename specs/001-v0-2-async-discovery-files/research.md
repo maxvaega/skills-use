@@ -233,7 +233,7 @@ The v0.2 implementation adds plugin discovery, requiring a manifest format speci
 
 ```json
 {
-  "manifest_version": "0.3",
+  "manifest_version": "0.1",
   "name": "my-plugin",
   "version": "1.0.0",
   "description": "Brief plugin functionality overview",
@@ -260,7 +260,7 @@ The v0.2 implementation adds plugin discovery, requiring a manifest format speci
 
 | Field | Type | Required | Validation | Default |
 |-------|------|----------|------------|---------|
-| `manifest_version` | string | Yes | Semver format, currently "0.3" | N/A |
+| `manifest_version` | string | Yes | Must be "0.1" or "0.3" | N/A |
 | `name` | string | Yes | Machine-readable identifier (kebab-case recommended) | N/A |
 | `version` | string | Yes | Semver format (e.g., "1.0.0") | N/A |
 | `description` | string | Yes | Brief overview (1-2 sentences) | N/A |
@@ -282,10 +282,34 @@ The v0.2 implementation adds plugin discovery, requiring a manifest format speci
 | **Python-specific format (pyproject.toml)** | Familiar to Python devs, supports comments | Not cross-language, incompatible with MCP ecosystem | Violates framework-agnostic principle; language-specific |
 | **YAML manifest** | Human-friendly, supports comments | Not Anthropic standard, parsing complexity | JSON is simpler and matches MCPB spec exactly |
 
+### v0.2 Security Enhancements
+
+Based on technical review (2025-01-13), the following security validations were added to Decision 3:
+
+1. **Path Traversal Prevention**: Validate `skills` paths to prevent directory traversal attacks:
+   - Block `..` sequences in skill paths
+   - Block absolute paths (`/`, `\`, drive letters)
+   - Implemented in `PluginManifest.__post_init__()` validation
+
+2. **JSON Bomb Protection**: Enforce file size limit (1 MB) to prevent DoS attacks:
+   - Check file size before parsing
+   - Reject manifests exceeding `MAX_MANIFEST_SIZE`
+   - Implemented in `parse_plugin_manifest()`
+
+3. **Manifest Version Correction**: Support both `"0.1"` and `"0.3"` manifest versions:
+   - Official MCPB examples use `"0.1"` (not `"0.3"`)
+   - Spec document version is separate from manifest field value
+   - Clear error message for unsupported versions
+
+These additions ensure v0.2 manifest parsing is secure against common attack vectors while maintaining simplicity for MVP release.
+
 ### Implementation Notes
 
 1. **Parser Module**: Add plugin manifest parsing to `core/parser.py`:
    ```python
+   # Security constants
+   MAX_MANIFEST_SIZE = 1_000_000  # 1 MB limit
+
    @dataclass
    class PluginManifest:
        manifest_version: str
@@ -298,22 +322,97 @@ The v0.2 implementation adds plugin discovery, requiring a manifest format speci
        homepage: str | None = None
        repository: dict[str, str] | None = None
 
+       def __post_init__(self):
+           """Validate manifest fields with security checks."""
+           # Validate manifest version
+           if self.manifest_version not in {"0.1", "0.3"}:
+               raise ManifestValidationError(
+                   f"Unsupported manifest_version: {self.manifest_version}. "
+                   f"Supported versions: 0.1, 0.3"
+               )
+
+           # Basic field validation
+           if not self.name or ' ' in self.name:
+               raise ManifestValidationError("Plugin name cannot contain spaces")
+
+           if not self.version or self.version.count('.') < 2:
+               raise ManifestValidationError("Version must be semver (e.g., 1.0.0)")
+
+           if not self.description or len(self.description) > 1000:
+               raise ManifestValidationError("Description required (max 1000 chars)")
+
+           # Validate author
+           if not isinstance(self.author, dict) or 'name' not in self.author:
+               raise ManifestValidationError("Author must have 'name' field")
+
+           # SECURITY: Validate skills paths
+           for skill_path in self.skills:
+               if not skill_path:
+                   raise ManifestValidationError("Skill path cannot be empty")
+
+               # Prevent path traversal
+               if ".." in skill_path:
+                   raise ManifestValidationError(
+                       f"Security violation: Path contains '..': {skill_path}"
+                   )
+
+               # Prevent absolute paths
+               if skill_path.startswith("/") or skill_path.startswith("\\"):
+                   raise ManifestValidationError(
+                       f"Security violation: Path must be relative: {skill_path}"
+                   )
+
+               # Windows: Prevent drive letters
+               if len(skill_path) >= 2 and skill_path[1] == ":":
+                   raise ManifestValidationError(
+                       f"Security violation: Drive letters not allowed: {skill_path}"
+                   )
+
    def parse_plugin_manifest(manifest_path: Path) -> PluginManifest:
-       """Parse and validate plugin.json manifest."""
-       with open(manifest_path, 'r', encoding='utf-8') as f:
-           data = json.load(f)
+       """Parse and validate plugin.json manifest with security checks."""
+       # Check file exists
+       if not manifest_path.exists():
+           raise ManifestNotFoundError(
+               f"Plugin manifest not found: {manifest_path}\n"
+               f"Expected location: .claude-plugin/plugin.json"
+           )
+
+       # SECURITY: Check file size (JSON bomb prevention)
+       file_size = manifest_path.stat().st_size
+       if file_size > MAX_MANIFEST_SIZE:
+           raise ManifestParseError(
+               f"Manifest too large: {file_size:,} bytes (max {MAX_MANIFEST_SIZE:,})"
+           )
+
+       # Parse JSON with error handling
+       try:
+           with open(manifest_path, 'r', encoding='utf-8') as f:
+               data = json.load(f)
+       except json.JSONDecodeError as e:
+           raise ManifestParseError(
+               f"Invalid JSON in {manifest_path.name}:\n"
+               f"  Line {e.lineno}, Column {e.colno}: {e.msg}"
+           ) from e
 
        # Validate required fields
        required = ['manifest_version', 'name', 'version', 'description', 'author']
        missing = [f for f in required if f not in data]
        if missing:
-           raise ManifestValidationError(f"Missing required fields: {missing}")
+           raise ManifestValidationError(
+               f"Missing required fields: {', '.join(missing)}\n"
+               f"Required: {', '.join(required)}"
+           )
 
        # Normalize skills field
        skills = data.get('skills', ['skills/'])
        if isinstance(skills, str):
            skills = [skills]
+       elif not isinstance(skills, list):
+           raise ManifestValidationError(
+               f"'skills' must be string or array, got {type(skills).__name__}"
+           )
 
+       # Build manifest (validation happens in __post_init__)
        return PluginManifest(
            manifest_version=data['manifest_version'],
            name=data['name'],
@@ -356,7 +455,12 @@ The v0.2 implementation adds plugin discovery, requiring a manifest format speci
 3. **Type Validation**: Test with wrong types (e.g., string instead of object for author)
 4. **Skills Normalization**: Test both string and array values for `skills` field
 5. **Malformed JSON**: Test with syntax errors, ensure graceful error handling
-6. **Real-World**: If possible, test with actual Anthropic plugin examples
+6. **Security Tests** (v0.2 additions):
+   - Path traversal: Test `skills: ["../../etc"]` is blocked
+   - Absolute paths: Test `skills: ["/etc/passwd"]` is blocked
+   - Drive letters: Test `skills: ["C:/Windows"]` is blocked
+   - JSON bombs: Test oversized manifests (>1MB) are rejected
+7. **Real-World**: If possible, test with actual Anthropic plugin examples
 
 ### References
 
