@@ -1,7 +1,25 @@
-# skillkit
+<div align="center">
+<h1 align="center" style="font-size:4em">skillkit</h1>
+</div>
+<p align="center" style="max-width:80%; margin-bottom:40px">Enables Anthropic's Agent Skills functionality to any python agent, unleashing LLM-powered agents to <b>autonomously discover and utilize packaged expertise</b> in a token-efficient way.
+skillkit is compatible with existings skills (SKILL.md), so you can browse and use any skill available on the web</p>
 
-Enables Anthropic's Agent Skills functionality to any python agent, unleashing LLM-powered agents to autonomously discover and utilize packaged expertise, regardless of their framework.
-skillkit is compatible with existings skills (SKILL.md), so you can browse and use any skill available on the web
+<p align="center">
+<a href="https://www.python.org/downloads/">
+    <img src="https://img.shields.io/badge/python-3.10%2B-blue" /></a>
+<a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a>
+<a href="https://pypi.org/project/skillkit/">
+    <img src="https://img.shields.io/pypi/v/skillkit" /></a>
+<a href="ttps://github.com/maxvaega/skillkit/releases">
+    <img src="https://img.shields.io/github/v/release/maxvaega/skillkit" /></a>
+<a href="https://github.com/maxvaega/skillkit/releases">
+    <img src="https://img.shields.io/github/v/release/maxvaega/skillkit" /></a>
+<a href="https://github.com/maxvaega/skillkit/stargazers">
+    <img src="https://img.shields.io/github/stars/maxvaega/skillkit" /></a>
+</p>
+
+---
 
 ## Features
 
@@ -92,7 +110,7 @@ $ARGUMENTS
 ```python
 from skillkit import SkillManager
 
-# Create manager (defaults to ~/.claude/skills/)
+# Create manager (defaults to /.claude/skills/)
 manager = SkillManager()
 
 # Discover skills
@@ -112,8 +130,9 @@ print(result)
 ```python
 from skillkit import SkillManager
 from skillkit.integrations.langchain import create_langchain_tools
-from langchain.agents import create_react_agent, AgentExecutor
+from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
+from langchain.messages import HumanMessage
 
 # Discover skills
 manager = SkillManager()
@@ -124,11 +143,17 @@ tools = create_langchain_tools(manager)
 
 # Create agent
 llm = ChatOpenAI(model="gpt-4")
-agent = create_react_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools)
+prompt = "You are a helpful assistant. use the available skills tools to answer the user queries."
+agent = create_agent(
+    llm, 
+    tools, 
+    system_prompt=prompt
+    )
 
 # Use agent
-result = agent_executor.invoke({"input": "Review my code for security issues"})
+query="What are Common Architectural Scenarios in python?"
+messages = [HumanMessage(content=query)]
+result = agent.invoke({"messages": messages})
 ```
 
 ## SKILL.md Format
@@ -320,7 +345,6 @@ python examples/langchain_agent.py  # Requires langchain extras
 
 ### v0.3 (Planned)
 - Script Execution (script detection, execution with variables, stdout/stderr capture, sandboxing)
-- Tool restriction enforcement (allowed-tools enforcement, tool filtering, violation error handling)
 
 ### v0.4 (Planned)
 - Plugin integration
@@ -329,6 +353,9 @@ python examples/langchain_agent.py  # Requires langchain extras
 
 ### v0.5 (Planned)
 - Additional Frameworks integration
+
+### v0.5 (Planned)
+- Tool restriction enforcement (allowed-tools enforcement, tool filtering, violation error handling)
 
 ### v1.0 (Planned)
 - Plugin integration for dynamic skill loading
