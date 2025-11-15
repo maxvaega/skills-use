@@ -21,6 +21,7 @@ except ImportError as e:
 
 if TYPE_CHECKING:
     from skillkit.core.manager import SkillManager
+    from skillkit.core.models import SkillMetadata
 
 
 class SkillInput(BaseModel):
@@ -90,7 +91,10 @@ def create_langchain_tools(manager: "SkillManager") -> List[StructuredTool]:
     """
     tools: List[StructuredTool] = []
 
-    for skill_metadata in manager.list_skills():
+    # Get skill metadata list (explicitly not qualified to get SkillMetadata objects)
+    skill_metadatas: List[SkillMetadata] = manager.list_skills(include_qualified=False)  # type: ignore[assignment]
+
+    for skill_metadata in skill_metadatas:
         # CRITICAL: Use default parameter to capture skill name at function creation
         # Without this, all functions would reference the final loop value (Python late binding)
         def invoke_skill(arguments: str = "", skill_name: str = skill_metadata.name) -> str:

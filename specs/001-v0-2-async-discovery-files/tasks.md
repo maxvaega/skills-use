@@ -226,17 +226,17 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T065 [P] Update README.md with v0.2 async examples and multi-source configuration
-- [ ] T066 [P] Update examples/basic_usage.py to show both sync and async patterns
-- [ ] T067 [P] Create examples/async_usage.py with FastAPI integration and concurrent invocations
-- [ ] T068 [P] Add type hints to all new async methods ensuring mypy strict mode compatibility
-- [ ] T069 Code cleanup: Remove any debug logging, ensure consistent error messages across all modules
-- [ ] T070 [P] Update src/skillkit/__init__.py to export new public APIs (adiscover, ainvoke_skill, FilePathResolver)
-- [ ] T071 Verify backward compatibility by running v0.1 usage patterns against v0.2 code
-- [ ] T072 Run ruff format and ruff check on all modified files
-- [ ] T073 Run mypy --strict on src/skillkit to verify type safety
-- [ ] T074 Validate all quickstart.md examples execute successfully
-- [ ] T075 Update CHANGELOG.md with v0.2 release notes
+- [X] T065 [P] Update README.md with v0.2 async examples and multi-source configuration
+- [X] T066 [P] Update examples/basic_usage.py to show both sync and async patterns
+- [X] T067 [P] Create examples/async_usage.py with FastAPI integration and concurrent invocations
+- [X] T068 [P] Add type hints to all new async methods ensuring mypy strict mode compatibility
+- [X] T069 Code cleanup: Remove any debug logging, ensure consistent error messages across all modules
+- [X] T070 [P] Update src/skillkit/__init__.py to export new public APIs (adiscover, ainvoke_skill, FilePathResolver)
+- [X] T071 Verify backward compatibility by running v0.1 usage patterns against v0.2 code
+- [X] T072 Run ruff format and ruff check on all modified files
+- [X] T073 Run mypy --strict on src/skillkit to verify type safety
+- [X] T074 Validate all quickstart.md examples execute successfully
+- [X] T075 Update CHANGELOG.md with v0.2 release notes
 
 ---
 

@@ -123,7 +123,9 @@ class SkillDiscovery:
             Found: /home/user/.claude/skills/data/csv-parser/SKILL.md
         """
         skill_files: List[Path] = []
-        visited_dirs: set[tuple[int, int]] = set()  # Track visited directories to detect circular symlinks
+        visited_dirs: set[tuple[int, int]] = (
+            set()
+        )  # Track visited directories to detect circular symlinks
 
         try:
             # Use recursive search with depth tracking

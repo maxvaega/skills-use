@@ -24,10 +24,14 @@ skillkit is compatible with existings skills (SKILL.md), so you can browse and u
 ## Features
 
 - **Framework-free**: can be used without any framework, or with other frameworks (currently only compatible with LangChain - more coming in the future!)
-- **Multi-source skill discovery** from local directories
+- **Async support**: Non-blocking skill discovery and invocation for high-performance applications
+- **Multi-source skill discovery**: From project, Anthropic config, plugins, and custom directories with priority-based conflict resolution
+- **Plugin ecosystem**: Full support for Anthropic's MCPB plugin manifests with namespaced skill access
+- **Nested directory structures**: Discover skills in any directory hierarchy up to 5 levels deep
+- **Secure file resolution**: Path traversal prevention for accessing skill supporting files
 - **YAML frontmatter parsing** with comprehensive validation
 - **Progressive disclosure pattern** (metadata-first loading, 80% memory reduction)
-- **Security features**: Input validation, size limits, suspicious pattern detection
+- **Security features**: Input validation, size limits, suspicious pattern detection, path security
 - **Model-agnostic design**: Works with any LLM
 
 ---
@@ -64,10 +68,22 @@ The web is full of great skills! here are some repositories you can check out:
 pip install skillkit
 ```
 
+### With async support
+
+```bash
+pip install skillkit[async]
+```
+
 ### With LangChain integration
 
 ```bash
 pip install skillkit[langchain]
+```
+
+### All extras (async + LangChain + dev tools)
+
+```bash
+pip install skillkit[all]
 ```
 
 ### Development dependencies
@@ -107,10 +123,12 @@ $ARGUMENTS
 
 ### 2. Use standalone (without frameworks)
 
+#### Sync usage (v0.1 compatible)
+
 ```python
 from skillkit import SkillManager
 
-# Create manager (defaults to /.claude/skills/)
+# Create manager (defaults to ./.claude/skills/)
 manager = SkillManager()
 
 # Discover skills
@@ -123,6 +141,34 @@ for skill in manager.list_skills():
 # Invoke a skill
 result = manager.invoke_skill("code-reviewer", "Review function calculate_total()")
 print(result)
+```
+
+#### Async usage (v0.2+)
+
+```python
+import asyncio
+from skillkit import SkillManager
+
+async def main():
+    # Create manager with multiple sources
+    manager = SkillManager(
+        project_skill_dir="./skills",              # Priority: 100
+        anthropic_config_dir="./.claude/skills",  # Priority: 50
+        plugin_dirs=["./plugins/my-plugin"]       # Priority: 10
+    )
+
+    # Async discovery (non-blocking)
+    await manager.adiscover()
+
+    # List available skills
+    for skill in manager.list_skills():
+        print(f"{skill.name}: {skill.description}")
+
+    # Async invocation (non-blocking)
+    result = await manager.ainvoke_skill("code-reviewer", "Review function calculate_total()")
+    print(result)
+
+asyncio.run(main())
 ```
 
 ### 3. Use with LangChain
@@ -154,6 +200,93 @@ agent = create_agent(
 query="What are Common Architectural Scenarios in python?"
 messages = [HumanMessage(content=query)]
 result = agent.invoke({"messages": messages})
+```
+
+## Advanced Features (v0.2+)
+
+### Multi-Source Discovery with Priority Resolution
+
+```python
+from skillkit import SkillManager
+
+# Configure multiple skill sources
+manager = SkillManager(
+    project_skill_dir="./skills",              # Priority: 100 (highest)
+    anthropic_config_dir="./.claude/skills",  # Priority: 50
+    plugin_dirs=[                              # Priority: 10 each
+        "./plugins/data-tools",
+        "./plugins/web-tools"
+    ],
+    additional_search_paths=["./shared"]      # Priority: 5
+)
+
+manager.discover()
+
+# Simple name gets highest priority version
+skill = manager.get_skill("csv-parser")  # Gets project version if exists
+
+# Qualified name accesses specific plugin version
+skill = manager.get_skill("data-tools:csv-parser")  # Explicit plugin version
+```
+
+### Plugin Integration
+
+Create a plugin with `.claude-plugin/plugin.json`:
+
+```json
+{
+  "manifest_version": "0.1",
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "description": "My custom skill collection",
+  "author": {
+    "name": "Your Name"
+  },
+  "skills": ["skills/"]
+}
+```
+
+### Secure File References
+
+Access supporting files securely from skills:
+
+```python
+from skillkit.core.path_resolver import FilePathResolver
+
+# Get skill
+skill = manager.load_skill("data-processor")
+
+# Resolve supporting files (path traversal prevented)
+helper_path = FilePathResolver.resolve_path(
+    skill.base_directory,
+    "scripts/helper.py"
+)
+
+# Use the file
+with open(helper_path, 'r') as f:
+    script = f.read()
+```
+
+### Async LangChain Integration
+
+```python
+import asyncio
+from skillkit import SkillManager
+from skillkit.integrations.langchain import create_langchain_tools
+from langchain.agents import AgentExecutor
+from langchain_anthropic import ChatAnthropic
+
+async def run_agent():
+    manager = SkillManager()
+    await manager.adiscover()
+
+    tools = create_langchain_tools(manager)
+    llm = ChatAnthropic(model="claude-3-5-sonnet-20241022")
+
+    # Tools support both sync (invoke) and async (ainvoke)
+    result = await tools[0].ainvoke({"arguments": "test"})
+
+asyncio.run(run_agent())
 ```
 
 ## SKILL.md Format
@@ -194,7 +327,33 @@ Content with $ARGUMENTS placeholder...
 
 ```python
 from pathlib import Path
+
+# v0.1 style (still works)
 manager = SkillManager(Path("/custom/skills"))
+
+# v0.2 style (recommended)
+manager = SkillManager(project_skill_dir=Path("/custom/skills"))
+```
+
+### Concurrent async invocations
+
+```python
+import asyncio
+
+async def process_multiple_files():
+    manager = SkillManager()
+    await manager.adiscover()
+
+    # Process 10+ files concurrently
+    results = await asyncio.gather(
+        manager.ainvoke_skill("csv-parser", "data1.csv"),
+        manager.ainvoke_skill("csv-parser", "data2.csv"),
+        manager.ainvoke_skill("json-parser", "data.json"),
+        # ... more concurrent invocations
+    )
+    return results
+
+asyncio.run(process_multiple_files())
 ```
 
 ### Error handling
@@ -318,19 +477,34 @@ ruff format src/skillkit
 ## Examples
 
 See `examples/` directory:
-- `basic_usage.py` - Standalone usage without frameworks
-- `langchain_agent.py` - LangChain agent integration
-- `skills/` - Example skills (code-reviewer, markdown-formatter, git-helper)
+- `basic_usage.py` - Standalone usage (sync and async patterns)
+- `async_usage.py` - Async usage with FastAPI integration
+- `langchain_agent.py` - LangChain agent integration (sync and async)
+- `multi_source.py` - Multi-source discovery and conflict resolution
+- `file_references.py` - Secure file path resolution
+- `skills/` - Example skills and plugins
 
 Run examples:
 ```bash
+# Basic sync usage
 python examples/basic_usage.py
-python examples/langchain_agent.py  # Requires langchain extras
+
+# Async usage with FastAPI
+python examples/async_usage.py
+
+# LangChain integration
+python examples/langchain_agent.py
+
+# Multi-source discovery
+python examples/multi_source.py
+
+# File path resolution
+python examples/file_references.py
 ```
 
 ## Roadmap
 
-### v0.1 (Current)
+### v0.1 (Released)
 - ✅ Core skill discovery and metadata management
 - ✅ YAML frontmatter parsing with validation
 - ✅ Progressive disclosure pattern (lazy loading)
@@ -338,32 +512,32 @@ python examples/langchain_agent.py  # Requires langchain extras
 - ✅ LangChain integration (sync only)
 - ✅ 70% test coverage
 
-### v0.2 (Planned) 👈 we are here
-- Async support (`adiscover()`, `ainvoke_skill()`)
-- Advanced Discovery (multiple search paths, plugin directory support, nested skill structure, skill name conflict resolution)
-- File reference resolution (supporting file access from scripts/, templates/ and docs/)
+### v0.2 (Current) ✨
+- ✅ Async support (`adiscover()`, `ainvoke_skill()`)
+- ✅ Multi-source discovery (project, Anthropic config, plugins, custom paths)
+- ✅ Plugin integration with MCPB manifest support
+- ✅ Nested directory structures (up to 5 levels deep)
+- ✅ Fully qualified skill names for conflict resolution
+- ✅ Secure file path resolution with traversal prevention
+- ✅ LangChain async integration (`ainvoke`)
+- ✅ Backward compatible with v0.1
 
 ### v0.3 (Planned)
 - Script Execution (script detection, execution with variables, stdout/stderr capture, sandboxing)
+- Tool restriction enforcement (allowed-tools validation)
+- Additional framework integrations (LlamaIndex, CrewAI, Haystack)
 
 ### v0.4 (Planned)
-- Plugin integration
+- Advanced arguments schemas
+- Skill versioning and compatibility checks
 - Enhanced error handling and recovery
 - Performance optimizations
 
-### v0.5 (Planned)
-- Additional Frameworks integration
-
-### v0.5 (Planned)
-- Tool restriction enforcement (allowed-tools enforcement, tool filtering, violation error handling)
-
 ### v1.0 (Planned)
-- Plugin integration for dynamic skill loading
-- Nested directory support
-- Advanced arguments schemas
-- Skill versioning and compatibility checks
 - Comprehensive documentation
 - 90% test coverage
+- Production-ready stability
+- Full plugin ecosystem support
 
 ## License
 

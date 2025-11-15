@@ -139,10 +139,10 @@ async def test_sync_async_consistency():
     print(f"Async discovered: {len(async_skills)} skills")
 
     if sync_skills == async_skills:
-        print(f"✅ PASSED: Sync and async produce identical results")
+        print("✅ PASSED: Sync and async produce identical results")
         return True
     else:
-        print(f"❌ FAILED: Sync and async produced different results")
+        print("❌ FAILED: Sync and async produced different results")
         print(f"  Sync only: {sync_skills - async_skills}")
         print(f"  Async only: {async_skills - sync_skills}")
         return False
