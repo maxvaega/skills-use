@@ -19,9 +19,9 @@
 
 **Purpose**: Project initialization and dependency updates for v0.2
 
-- [ ] T001 Update pyproject.toml with new dependencies: aiofiles 23.0+, pytest-asyncio 0.21+
-- [ ] T002 [P] Verify Python 3.10+ environment is active via venv
-- [ ] T003 [P] Install development dependencies with pip install -e ".[dev,async]"
+- [X] T001 Update pyproject.toml with new dependencies: aiofiles 23.0+, pytest-asyncio 0.21+
+- [X] T002 [P] Verify Python 3.10+ environment is active via venv
+- [X] T003 [P] Install development dependencies with pip install -e ".[dev,async]"
 
 ---
 
@@ -31,14 +31,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create new exception classes in src/skillkit/core/exceptions.py: PathSecurityError, AsyncStateError, ManifestNotFoundError, ManifestParseError, ManifestValidationError
-- [ ] T005 Create new enumerations in src/skillkit/core/models.py: SourceType (PROJECT, ANTHROPIC, PLUGIN, CUSTOM), InitMode (UNINITIALIZED, SYNC, ASYNC)
-- [ ] T006 [P] Create new dataclass PluginManifest in src/skillkit/core/models.py with manifest_version, name, version, description, author, skills fields
-- [ ] T007 [P] Create new dataclass SkillSource in src/skillkit/core/models.py with source_type, directory, priority, plugin_name, plugin_manifest fields
-- [ ] T008 [P] Add QualifiedSkillName parsing utility to src/skillkit/core/models.py with parse() static method
-- [ ] T009 Update SkillManager.__init__() in src/skillkit/core/manager.py to accept project_skill_dir, anthropic_config_dir, plugin_dirs, additional_search_paths parameters
-- [ ] T010 Implement _build_sources() method in src/skillkit/core/manager.py to construct priority-ordered list of SkillSource objects
-- [ ] T011 Add init_mode property and state tracking to SkillManager in src/skillkit/core/manager.py
+- [X] T004 Create new exception classes in src/skillkit/core/exceptions.py: PathSecurityError, AsyncStateError, ManifestNotFoundError, ManifestParseError, ManifestValidationError
+- [X] T005 Create new enumerations in src/skillkit/core/models.py: SourceType (PROJECT, ANTHROPIC, PLUGIN, CUSTOM), InitMode (UNINITIALIZED, SYNC, ASYNC)
+- [X] T006 [P] Create new dataclass PluginManifest in src/skillkit/core/models.py with manifest_version, name, version, description, author, skills fields
+- [X] T007 [P] Create new dataclass SkillSource in src/skillkit/core/models.py with source_type, directory, priority, plugin_name, plugin_manifest fields
+- [X] T008 [P] Add QualifiedSkillName parsing utility to src/skillkit/core/models.py with parse() static method
+- [X] T009 Update SkillManager.__init__() in src/skillkit/core/manager.py to accept project_skill_dir, anthropic_config_dir, plugin_dirs, additional_search_paths parameters
+- [X] T010 Implement _build_sources() method in src/skillkit/core/manager.py to construct priority-ordered list of SkillSource objects
+- [X] T011 Add init_mode property and state tracking to SkillManager in src/skillkit/core/manager.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
