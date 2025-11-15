@@ -24,7 +24,7 @@ def test_manager_list_skills_returns_list(sample_skills):
     """
     # sample_skills is a list of skill directories, get the parent
     skills_dir = sample_skills[0].parent
-    manager = SkillManager(skills_dir=skills_dir)
+    manager = SkillManager(skill_dir=skills_dir)
     manager.discover()
 
     skills = manager.list_skills()
@@ -42,7 +42,7 @@ def test_manager_get_skill_by_name(sample_skills):
     after discovery is complete.
     """
     skills_dir = sample_skills[0].parent
-    manager = SkillManager(skills_dir=skills_dir)
+    manager = SkillManager(skill_dir=skills_dir)
     manager.discover()
 
     # Get the first skill name
@@ -65,7 +65,7 @@ def test_manager_list_skills_contains_metadata(sample_skills):
     for display and selection purposes.
     """
     skills_dir = sample_skills[0].parent
-    manager = SkillManager(skills_dir=skills_dir)
+    manager = SkillManager(skill_dir=skills_dir)
     manager.discover()
 
     skills = manager.list_skills()
@@ -85,7 +85,7 @@ def test_manager_skill_invocation(fixtures_dir):
     Tests the complete skill lifecycle from discovery through invocation,
     ensuring all components work together correctly.
     """
-    manager = SkillManager(skills_dir=fixtures_dir)
+    manager = SkillManager(skill_dir=fixtures_dir)
     manager.discover()
 
     # Find a valid skill
@@ -109,7 +109,7 @@ def test_manager_load_skill_returns_skill_instance(sample_skills):
     content loading capability.
     """
     skills_dir = sample_skills[0].parent
-    manager = SkillManager(skills_dir=skills_dir)
+    manager = SkillManager(skill_dir=skills_dir)
     manager.discover()
 
     skills = manager.list_skills()
@@ -131,7 +131,7 @@ def test_manager_skill_not_found_error(sample_skills):
     error message when requesting a skill that doesn't exist.
     """
     skills_dir = sample_skills[0].parent
-    manager = SkillManager(skills_dir=skills_dir)
+    manager = SkillManager(skill_dir=skills_dir)
     manager.discover()
 
     with pytest.raises(SkillNotFoundError) as exc_info:
@@ -151,7 +151,7 @@ def test_manager_empty_directory(tmp_path):
     empty_dir = tmp_path / "empty_skills"
     empty_dir.mkdir()
 
-    manager = SkillManager(skills_dir=empty_dir)
+    manager = SkillManager(skill_dir=empty_dir)
     manager.discover()
 
     skills = manager.list_skills()
@@ -178,7 +178,7 @@ def test_manager_graceful_degradation_on_invalid_skill(tmp_path, caplog):
     invalid_dir.mkdir()
     (invalid_dir / "SKILL.md").write_text("---\ndescription: Invalid skill\n---\nContent")
 
-    manager = SkillManager(skills_dir=skills_dir)
+    manager = SkillManager(skill_dir=skills_dir)
     manager.discover()
 
     # Should have discovered only the valid skill
@@ -197,7 +197,7 @@ def test_manager_invoke_skill_with_arguments(fixtures_dir):
     Tests that the convenience method properly passes arguments through
     to the skill processor.
     """
-    manager = SkillManager(skills_dir=fixtures_dir)
+    manager = SkillManager(skill_dir=fixtures_dir)
     manager.discover()
 
     # Find a skill with $ARGUMENTS placeholder
@@ -234,7 +234,7 @@ def test_manager_discover_clears_previous_skills(tmp_path):
     skill2.mkdir()
     (skill2 / "SKILL.md").write_text("---\nname: skill2\ndescription: Second skill\n---\nContent")
 
-    manager = SkillManager(skills_dir=skills_dir)
+    manager = SkillManager(skill_dir=skills_dir)
     manager.discover()
     assert len(manager.list_skills()) == 2
 

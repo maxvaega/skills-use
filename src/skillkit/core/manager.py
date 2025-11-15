@@ -633,7 +633,11 @@ class SkillManager:
         from skillkit.core.models import QualifiedSkillName
 
         # T031: Parse QualifiedSkillName and support qualified lookups
-        parsed = QualifiedSkillName.parse(name)
+        try:
+            parsed = QualifiedSkillName.parse(name)
+        except ValueError as e:
+            # Convert validation errors to SkillNotFoundError for consistent API
+            raise SkillNotFoundError(str(e)) from e
 
         # If qualified name (plugin:skill)
         if parsed.plugin is not None:

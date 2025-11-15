@@ -13,8 +13,6 @@ skillkit is compatible with existings skills (SKILL.md), so you can browse and u
     <img src="https://img.shields.io/pypi/v/skillkit" /></a>
 <a href="ttps://github.com/maxvaega/skillkit/releases">
     <img src="https://img.shields.io/github/v/release/maxvaega/skillkit" /></a>
-<a href="https://github.com/maxvaega/skillkit/releases">
-    <img src="https://img.shields.io/github/v/release/maxvaega/skillkit" /></a>
 <a href="https://github.com/maxvaega/skillkit/stargazers">
     <img src="https://img.shields.io/github/stars/maxvaega/skillkit" /></a>
 </p>
@@ -24,15 +22,13 @@ skillkit is compatible with existings skills (SKILL.md), so you can browse and u
 ## Features
 
 - **Framework-free**: can be used without any framework, or with other frameworks (currently only compatible with LangChain - more coming in the future!)
-- **Async support**: Non-blocking skill discovery and invocation for high-performance applications
+- **Model-agnostic design**: Works with any LLM
 - **Multi-source skill discovery**: From project, Anthropic config, plugins, and custom directories with priority-based conflict resolution
-- **Plugin ecosystem**: Full support for Anthropic's MCPB plugin manifests with namespaced skill access
-- **Nested directory structures**: Discover skills in any directory hierarchy up to 5 levels deep
-- **Secure file resolution**: Path traversal prevention for accessing skill supporting files
 - **YAML frontmatter parsing** with comprehensive validation
 - **Progressive disclosure pattern** (metadata-first loading, 80% memory reduction)
-- **Security features**: Input validation, size limits, suspicious pattern detection, path security
-- **Model-agnostic design**: Works with any LLM
+- **Plugin ecosystem**: Full support for Anthropic's MCPB plugin manifests with namespaced skill access
+- **Nested directory structures**: Discover skills in any directory hierarchy up to 5 levels deep
+- **Security features**: Input validation, size limits, suspicious pattern detection, path security, secure file resolution
 
 ---
 
@@ -123,7 +119,7 @@ $ARGUMENTS
 
 ### 2. Use standalone (without frameworks)
 
-#### Sync usage (v0.1 compatible)
+#### Simple usage
 
 ```python
 from skillkit import SkillManager
@@ -143,34 +139,6 @@ result = manager.invoke_skill("code-reviewer", "Review function calculate_total(
 print(result)
 ```
 
-#### Async usage (v0.2+)
-
-```python
-import asyncio
-from skillkit import SkillManager
-
-async def main():
-    # Create manager with multiple sources
-    manager = SkillManager(
-        project_skill_dir="./skills",              # Priority: 100
-        anthropic_config_dir="./.claude/skills",  # Priority: 50
-        plugin_dirs=["./plugins/my-plugin"]       # Priority: 10
-    )
-
-    # Async discovery (non-blocking)
-    await manager.adiscover()
-
-    # List available skills
-    for skill in manager.list_skills():
-        print(f"{skill.name}: {skill.description}")
-
-    # Async invocation (non-blocking)
-    result = await manager.ainvoke_skill("code-reviewer", "Review function calculate_total()")
-    print(result)
-
-asyncio.run(main())
-```
-
 ### 3. Use with LangChain
 
 ```python
@@ -188,7 +156,7 @@ manager.discover()
 tools = create_langchain_tools(manager)
 
 # Create agent
-llm = ChatOpenAI(model="gpt-4")
+llm = ChatOpenAI(model="gpt-5.1")
 prompt = "You are a helpful assistant. use the available skills tools to answer the user queries."
 agent = create_agent(
     llm, 
@@ -202,7 +170,35 @@ messages = [HumanMessage(content=query)]
 result = agent.invoke({"messages": messages})
 ```
 
-## Advanced Features (v0.2+)
+### Async LangChain Integration
+
+```python
+import asyncio
+from skillkit import SkillManager
+from skillkit.integrations.langchain import create_langchain_tools
+from langchain.agents import AgentExecutor
+from langchain_anthropic import ChatOpenAI
+
+async def run_agent():
+    manager = SkillManager()
+    await manager.adiscover()
+
+    tools = create_langchain_tools(manager)
+    prompt = "You are a helpful assistant. use the available skills tools to answer the user queries."
+    llm = ChatOpenAI(model="gpt-5.1")
+
+    agent = create_agent(
+        llm,
+        tools,
+        system_prompt=prompt
+        )
+
+    query="What are Common Architectural Scenarios in python?"
+    messages = [HumanMessage(content=query)]
+    result = await agent.ainvoke({"messages": messages})
+
+asyncio.run(run_agent())
+```
 
 ### Multi-Source Discovery with Priority Resolution
 
@@ -227,66 +223,6 @@ skill = manager.get_skill("csv-parser")  # Gets project version if exists
 
 # Qualified name accesses specific plugin version
 skill = manager.get_skill("data-tools:csv-parser")  # Explicit plugin version
-```
-
-### Plugin Integration
-
-Create a plugin with `.claude-plugin/plugin.json`:
-
-```json
-{
-  "manifest_version": "0.1",
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "My custom skill collection",
-  "author": {
-    "name": "Your Name"
-  },
-  "skills": ["skills/"]
-}
-```
-
-### Secure File References
-
-Access supporting files securely from skills:
-
-```python
-from skillkit.core.path_resolver import FilePathResolver
-
-# Get skill
-skill = manager.load_skill("data-processor")
-
-# Resolve supporting files (path traversal prevented)
-helper_path = FilePathResolver.resolve_path(
-    skill.base_directory,
-    "scripts/helper.py"
-)
-
-# Use the file
-with open(helper_path, 'r') as f:
-    script = f.read()
-```
-
-### Async LangChain Integration
-
-```python
-import asyncio
-from skillkit import SkillManager
-from skillkit.integrations.langchain import create_langchain_tools
-from langchain.agents import AgentExecutor
-from langchain_anthropic import ChatAnthropic
-
-async def run_agent():
-    manager = SkillManager()
-    await manager.adiscover()
-
-    tools = create_langchain_tools(manager)
-    llm = ChatAnthropic(model="claude-3-5-sonnet-20241022")
-
-    # Tools support both sync (invoke) and async (ainvoke)
-    result = await tools[0].ainvoke({"arguments": "test"})
-
-asyncio.run(run_agent())
 ```
 
 ## SKILL.md Format
@@ -328,10 +264,6 @@ Content with $ARGUMENTS placeholder...
 ```python
 from pathlib import Path
 
-# v0.1 style (still works)
-manager = SkillManager(Path("/custom/skills"))
-
-# v0.2 style (recommended)
 manager = SkillManager(project_skill_dir=Path("/custom/skills"))
 ```
 
@@ -456,24 +388,6 @@ pip install -e ".[dev]"
 The project includes a comprehensive pytest-based test suite with 70%+ coverage validating core functionality, integrations, and edge cases.
 For detailed testing instructions, test organization, markers, and debugging tips, see **[tests/README.md](tests/README.md)**.
 
-```bash
-pytest
-pytest --cov=src/skillkit --cov-report=html
-```
-
-### Type checking
-
-```bash
-mypy src/skillkit --strict
-```
-
-### Linting
-
-```bash
-ruff check src/skillkit
-ruff format src/skillkit
-```
-
 ## Examples
 
 See `examples/` directory:
@@ -512,7 +426,7 @@ python examples/file_references.py
 - ✅ LangChain integration (sync only)
 - ✅ 70% test coverage
 
-### v0.2 (Current) ✨
+### v0.2 (Released) ✨
 - ✅ Async support (`adiscover()`, `ainvoke_skill()`)
 - ✅ Multi-source discovery (project, Anthropic config, plugins, custom paths)
 - ✅ Plugin integration with MCPB manifest support
@@ -574,4 +488,4 @@ Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed information.
 ## Acknowledgments
 
 - Inspired by Anthropic's Agent Skills functionality
-- Built with Python, PyYAML, LangChain, and Pydantic
+- Built with Python, PyYAML, LangChain, Pydantic and Claude itself!
