@@ -97,40 +97,43 @@ class SkillDiscovery:
 
         return self.find_skill_files(skills_dir)
 
-    def find_skill_files(self, skills_dir: Path) -> List[Path]:
-        """Find SKILL.md files in immediate subdirectories.
+    def find_skill_files(self, skills_dir: Path, max_depth: int = 5) -> List[Path]:
+        """Find SKILL.md files recursively with depth limit.
 
         Performs case-insensitive matching for SKILL.md filename
-        to support cross-platform compatibility.
+        to support cross-platform compatibility. Supports both flat
+        and nested directory structures up to max_depth levels.
 
         Args:
             skills_dir: Directory to search
+            max_depth: Maximum nesting depth to search (default: 5, 0 = only immediate subdirectories)
 
         Returns:
             List of absolute paths to SKILL.md files
 
         Example:
             >>> discovery = SkillDiscovery()
+            >>> # Find skills in immediate subdirectories only
+            >>> files = discovery.find_skill_files(Path(".claude/skills"), max_depth=0)
+            >>> # Find skills recursively up to 5 levels deep
             >>> files = discovery.find_skill_files(Path(".claude/skills"))
             >>> for skill_file in files:
             ...     print(f"Found: {skill_file}")
             Found: /home/user/.claude/skills/code-reviewer/SKILL.md
-            Found: /home/user/.claude/skills/git-helper/SKILL.md
+            Found: /home/user/.claude/skills/data/csv-parser/SKILL.md
         """
         skill_files: List[Path] = []
+        visited_dirs: set[tuple[int, int]] = set()  # Track visited directories to detect circular symlinks
 
         try:
-            # Iterate through immediate subdirectories only
-            for subdir in skills_dir.iterdir():
-                if not subdir.is_dir():
-                    continue
-
-                # Look for SKILL.md file (case-insensitive)
-                for file in subdir.iterdir():
-                    if file.name.upper() == self.SKILL_FILE_NAME.upper():
-                        skill_files.append(file.absolute())
-                        logger.debug(f"Found skill file: {file}")
-                        break  # Only take first match per directory
+            # Use recursive search with depth tracking
+            self._find_skill_files_recursive(
+                skills_dir,
+                skill_files,
+                visited_dirs,
+                current_depth=0,
+                max_depth=max_depth,
+            )
 
         except PermissionError:
             logger.warning(f"Permission denied accessing: {skills_dir}")
@@ -139,6 +142,82 @@ class SkillDiscovery:
 
         logger.info(f"Discovery found {len(skill_files)} skill(s) in {skills_dir}")
         return skill_files
+
+    def _find_skill_files_recursive(
+        self,
+        current_dir: Path,
+        skill_files: List[Path],
+        visited_dirs: set[tuple[int, int]],
+        current_depth: int,
+        max_depth: int,
+    ) -> None:
+        """Recursively find SKILL.md files with depth limit and circular symlink detection.
+
+        Args:
+            current_dir: Current directory being scanned
+            skill_files: Accumulator list for discovered skill files
+            visited_dirs: Set of visited directory inodes to detect circular symlinks
+            current_depth: Current recursion depth (0 = root)
+            max_depth: Maximum allowed depth
+
+        Note:
+            This is an internal helper method. Use find_skill_files() instead.
+        """
+        # Resolve symlinks and check for circular references
+        try:
+            resolved_dir = current_dir.resolve(strict=True)
+        except (OSError, RuntimeError) as e:
+            logger.warning(f"Cannot resolve directory {current_dir}: {e}")
+            return
+
+        # Get directory inode for circular symlink detection
+        try:
+            dir_stat = resolved_dir.stat()
+            dir_id = (dir_stat.st_dev, dir_stat.st_ino)
+        except OSError as e:
+            logger.warning(f"Cannot stat directory {resolved_dir}: {e}")
+            return
+
+        # Check for circular symlink
+        if dir_id in visited_dirs:
+            logger.warning(
+                f"Circular symlink detected at {current_dir} -> {resolved_dir}. Skipping."
+            )
+            return
+
+        visited_dirs.add(dir_id)
+
+        # Warn if depth limit exceeded
+        if current_depth > max_depth:
+            logger.warning(
+                f"Depth limit ({max_depth}) exceeded at {current_dir}. "
+                f"Skills deeper than {max_depth} levels will not be discovered. "
+                f"Consider reorganizing your skill directory structure."
+            )
+            return
+
+        # Scan current directory
+        try:
+            for item in current_dir.iterdir():
+                # Check for SKILL.md file (case-insensitive)
+                if item.is_file() and item.name.upper() == self.SKILL_FILE_NAME.upper():
+                    skill_files.append(item.absolute())
+                    logger.debug(f"Found skill file: {item} (depth={current_depth})")
+
+                # Recurse into subdirectories
+                elif item.is_dir():
+                    self._find_skill_files_recursive(
+                        item,
+                        skill_files,
+                        visited_dirs,
+                        current_depth + 1,
+                        max_depth,
+                    )
+
+        except PermissionError:
+            logger.warning(f"Permission denied accessing: {current_dir}")
+        except OSError as e:
+            logger.warning(f"Error reading directory {current_dir}: {e}")
 
     async def _read_skill_file_async(self, path: Path) -> str:
         """Async wrapper for reading skill files.
@@ -236,14 +315,16 @@ class SkillDiscovery:
 
         return await self.afind_skill_files(skills_dir)
 
-    async def afind_skill_files(self, skills_dir: Path) -> List[Path]:
+    async def afind_skill_files(self, skills_dir: Path, max_depth: int = 5) -> List[Path]:
         """Async version of find_skill_files for non-blocking discovery.
 
         Performs case-insensitive matching for SKILL.md filename
-        to support cross-platform compatibility.
+        to support cross-platform compatibility. Supports both flat
+        and nested directory structures up to max_depth levels.
 
         Args:
             skills_dir: Directory to search
+            max_depth: Maximum nesting depth to search (default: 5, 0 = only immediate subdirectories)
 
         Returns:
             List of absolute paths to SKILL.md files
@@ -254,33 +335,13 @@ class SkillDiscovery:
             >>> for skill_file in files:
             ...     print(f"Found: {skill_file}")
             Found: /home/user/.claude/skills/code-reviewer/SKILL.md
-            Found: /home/user/.claude/skills/git-helper/SKILL.md
+            Found: /home/user/.claude/skills/data/csv-parser/SKILL.md
         """
 
         def _scan() -> List[Path]:
             """Sync scanning logic wrapped for async execution."""
-            skill_files: List[Path] = []
-
-            try:
-                # Iterate through immediate subdirectories only
-                for subdir in skills_dir.iterdir():
-                    if not subdir.is_dir():
-                        continue
-
-                    # Look for SKILL.md file (case-insensitive)
-                    for file in subdir.iterdir():
-                        if file.name.upper() == self.SKILL_FILE_NAME.upper():
-                            skill_files.append(file.absolute())
-                            logger.debug(f"Found skill file: {file}")
-                            break  # Only take first match per directory
-
-            except PermissionError:
-                logger.warning(f"Permission denied accessing: {skills_dir}")
-            except OSError as e:
-                logger.warning(f"Error scanning directory {skills_dir}: {e}")
-
-            logger.info(f"Discovery found {len(skill_files)} skill(s) in {skills_dir}")
-            return skill_files
+            # Delegate to sync implementation
+            return self.find_skill_files(skills_dir, max_depth)
 
         # Run directory scanning in thread to avoid blocking event loop
         return await asyncio.to_thread(_scan)
