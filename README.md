@@ -171,7 +171,7 @@ import asyncio
 from skillkit import SkillManager
 from skillkit.integrations.langchain import create_langchain_tools
 from langchain.agents import AgentExecutor
-from langchain_anthropic import ChatOpenAI
+from langchain_openai import ChatOpenAI
 
 async def run_agent():
     manager = SkillManager()
