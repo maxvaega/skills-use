@@ -222,3 +222,33 @@ This skill should trigger a permission error.
         return skill_dir
 
     return _create_permission_denied
+
+
+@pytest.fixture
+def skills_directory() -> Path:
+    """
+    Return path to example skills directory.
+
+    Returns:
+        Path: Path to examples/skills/ directory with test skills
+    """
+    return Path(__file__).parent.parent / "examples" / "skills"
+
+
+@pytest.fixture
+async def skill_manager_async(skills_directory: Path):
+    """
+    Create and initialize a SkillManager asynchronously.
+
+    Returns:
+        SkillManager: Async-initialized manager with discovered skills
+
+    Note:
+        This fixture uses async discovery and sets init_mode to ASYNC.
+        Use this for testing async invocation and LangChain async integration.
+    """
+    from skillkit import SkillManager
+
+    manager = SkillManager(skills_directory)
+    await manager.adiscover()
+    return manager

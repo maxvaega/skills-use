@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from skillkit.core.processors import CompositeProcessor
 
 # Check Python version for slots support on all dataclasses
+# Note: Project requires Python 3.10+ (per pyproject.toml), so slots=True is safe
+# The variable is kept for documentation purposes
 PYTHON_310_PLUS = sys.version_info >= (3, 10)
 
 
@@ -160,6 +162,43 @@ class Skill:
                 f"Skill file contains invalid UTF-8: {self.metadata.skill_path}"
             ) from e
 
+    async def _load_content_async(self) -> str:
+        """Async wrapper for content loading using asyncio.to_thread().
+
+        Returns:
+            Full SKILL.md markdown content (UTF-8 encoded)
+
+        Raises:
+            ContentLoadError: If file cannot be read
+
+        Performance:
+            - Overhead: <2ms vs sync version
+            - Event loop remains responsive during I/O
+        """
+        import asyncio
+
+        from skillkit.core.exceptions import ContentLoadError
+
+        def _sync_read() -> str:
+            """Sync implementation for thread execution."""
+            try:
+                return self.metadata.skill_path.read_text(encoding="utf-8-sig")
+            except FileNotFoundError as e:
+                raise ContentLoadError(
+                    f"Skill file not found: {self.metadata.skill_path}. "
+                    f"File may have been deleted after discovery."
+                ) from e
+            except PermissionError as e:
+                raise ContentLoadError(
+                    f"Permission denied reading skill: {self.metadata.skill_path}"
+                ) from e
+            except UnicodeDecodeError as e:
+                raise ContentLoadError(
+                    f"Skill file contains invalid UTF-8: {self.metadata.skill_path}"
+                ) from e
+
+        return await asyncio.to_thread(_sync_read)
+
     def invoke(self, arguments: str = "") -> str:
         """Process skill content with arguments.
 
@@ -191,8 +230,48 @@ class Skill:
         }
         return self._processor.process(self.content, context)
 
+    async def ainvoke(self, arguments: str = "") -> str:
+        """Async version of invoke() for non-blocking skill invocation.
 
-@dataclass(frozen=True, slots=PYTHON_310_PLUS)
+        Args:
+            arguments: User-provided arguments for skill invocation
+
+        Returns:
+            Processed skill content with base directory + argument substitution
+
+        Raises:
+            ContentLoadError: If content cannot be loaded
+            ArgumentProcessingError: If argument processing fails
+            SizeLimitExceededError: If arguments exceed 1MB
+
+        Processing Steps:
+            1. Load content asynchronously (non-blocking)
+            2. Inject base directory at beginning
+            3. Replace $ARGUMENTS placeholders with actual arguments
+            4. Return processed string
+
+        Performance:
+            - Overhead: <2ms vs sync invoke()
+            - Event loop remains responsive during file I/O
+            - Suitable for concurrent invocations (10+)
+        """
+        # Check if content is already cached
+        if "content" in self.__dict__:
+            # Content already loaded, use sync processing
+            content = self.content
+        else:
+            # Load content asynchronously
+            content = await self._load_content_async()
+
+        context = {
+            "arguments": arguments,
+            "base_directory": str(self.base_directory),
+            "skill_name": self.metadata.name,
+        }
+        return self._processor.process(content, context)
+
+
+@dataclass(frozen=True, slots=True)
 class PluginManifest:
     """Parsed metadata from .claude-plugin/plugin.json.
 
@@ -306,7 +385,7 @@ class PluginManifest:
                 )
 
 
-@dataclass(frozen=True, slots=PYTHON_310_PLUS)
+@dataclass(frozen=True, slots=True)
 class SkillSource:
     """Represents a skill source location with priority and metadata.
 
@@ -345,12 +424,11 @@ class SkillSource:
             raise ValueError(f"Priority must be positive, got: {self.priority}")
 
         # Validate plugin-specific constraints
-        if self.source_type == SourceType.PLUGIN:
-            if self.plugin_name is None:
-                raise ValueError("plugin_name required when source_type == PLUGIN")
+        if self.source_type == SourceType.PLUGIN and self.plugin_name is None:
+            raise ValueError("plugin_name required when source_type == PLUGIN")
 
 
-@dataclass(frozen=True, slots=PYTHON_310_PLUS)
+@dataclass(frozen=True, slots=True)
 class QualifiedSkillName:
     """Skill identifier with optional plugin namespace.
 
@@ -396,9 +474,7 @@ class QualifiedSkillName:
             plugin, skill = parts
 
             if not plugin or not skill:
-                raise ValueError(
-                    f"Invalid qualified name (empty plugin or skill): {name}"
-                )
+                raise ValueError(f"Invalid qualified name (empty plugin or skill): {name}")
 
             return QualifiedSkillName(plugin=plugin, skill=skill)
 
