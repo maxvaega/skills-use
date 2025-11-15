@@ -12,14 +12,14 @@ authors = [
     {name = "Massimo Olivieri", email = "olivmassimo@gmail.com"}
 ]
 keywords = [
-    "anthropic",
-    "claude",
     "skills",
     "agents",
     "llm",
     "langchain",
     "ai",
     "prompt-engineering",
+    "anthropic",
+    "claude",
 ]
 requires-python = ">=3.10"
 classifiers = [
