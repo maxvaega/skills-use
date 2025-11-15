@@ -4,6 +4,7 @@ This module provides the SkillParser class for extracting and validating
 YAML frontmatter from skill files.
 """
 
+import asyncio
 import logging
 import re
 from pathlib import Path
@@ -238,3 +239,26 @@ class SkillParser:
             logger.debug(
                 f"Unknown fields in {skill_path} (will be ignored): {', '.join(unknown_fields)}"
             )
+
+    async def _read_manifest_async(self, path: Path) -> str:
+        """Async wrapper for reading plugin manifest files.
+
+        Uses asyncio.to_thread() to avoid blocking the event loop during file I/O.
+
+        Args:
+            path: Absolute path to plugin.json manifest file
+
+        Returns:
+            File content as string
+
+        Raises:
+            FileNotFoundError: If manifest file doesn't exist
+            PermissionError: If no read permission
+            UnicodeDecodeError: If file encoding invalid
+        """
+
+        def _read() -> str:
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
+
+        return await asyncio.to_thread(_read)

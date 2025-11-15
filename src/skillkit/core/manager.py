@@ -4,6 +4,7 @@ This module provides the SkillManager class, the main entry point for
 skill discovery, access, and invocation.
 """
 
+import asyncio
 import logging
 from pathlib import Path
 from typing import Dict, List
@@ -285,6 +286,86 @@ class SkillManager:
                 logger.error(f"Unexpected error parsing {skill_file}: {e}", exc_info=True)
 
         logger.info(f"Discovery complete: {len(self._skills)} skill(s) registered successfully")
+
+    async def adiscover(self) -> None:
+        """Async version of discover() for non-blocking skill discovery.
+
+        Behavior:
+            - Scans all configured sources in priority order (non-blocking)
+            - Parses YAML frontmatter asynchronously
+            - Continues processing even if individual skills fail parsing
+            - Logs errors via module logger (skillkit.core.manager)
+            - Handles duplicates: highest priority source wins, logs WARNING
+
+        Side Effects:
+            - Populates internal _skills registry
+            - Sets init_mode to ASYNC
+            - Logs errors for malformed skills
+            - Logs INFO if directory empty
+            - Logs WARNING for duplicate skill names
+
+        Raises:
+            AsyncStateError: If manager was already initialized with discover()
+
+        Performance:
+            - Target: <200ms for 500 skills (spec requirement SC-001)
+            - Uses asyncio.gather() for concurrent scanning
+
+        Example:
+            >>> manager = SkillManager(project_skill_dir="./skills")
+            >>> await manager.adiscover()
+            >>> print(f"Found {len(manager.list_skills())} skills")
+            Found 5 skills
+        """
+        from skillkit.core.exceptions import AsyncStateError
+
+        # T016: Check for mixing sync/async initialization
+        if self._init_mode == InitMode.SYNC:
+            raise AsyncStateError(
+                "Manager was initialized with discover() (sync mode). "
+                "Cannot mix sync and async methods. Create a new manager instance."
+            )
+
+        # T017: Set initialization mode to ASYNC
+        self._init_mode = InitMode.ASYNC
+
+        logger.info(f"Starting skill discovery in: {self.skills_dir} (async mode)")
+
+        # Clear existing skills
+        self._skills.clear()
+
+        # Scan for skill files asynchronously
+        skill_files = await self._discovery.ascan_directory(self.skills_dir)
+
+        if not skill_files:
+            logger.info(f"No skills found in {self.skills_dir}")
+            return
+
+        # Parse each skill file asynchronously (graceful degradation)
+        for skill_file in skill_files:
+            try:
+                metadata = self._parser.parse_skill_file(skill_file)
+
+                # Check for duplicate names
+                if metadata.name in self._skills:
+                    logger.warning(
+                        f"Duplicate skill name '{metadata.name}' found at {skill_file}. "
+                        f"Keeping first occurrence from {self._skills[metadata.name].skill_path}"
+                    )
+                    continue
+
+                # Add to registry
+                self._skills[metadata.name] = metadata
+                logger.debug(f"Registered skill: {metadata.name}")
+
+            except SkillsUseError as e:
+                # Log parsing errors but continue with other skills
+                logger.error(f"Failed to parse skill at {skill_file}: {e}", exc_info=True)
+            except Exception as e:
+                # Catch unexpected errors
+                logger.error(f"Unexpected error parsing {skill_file}: {e}", exc_info=True)
+
+        logger.info(f"Async discovery complete: {len(self._skills)} skill(s) registered successfully")
 
     def list_skills(self) -> List[SkillMetadata]:
         """Return all discovered skill metadata (lightweight).

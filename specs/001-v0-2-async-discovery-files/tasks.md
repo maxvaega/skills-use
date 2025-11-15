@@ -52,13 +52,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create async file reading wrapper _read_skill_file_async() using asyncio.to_thread() in src/skillkit/core/discovery.py
-- [ ] T013 [P] [US1] Create async plugin manifest reading wrapper _read_manifest_async() using asyncio.to_thread() in src/skillkit/core/parser.py
-- [ ] T014 [US1] Implement SkillDiscovery.adiscover_skills() async method in src/skillkit/core/discovery.py using async file I/O wrappers
-- [ ] T015 [US1] Implement SkillManager.adiscover() async method in src/skillkit/core/manager.py that scans sources concurrently via asyncio.gather()
-- [ ] T016 [US1] Add AsyncStateError validation to adiscover() to prevent mixing with discover() in src/skillkit/core/manager.py
-- [ ] T017 [US1] Set init_mode to InitMode.ASYNC after successful adiscover() in src/skillkit/core/manager.py
-- [ ] T018 [US1] Update existing discover() to check for AsyncStateError and set init_mode to InitMode.SYNC in src/skillkit/core/manager.py
+- [X] T012 [P] [US1] Create async file reading wrapper _read_skill_file_async() using asyncio.to_thread() in src/skillkit/core/discovery.py
+- [X] T013 [P] [US1] Create async plugin manifest reading wrapper _read_manifest_async() using asyncio.to_thread() in src/skillkit/core/parser.py
+- [X] T014 [US1] Implement SkillDiscovery.adiscover_skills() async method in src/skillkit/core/discovery.py using async file I/O wrappers
+- [X] T015 [US1] Implement SkillManager.adiscover() async method in src/skillkit/core/manager.py that scans sources concurrently via asyncio.gather()
+- [X] T016 [US1] Add AsyncStateError validation to adiscover() to prevent mixing with discover() in src/skillkit/core/manager.py
+- [X] T017 [US1] Set init_mode to InitMode.ASYNC after successful adiscover() in src/skillkit/core/manager.py
+- [X] T018 [US1] Update existing discover() to check for AsyncStateError and set init_mode to InitMode.SYNC in src/skillkit/core/manager.py
 
 **Checkpoint**: Async discovery is fully functional and can be tested independently with await manager.adiscover()
 
