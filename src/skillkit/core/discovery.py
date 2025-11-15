@@ -7,7 +7,10 @@ and locating SKILL.md files.
 import asyncio
 import logging
 from pathlib import Path
-from typing import List
+from typing import TYPE_CHECKING, List
+
+if TYPE_CHECKING:
+    from skillkit.core.models import SkillSource
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +23,29 @@ class SkillDiscovery:
     """
 
     SKILL_FILE_NAME = "SKILL.md"
+
+    def discover_skills(self, source: "SkillSource") -> List[Path]:
+        """Discover skills from a specific source.
+
+        Args:
+            source: SkillSource instance with directory and metadata
+
+        Returns:
+            List of absolute paths to SKILL.md files (empty if none found)
+
+        Example:
+            >>> from skillkit.core.models import SkillSource, SourceType
+            >>> discovery = SkillDiscovery()
+            >>> source = SkillSource(
+            ...     source_type=SourceType.PROJECT,
+            ...     directory=Path("./skills"),
+            ...     priority=100
+            ... )
+            >>> skills = discovery.discover_skills(source)
+            >>> print(f"Found {len(skills)} skills from {source.source_type.value}")
+            Found 3 skills from project
+        """
+        return self.scan_directory(source.directory)
 
     def scan_directory(self, skills_dir: Path) -> List[Path]:
         """Scan skills directory for SKILL.md files.
@@ -110,10 +136,33 @@ class SkillDiscovery:
         """
 
         def _read() -> str:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 return f.read()
 
         return await asyncio.to_thread(_read)
+
+    async def adiscover_skills(self, source: "SkillSource") -> List[Path]:
+        """Async version of discover_skills for non-blocking skill discovery.
+
+        Args:
+            source: SkillSource instance with directory and metadata
+
+        Returns:
+            List of absolute paths to SKILL.md files (empty if none found)
+
+        Example:
+            >>> from skillkit.core.models import SkillSource, SourceType
+            >>> discovery = SkillDiscovery()
+            >>> source = SkillSource(
+            ...     source_type=SourceType.PROJECT,
+            ...     directory=Path("./skills"),
+            ...     priority=100
+            ... )
+            >>> skills = await discovery.adiscover_skills(source)
+            >>> print(f"Found {len(skills)} skills from {source.source_type.value}")
+            Found 3 skills from project
+        """
+        return await self.ascan_directory(source.directory)
 
     async def ascan_directory(self, skills_dir: Path) -> List[Path]:
         """Async version of scan_directory for non-blocking skill discovery.

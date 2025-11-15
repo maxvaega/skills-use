@@ -256,43 +256,57 @@ class SkillManager:
         # Set initialization mode
         self._init_mode = InitMode.SYNC
 
-        logger.info(f"Starting skill discovery in: {self.skills_dir} (sync mode)")
+        logger.info("Starting multi-source skill discovery (sync mode)")
 
         # Clear existing skills
         self._skills.clear()
 
-        # Scan for skill files
-        skill_files = self._discovery.scan_directory(self.skills_dir)
+        # T027: Multi-source discovery loop in priority order
+        total_skills_found = 0
+        for source in self.sources:
+            logger.debug(
+                f"Scanning source: {source.source_type.value} at {source.directory} (priority: {source.priority})"
+            )
 
-        if not skill_files:
-            logger.info(f"No skills found in {self.skills_dir}")
-            return
+            # Discover skills from this source
+            skill_files = self._discovery.discover_skills(source)
 
-        # Parse each skill file (graceful degradation)
-        for skill_file in skill_files:
-            try:
-                metadata = self._parser.parse_skill_file(skill_file)
+            if not skill_files:
+                logger.debug(f"No skills found in {source.directory}")
+                continue
 
-                # Check for duplicate names
-                if metadata.name in self._skills:
-                    logger.warning(
-                        f"Duplicate skill name '{metadata.name}' found at {skill_file}. "
-                        f"Keeping first occurrence from {self._skills[metadata.name].skill_path}"
+            # Parse each skill file (graceful degradation)
+            for skill_file in skill_files:
+                try:
+                    metadata = self._parser.parse_skill_file(skill_file)
+
+                    # T028: Check for duplicate names (conflict detection)
+                    if metadata.name in self._skills:
+                        existing_metadata = self._skills[metadata.name]
+                        logger.warning(
+                            f"Skill name conflict: '{metadata.name}' found in multiple sources. "
+                            f"Higher priority source wins (keeping: {existing_metadata.skill_path}, "
+                            f"ignoring: {skill_file})"
+                        )
+                        continue
+
+                    # T029: Add to registry (highest priority wins - sources already sorted)
+                    self._skills[metadata.name] = metadata
+                    logger.debug(
+                        f"Registered skill: {metadata.name} from {source.source_type.value}"
                     )
-                    continue
+                    total_skills_found += 1
 
-                # Add to registry
-                self._skills[metadata.name] = metadata
-                logger.debug(f"Registered skill: {metadata.name}")
+                except SkillsUseError as e:
+                    # Log parsing errors but continue with other skills
+                    logger.error(f"Failed to parse skill at {skill_file}: {e}", exc_info=True)
+                except Exception as e:
+                    # Catch unexpected errors
+                    logger.error(f"Unexpected error parsing {skill_file}: {e}", exc_info=True)
 
-            except SkillsUseError as e:
-                # Log parsing errors but continue with other skills
-                logger.error(f"Failed to parse skill at {skill_file}: {e}", exc_info=True)
-            except Exception as e:
-                # Catch unexpected errors
-                logger.error(f"Unexpected error parsing {skill_file}: {e}", exc_info=True)
-
-        logger.info(f"Discovery complete: {len(self._skills)} skill(s) registered successfully")
+        logger.info(
+            f"Discovery complete: {total_skills_found} skill(s) registered from {len(self.sources)} source(s)"
+        )
 
     async def adiscover(self) -> None:
         """Async version of discover() for non-blocking skill discovery.
@@ -336,70 +350,114 @@ class SkillManager:
         # T017: Set initialization mode to ASYNC
         self._init_mode = InitMode.ASYNC
 
-        logger.info(f"Starting skill discovery in: {self.skills_dir} (async mode)")
+        logger.info("Starting multi-source skill discovery (async mode)")
 
         # Clear existing skills
         self._skills.clear()
 
-        # Scan for skill files asynchronously
-        skill_files = await self._discovery.ascan_directory(self.skills_dir)
+        # T032: Multi-source discovery loop in priority order (async version)
+        total_skills_found = 0
+        for source in self.sources:
+            logger.debug(
+                f"Scanning source: {source.source_type.value} at {source.directory} (priority: {source.priority})"
+            )
 
-        if not skill_files:
-            logger.info(f"No skills found in {self.skills_dir}")
-            return
+            # Discover skills from this source asynchronously
+            skill_files = await self._discovery.adiscover_skills(source)
 
-        # Parse each skill file asynchronously (graceful degradation)
-        for skill_file in skill_files:
-            try:
-                metadata = self._parser.parse_skill_file(skill_file)
+            if not skill_files:
+                logger.debug(f"No skills found in {source.directory}")
+                continue
 
-                # Check for duplicate names
-                if metadata.name in self._skills:
-                    logger.warning(
-                        f"Duplicate skill name '{metadata.name}' found at {skill_file}. "
-                        f"Keeping first occurrence from {self._skills[metadata.name].skill_path}"
+            # Parse each skill file (graceful degradation)
+            for skill_file in skill_files:
+                try:
+                    metadata = self._parser.parse_skill_file(skill_file)
+
+                    # Check for duplicate names (conflict detection)
+                    if metadata.name in self._skills:
+                        existing_metadata = self._skills[metadata.name]
+                        logger.warning(
+                            f"Skill name conflict: '{metadata.name}' found in multiple sources. "
+                            f"Higher priority source wins (keeping: {existing_metadata.skill_path}, "
+                            f"ignoring: {skill_file})"
+                        )
+                        continue
+
+                    # Add to registry (highest priority wins - sources already sorted)
+                    self._skills[metadata.name] = metadata
+                    logger.debug(
+                        f"Registered skill: {metadata.name} from {source.source_type.value}"
                     )
-                    continue
+                    total_skills_found += 1
 
-                # Add to registry
-                self._skills[metadata.name] = metadata
-                logger.debug(f"Registered skill: {metadata.name}")
-
-            except SkillsUseError as e:
-                # Log parsing errors but continue with other skills
-                logger.error(f"Failed to parse skill at {skill_file}: {e}", exc_info=True)
-            except Exception as e:
-                # Catch unexpected errors
-                logger.error(f"Unexpected error parsing {skill_file}: {e}", exc_info=True)
+                except SkillsUseError as e:
+                    # Log parsing errors but continue with other skills
+                    logger.error(f"Failed to parse skill at {skill_file}: {e}", exc_info=True)
+                except Exception as e:
+                    # Catch unexpected errors
+                    logger.error(f"Unexpected error parsing {skill_file}: {e}", exc_info=True)
 
         logger.info(
-            f"Async discovery complete: {len(self._skills)} skill(s) registered successfully"
+            f"Async discovery complete: {total_skills_found} skill(s) registered from {len(self.sources)} source(s)"
         )
 
-    def list_skills(self) -> List[SkillMetadata]:
+    def list_skills(self, include_qualified: bool = False) -> List[SkillMetadata] | List[str]:
         """Return all discovered skill metadata (lightweight).
 
+        Args:
+            include_qualified: If True, return list of skill names (str) including qualified names
+                              for plugin skills. If False, return list of SkillMetadata instances.
+
         Returns:
-            List of SkillMetadata instances (metadata only, no content)
+            List of SkillMetadata instances (if include_qualified=False)
+            OR List of skill names (str) including qualified names (if include_qualified=True)
 
         Performance:
             - O(n) where n = number of skills
             - Copies internal list (~1-5ms for 100 skills)
 
         Example:
+            >>> # Get metadata objects (default)
             >>> skills = manager.list_skills()
             >>> for skill in skills:
             ...     print(f"{skill.name}: {skill.description}")
             code-reviewer: Review code for best practices
             git-helper: Generate commit messages
+
+            >>> # Get skill names with qualified plugin names
+            >>> names = manager.list_skills(include_qualified=True)
+            >>> for name in names:
+            ...     print(name)
+            code-reviewer
+            git-helper
+            data-tools:csv-parser
+            data-tools:json-validator
         """
-        return list(self._skills.values())
+        if not include_qualified:
+            return list(self._skills.values())
+
+        # T030: Return skill names including qualified names for plugins
+        names: List[str] = []
+
+        # Add all simple names
+        names.extend(self._skills.keys())
+
+        # Add qualified plugin names
+        for plugin_name, plugin_skills in self._plugin_skills.items():
+            for skill_name in plugin_skills:
+                qualified_name = f"{plugin_name}:{skill_name}"
+                names.append(qualified_name)
+
+        return names
 
     def get_skill(self, name: str) -> SkillMetadata:
         """Get skill metadata by name (strict validation).
 
+        Supports both simple names and fully qualified names (plugin:skill).
+
         Args:
-            name: Skill name (case-sensitive)
+            name: Skill name (case-sensitive) - either simple "skill" or qualified "plugin:skill"
 
         Returns:
             SkillMetadata instance
@@ -411,18 +469,52 @@ class SkillManager:
             - O(1) dictionary lookup (~1μs)
 
         Example:
+            >>> # Simple name lookup
             >>> metadata = manager.get_skill("code-reviewer")
             >>> print(metadata.description)
             Review code for best practices
 
+            >>> # Qualified name lookup (plugin skill)
+            >>> metadata = manager.get_skill("data-tools:csv-parser")
+            >>> print(metadata.description)
+            Parse CSV files
+
             >>> manager.get_skill("nonexistent")
             SkillNotFoundError: Skill 'nonexistent' not found
         """
-        if name not in self._skills:
-            available = ", ".join(self._skills.keys()) if self._skills else "none"
-            raise SkillNotFoundError(f"Skill '{name}' not found. Available skills: {available}")
+        from skillkit.core.models import QualifiedSkillName
 
-        return self._skills[name]
+        # T031: Parse QualifiedSkillName and support qualified lookups
+        parsed = QualifiedSkillName.parse(name)
+
+        # If qualified name (plugin:skill)
+        if parsed.plugin is not None:
+            # Look in plugin skills registry
+            if parsed.plugin not in self._plugin_skills:
+                available_plugins = (
+                    ", ".join(self._plugin_skills.keys()) if self._plugin_skills else "none"
+                )
+                raise SkillNotFoundError(
+                    f"Plugin '{parsed.plugin}' not found. Available plugins: {available_plugins}"
+                )
+
+            if parsed.skill not in self._plugin_skills[parsed.plugin]:
+                available_skills = ", ".join(self._plugin_skills[parsed.plugin].keys())
+                raise SkillNotFoundError(
+                    f"Skill '{parsed.skill}' not found in plugin '{parsed.plugin}'. "
+                    f"Available skills in this plugin: {available_skills}"
+                )
+
+            return self._plugin_skills[parsed.plugin][parsed.skill]
+
+        # Simple name lookup
+        if parsed.skill not in self._skills:
+            available = ", ".join(self._skills.keys()) if self._skills else "none"
+            raise SkillNotFoundError(
+                f"Skill '{parsed.skill}' not found. Available skills: {available}"
+            )
+
+        return self._skills[parsed.skill]
 
     def load_skill(self, name: str) -> Skill:
         """Load full skill instance (content loaded lazily).
