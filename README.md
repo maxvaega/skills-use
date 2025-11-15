@@ -58,16 +58,10 @@ The web is full of great skills! here are some repositories you can check out:
 
 ## Installation
 
-### Core library
+### Core library (includes async support)
 
 ```bash
 pip install skillkit
-```
-
-### With async support
-
-```bash
-pip install skillkit[async]
 ```
 
 ### With LangChain integration
@@ -76,7 +70,7 @@ pip install skillkit[async]
 pip install skillkit[langchain]
 ```
 
-### All extras (async + LangChain + dev tools)
+### All extras (LangChain + dev tools)
 
 ```bash
 pip install skillkit[all]

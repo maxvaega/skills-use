@@ -20,6 +20,8 @@ keywords = [
     "prompt-engineering",
     "anthropic",
     "claude",
+    "tools",
+    "agent-tools",
 ]
 requires-python = ">=3.10"
 classifiers = [
