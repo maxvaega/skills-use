@@ -1,0 +1,10 @@
+{
+  "manifest_version": "0.1",
+  "name": "multi-dir-plugin",
+  "version": "2.0.0",
+  "description": "Plugin with multiple skill directories",
+  "author": {
+    "name": "Multi Dir Author"
+  },
+  "skills": ["skills/", "experimental/"]
+}

@@ -164,19 +164,40 @@ class SkillManager:
 
         # Plugin skills
         if plugin_dirs:
+            from skillkit.core.discovery import discover_plugin_manifest
+
             for plugin_dir in plugin_dirs:
                 plugin_path = Path(plugin_dir) if isinstance(plugin_dir, str) else plugin_dir
                 if plugin_path.exists() and plugin_path.is_dir():
-                    # Plugin manifest parsing deferred to discovery phase
-                    # For now, use directory name as placeholder plugin name
-                    sources.append(
-                        SkillSource(
-                            source_type=SourceType.PLUGIN,
-                            directory=plugin_path.resolve(),
-                            priority=PRIORITY_PLUGIN,
-                            plugin_name=plugin_path.name,  # Placeholder, will be updated from manifest
+                    # T038: Parse plugin manifest
+                    manifest = discover_plugin_manifest(plugin_path.resolve())
+
+                    if manifest:
+                        # Use manifest data for plugin source
+                        sources.append(
+                            SkillSource(
+                                source_type=SourceType.PLUGIN,
+                                directory=plugin_path.resolve(),
+                                priority=PRIORITY_PLUGIN,
+                                plugin_name=manifest.name,
+                                plugin_manifest=manifest,
+                            )
                         )
-                    )
+                    else:
+                        # No manifest found or parsing failed - use directory name as fallback
+                        logger.warning(
+                            f"No valid plugin manifest found at {plugin_path}. "
+                            f"Using directory name '{plugin_path.name}' as plugin identifier."
+                        )
+                        sources.append(
+                            SkillSource(
+                                source_type=SourceType.PLUGIN,
+                                directory=plugin_path.resolve(),
+                                priority=PRIORITY_PLUGIN,
+                                plugin_name=plugin_path.name,
+                                plugin_manifest=None,
+                            )
+                        )
                 else:
                     logger.warning(f"Plugin directory does not exist: {plugin_path}")
 
@@ -260,6 +281,7 @@ class SkillManager:
 
         # Clear existing skills
         self._skills.clear()
+        self._plugin_skills.clear()
 
         # T027: Multi-source discovery loop in priority order
         total_skills_found = 0
@@ -280,17 +302,37 @@ class SkillManager:
                 try:
                     metadata = self._parser.parse_skill_file(skill_file)
 
+                    # T040: Plugin skills - add to plugin namespace registry
+                    if source.source_type == SourceType.PLUGIN and source.plugin_name:
+                        plugin_name = source.plugin_name
+
+                        # Initialize plugin namespace if not exists
+                        if plugin_name not in self._plugin_skills:
+                            self._plugin_skills[plugin_name] = {}
+
+                        # Store in plugin namespace
+                        self._plugin_skills[plugin_name][metadata.name] = metadata
+                        logger.debug(
+                            f"Registered plugin skill: {plugin_name}:{metadata.name} from {source.directory}"
+                        )
+
                     # T028: Check for duplicate names (conflict detection)
                     if metadata.name in self._skills:
                         existing_metadata = self._skills[metadata.name]
+
+                        # T040: For plugin conflicts, suggest qualified name
+                        qualified_hint = ""
+                        if source.source_type == SourceType.PLUGIN and source.plugin_name:
+                            qualified_hint = f" Use qualified name '{source.plugin_name}:{metadata.name}' to access this version."
+
                         logger.warning(
                             f"Skill name conflict: '{metadata.name}' found in multiple sources. "
                             f"Higher priority source wins (keeping: {existing_metadata.skill_path}, "
-                            f"ignoring: {skill_file})"
+                            f"ignoring: {skill_file}).{qualified_hint}"
                         )
                         continue
 
-                    # T029: Add to registry (highest priority wins - sources already sorted)
+                    # T029: Add to main registry (highest priority wins - sources already sorted)
                     self._skills[metadata.name] = metadata
                     logger.debug(
                         f"Registered skill: {metadata.name} from {source.source_type.value}"
@@ -354,6 +396,7 @@ class SkillManager:
 
         # Clear existing skills
         self._skills.clear()
+        self._plugin_skills.clear()
 
         # T032: Multi-source discovery loop in priority order (async version)
         total_skills_found = 0
@@ -374,13 +417,33 @@ class SkillManager:
                 try:
                     metadata = self._parser.parse_skill_file(skill_file)
 
+                    # T040: Plugin skills - add to plugin namespace registry
+                    if source.source_type == SourceType.PLUGIN and source.plugin_name:
+                        plugin_name = source.plugin_name
+
+                        # Initialize plugin namespace if not exists
+                        if plugin_name not in self._plugin_skills:
+                            self._plugin_skills[plugin_name] = {}
+
+                        # Store in plugin namespace
+                        self._plugin_skills[plugin_name][metadata.name] = metadata
+                        logger.debug(
+                            f"Registered plugin skill: {plugin_name}:{metadata.name} from {source.directory}"
+                        )
+
                     # Check for duplicate names (conflict detection)
                     if metadata.name in self._skills:
                         existing_metadata = self._skills[metadata.name]
+
+                        # T040: For plugin conflicts, suggest qualified name
+                        qualified_hint = ""
+                        if source.source_type == SourceType.PLUGIN and source.plugin_name:
+                            qualified_hint = f" Use qualified name '{source.plugin_name}:{metadata.name}' to access this version."
+
                         logger.warning(
                             f"Skill name conflict: '{metadata.name}' found in multiple sources. "
                             f"Higher priority source wins (keeping: {existing_metadata.skill_path}, "
-                            f"ignoring: {skill_file})"
+                            f"ignoring: {skill_file}).{qualified_hint}"
                         )
                         continue
 

@@ -1,7 +1,7 @@
 """Skill discovery module for filesystem scanning.
 
 This module provides the SkillDiscovery class for scanning directories
-and locating SKILL.md files.
+and locating SKILL.md files, and plugin manifest discovery functionality.
 """
 
 import asyncio
@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
-    from skillkit.core.models import SkillSource
+    from skillkit.core.models import PluginManifest, SkillSource
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,9 @@ class SkillDiscovery:
 
     def discover_skills(self, source: "SkillSource") -> List[Path]:
         """Discover skills from a specific source.
+
+        For plugin sources with manifests, scans all skill directories specified
+        in the manifest.skills field. For other sources, scans the source directory directly.
 
         Args:
             source: SkillSource instance with directory and metadata
@@ -45,6 +48,25 @@ class SkillDiscovery:
             >>> print(f"Found {len(skills)} skills from {source.source_type.value}")
             Found 3 skills from project
         """
+        from skillkit.core.models import SourceType
+
+        # For plugin sources with manifests, scan all directories listed in manifest.skills
+        if source.source_type == SourceType.PLUGIN and source.plugin_manifest:
+            all_skill_files: List[Path] = []
+
+            for skill_dir_rel in source.plugin_manifest.skills:
+                # Resolve skill directory relative to plugin root
+                skill_dir = source.directory / skill_dir_rel
+
+                # Scan this skill directory
+                skill_files = self.scan_directory(skill_dir)
+                all_skill_files.extend(skill_files)
+
+                logger.debug(f"Found {len(skill_files)} skill(s) in plugin directory {skill_dir}")
+
+            return all_skill_files
+
+        # For non-plugin sources, scan the source directory directly
         return self.scan_directory(source.directory)
 
     def scan_directory(self, skills_dir: Path) -> List[Path]:
@@ -144,6 +166,9 @@ class SkillDiscovery:
     async def adiscover_skills(self, source: "SkillSource") -> List[Path]:
         """Async version of discover_skills for non-blocking skill discovery.
 
+        For plugin sources with manifests, scans all skill directories specified
+        in the manifest.skills field. For other sources, scans the source directory directly.
+
         Args:
             source: SkillSource instance with directory and metadata
 
@@ -162,6 +187,25 @@ class SkillDiscovery:
             >>> print(f"Found {len(skills)} skills from {source.source_type.value}")
             Found 3 skills from project
         """
+        from skillkit.core.models import SourceType
+
+        # For plugin sources with manifests, scan all directories listed in manifest.skills
+        if source.source_type == SourceType.PLUGIN and source.plugin_manifest:
+            all_skill_files: List[Path] = []
+
+            for skill_dir_rel in source.plugin_manifest.skills:
+                # Resolve skill directory relative to plugin root
+                skill_dir = source.directory / skill_dir_rel
+
+                # Scan this skill directory asynchronously
+                skill_files = await self.ascan_directory(skill_dir)
+                all_skill_files.extend(skill_files)
+
+                logger.debug(f"Found {len(skill_files)} skill(s) in plugin directory {skill_dir}")
+
+            return all_skill_files
+
+        # For non-plugin sources, scan the source directory directly
         return await self.ascan_directory(source.directory)
 
     async def ascan_directory(self, skills_dir: Path) -> List[Path]:
@@ -240,3 +284,87 @@ class SkillDiscovery:
 
         # Run directory scanning in thread to avoid blocking event loop
         return await asyncio.to_thread(_scan)
+
+
+def discover_plugin_manifest(plugin_dir: Path) -> "PluginManifest | None":
+    """Discover and parse plugin manifest if present.
+
+    Scans the plugin directory for .claude-plugin/plugin.json manifest file.
+    If found, parses and validates the manifest. If not found or parsing fails,
+    returns None with appropriate logging.
+
+    This function implements graceful degradation: malformed manifests are logged
+    as warnings but do not halt discovery of other plugins.
+
+    Args:
+        plugin_dir: Absolute path to plugin root directory
+
+    Returns:
+        PluginManifest instance if manifest found and valid, None otherwise
+
+    Example:
+        >>> manifest = discover_plugin_manifest(Path("./plugins/my-plugin"))
+        >>> if manifest:
+        ...     print(f"Found plugin: {manifest.name} v{manifest.version}")
+        ...     for skill_dir in manifest.skills:
+        ...         print(f"  - Skill directory: {skill_dir}")
+        Found plugin: my-plugin v1.0.0
+          - Skill directory: skills/
+          - Skill directory: experimental/
+
+    Note:
+        This function uses parse_plugin_manifest() which enforces security
+        checks (JSON bomb protection, path traversal prevention).
+    """
+    from skillkit.core.exceptions import (
+        ManifestNotFoundError,
+        ManifestParseError,
+        ManifestValidationError,
+    )
+    from skillkit.core.parser import parse_plugin_manifest
+
+    # Check for manifest at expected location
+    manifest_path = plugin_dir / ".claude-plugin" / "plugin.json"
+
+    if not manifest_path.exists():
+        logger.debug(f"No plugin manifest found at {manifest_path}")
+        return None
+
+    # Attempt to parse manifest with graceful error handling
+    try:
+        manifest = parse_plugin_manifest(manifest_path)
+        logger.info(
+            f"Discovered plugin '{manifest.name}' v{manifest.version} "
+            f"with {len(manifest.skills)} skill directory(ies) at {plugin_dir}"
+        )
+        return manifest
+
+    except ManifestNotFoundError as e:
+        # Should not happen since we checked exists() above, but handle anyway
+        logger.warning(f"Plugin manifest not found: {e}")
+        return None
+
+    except ManifestParseError as e:
+        # JSON parsing errors, encoding errors, file size exceeded
+        logger.warning(
+            f"Failed to parse plugin manifest at {manifest_path}: {e}\n"
+            f"Plugin at {plugin_dir} will be skipped."
+        )
+        return None
+
+    except ManifestValidationError as e:
+        # Required fields missing, invalid formats, security violations
+        logger.warning(
+            f"Plugin manifest validation failed at {manifest_path}: {e}\n"
+            f"Plugin at {plugin_dir} will be skipped."
+        )
+        return None
+
+    except Exception as e:
+        # Catch-all for unexpected errors (should not happen, but defensive)
+        logger.error(
+            f"Unexpected error discovering plugin manifest at {manifest_path}: {e}\n"
+            f"Plugin at {plugin_dir} will be skipped.",
+            exc_info=True,
+        )
+        return None

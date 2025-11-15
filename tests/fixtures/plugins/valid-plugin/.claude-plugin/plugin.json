@@ -1,0 +1,13 @@
+{
+  "manifest_version": "0.1",
+  "name": "valid-plugin",
+  "version": "1.0.0",
+  "description": "A valid test plugin",
+  "author": {
+    "name": "Test Author",
+    "email": "test@example.com"
+  },
+  "skills": ["skills/"],
+  "display_name": "Valid Plugin",
+  "homepage": "https://example.com"
+}

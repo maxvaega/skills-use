@@ -121,18 +121,20 @@
 
 ### Implementation for User Story 4
 
-- [ ] T034 [P] [US4] Implement parse_plugin_manifest() function in src/skillkit/core/parser.py with JSON parsing and validation
-- [ ] T035 [P] [US4] Add PluginManifest.__post_init__() validation in src/skillkit/core/models.py with manifest_version check, name regex, version semver, skills path security validation
-- [ ] T036 [US4] Implement discover_plugin_manifest() in src/skillkit/core/discovery.py that scans for .claude-plugin/plugin.json
-- [ ] T037 [US4] Add JSON bomb protection (1MB file size limit) to parse_plugin_manifest() in src/skillkit/core/parser.py
-- [ ] T038 [US4] Update _build_sources() in src/skillkit/core/manager.py to parse plugin manifests for plugin_dirs
-- [ ] T039 [US4] Implement plugin skill namespacing in SkillManager._plugin_skills nested dict in src/skillkit/core/manager.py
-- [ ] T040 [US4] Add plugin skills to both _plugin_skills and _skills registries in discover() method in src/skillkit/core/manager.py
-- [ ] T041 [US4] Update get_skill() to handle qualified names (plugin:skill) lookups in _plugin_skills in src/skillkit/core/manager.py
-- [ ] T042 [US4] Add graceful error handling for malformed manifests with detailed logging in src/skillkit/core/parser.py
-- [ ] T043 [US4] Create example plugin structure in examples/skills/example-plugin/ with .claude-plugin/plugin.json and skills/
+- [X] T034 [P] [US4] Implement parse_plugin_manifest() function in src/skillkit/core/parser.py with JSON parsing and validation
+- [X] T035 [P] [US4] Add PluginManifest.__post_init__() validation in src/skillkit/core/models.py with manifest_version check, name regex, version semver, skills path security validation
+- [X] T036 [US4] Implement discover_plugin_manifest() in src/skillkit/core/discovery.py that scans for .claude-plugin/plugin.json
+- [X] T037 [US4] Add JSON bomb protection (1MB file size limit) to parse_plugin_manifest() in src/skillkit/core/parser.py
+- [X] T038 [US4] Update _build_sources() in src/skillkit/core/manager.py to parse plugin manifests for plugin_dirs
+- [X] T039 [US4] Implement plugin skill namespacing in SkillManager._plugin_skills nested dict in src/skillkit/core/manager.py
+- [X] T040 [US4] Add plugin skills to both _plugin_skills and _skills registries in discover() method in src/skillkit/core/manager.py
+- [X] T041 [US4] Update get_skill() to handle qualified names (plugin:skill) lookups in _plugin_skills in src/skillkit/core/manager.py
+- [X] T042 [US4] Add graceful error handling for malformed manifests with detailed logging in src/skillkit/core/parser.py
+- [X] T043 [US4] Create example plugin structure in examples/skills/example-plugin/ with .claude-plugin/plugin.json and skills/
 
 **Checkpoint**: Plugin discovery works with manifest parsing, namespacing, and conflict resolution
+
+**✅ VALIDATED**: Phase 6 implementation complete
 
 ---
 
