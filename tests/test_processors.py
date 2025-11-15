@@ -177,6 +177,52 @@ def test_base_directory_processor(tmp_path):
     assert "# My Skill" in result
 
 
+# Phase 8 Test: BaseDirectoryProcessor with file resolution helper
+def test_base_directory_processor_includes_file_resolution_helper(tmp_path):
+    """Validate BaseDirectoryProcessor includes file path resolution helper message.
+
+    Tests that the enhanced BaseDirectoryProcessor (Phase 8) includes instructions
+    for using FilePathResolver to securely access supporting files.
+    """
+    processor = BaseDirectoryProcessor()
+    content = "# My Skill\n\nThis skill uses supporting files."
+    base_dir = tmp_path / "skills" / "my-skill"
+    context = {"base_directory": str(base_dir)}
+
+    result = processor.process(content, context)
+
+    # Verify base directory is included
+    assert str(base_dir) in result
+    assert result.startswith("Base directory for this skill:")
+
+    # Verify file resolution helper is included (Phase 8 enhancement)
+    assert "Supporting files can be referenced using relative paths" in result
+    assert "FilePathResolver.resolve_path" in result
+    assert "securely access files" in result
+
+    # Verify original content is preserved
+    assert "# My Skill" in result
+    assert "This skill uses supporting files" in result
+
+
+# Phase 8 Test: BaseDirectoryProcessor with empty base directory
+def test_base_directory_processor_empty_base_directory():
+    """Validate BaseDirectoryProcessor handles empty base directory gracefully.
+
+    Tests that the processor doesn't crash when base_directory is empty or missing.
+    """
+    processor = BaseDirectoryProcessor()
+    content = "# My Skill"
+    context = {"base_directory": ""}
+
+    result = processor.process(content, context)
+
+    # Should still include header with empty path
+    assert "Base directory for this skill:" in result
+    assert "FilePathResolver.resolve_path" in result
+    assert "# My Skill" in result
+
+
 # Additional test: CompositeProcessor chains processors
 def test_composite_processor(tmp_path):
     """Validate CompositeProcessor chains multiple processors in order.

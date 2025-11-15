@@ -1,0 +1,28 @@
+# Configuration template for file-reference-skill
+
+# Data processing settings
+processing:
+  input_format: csv
+  output_format: csv
+  encoding: utf-8
+  delimiter: ","
+  skip_header: false
+
+# Validation settings
+validation:
+  check_encoding: true
+  check_format: true
+  max_file_size_mb: 100
+  required_columns: []
+
+# Output settings
+output:
+  include_timestamp: true
+  compress: false
+  create_backup: true
+
+# Logging settings
+logging:
+  level: INFO
+  format: "%(asctime)s - %(levelname)s - %(message)s"
+  file: "processing.log"
