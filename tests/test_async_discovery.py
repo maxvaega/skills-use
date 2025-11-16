@@ -137,7 +137,11 @@ class TestSkillManagerAsync:
         empty_dir = tmp_path / "empty"
         empty_dir.mkdir()
 
-        manager = SkillManager(project_skill_dir=empty_dir)
+        manager = SkillManager(
+            project_skill_dir=empty_dir,
+            anthropic_config_dir="",  # Explicit opt-out
+            plugin_dirs=[],
+        )
         await manager.adiscover()
 
         # Should complete without errors

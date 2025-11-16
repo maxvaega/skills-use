@@ -8,21 +8,19 @@ import pytest
 from skillkit import SkillManager
 
 
-def test_discover_empty_directory(temp_skills_dir: Path) -> None:
+def test_discover_empty_directory(isolated_manager: SkillManager) -> None:
     """Test that discovery of empty directory returns empty list with INFO logging."""
-    manager = SkillManager(temp_skills_dir)
-    manager.discover()
-    skills = manager.list_skills()
+    isolated_manager.discover()
+    skills = isolated_manager.list_skills()
 
     assert isinstance(skills, list)
     assert len(skills) == 0
 
 
-def test_discover_multiple_skills(temp_skills_dir: Path, sample_skills: list) -> None:
+def test_discover_multiple_skills(isolated_manager: SkillManager, sample_skills: list) -> None:
     """Test that 5 skills are discovered using sample_skills fixture."""
-    manager = SkillManager(temp_skills_dir)
-    manager.discover()
-    skills = manager.list_skills()
+    isolated_manager.discover()
+    skills = isolated_manager.list_skills()
     discovered = {skill.name: skill for skill in skills}
 
     assert len(discovered) == 5
@@ -44,11 +42,10 @@ def test_discover_valid_skills_from_fixtures(fixtures_dir: Path) -> None:
     assert "valid-basic" in discovered or len(discovered) > 0
 
 
-def test_discover_skill_metadata_structure(temp_skills_dir: Path, sample_skills: list) -> None:
+def test_discover_skill_metadata_structure(isolated_manager: SkillManager, sample_skills: list) -> None:
     """Test that metadata has required fields: name, description, skill_path."""
-    manager = SkillManager(temp_skills_dir)
-    manager.discover()
-    skills = manager.list_skills()
+    isolated_manager.discover()
+    skills = isolated_manager.list_skills()
     discovered = {skill.name: skill for skill in skills}
 
     skill_metadata = discovered["skill-1"]
@@ -58,11 +55,10 @@ def test_discover_skill_metadata_structure(temp_skills_dir: Path, sample_skills:
     assert skill_metadata.skill_path.name == "SKILL.md"
 
 
-def test_discover_unicode_content(temp_skills_dir: Path, sample_skills: list) -> None:
+def test_discover_unicode_content(isolated_manager: SkillManager, sample_skills: list) -> None:
     """Test that Unicode/emoji skills parse correctly."""
-    manager = SkillManager(temp_skills_dir)
-    manager.discover()
-    skills = manager.list_skills()
+    isolated_manager.discover()
+    skills = isolated_manager.list_skills()
     discovered = {skill.name: skill for skill in skills}
 
     assert "skill-3" in discovered
@@ -70,14 +66,14 @@ def test_discover_unicode_content(temp_skills_dir: Path, sample_skills: list) ->
     assert skill_metadata.description == "Third skill"
 
     # Verify the actual skill content contains Unicode
-    skill = manager.load_skill("skill-3")
+    skill = isolated_manager.load_skill("skill-3")
     content = skill.content
     # The sample_skills fixture creates skill-3 with: "Unicode content: 你好 🎉"
     assert any(ord(c) > 127 for c in content)
 
 
 def test_discover_duplicate_skill_names_logs_warning(
-    temp_skills_dir: Path, skill_factory: callable, caplog: pytest.LogCaptureFixture
+    isolated_manager: SkillManager, temp_skills_dir: Path, skill_factory: callable, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test that WARNING is logged for duplicate skill names."""
     # Create two skills with the same name
@@ -101,10 +97,9 @@ Content for duplicate.
     )
 
     with caplog.at_level(logging.WARNING):
-        manager = SkillManager(temp_skills_dir)
-        manager.discover()
+        isolated_manager.discover()
 
-    skills = manager.list_skills()
+    skills = isolated_manager.list_skills()
     discovered = {skill.name: skill for skill in skills}
 
     # Check that warning was logged (implementation may vary)
@@ -113,7 +108,7 @@ Content for duplicate.
 
 
 def test_discover_skips_invalid_skills_gracefully(
-    temp_skills_dir: Path, skill_factory: callable
+    isolated_manager: SkillManager, temp_skills_dir: Path, skill_factory: callable
 ) -> None:
     """Test that discovery continues after encountering invalid skill."""
     # Create one valid and one invalid skill
@@ -124,9 +119,8 @@ def test_discover_skips_invalid_skills_gracefully(
     invalid_dir.mkdir()
     (invalid_dir / "SKILL.md").write_text("---\ndescription: Missing name\n---\nContent")
 
-    manager = SkillManager(temp_skills_dir)
-    manager.discover()
-    skills = manager.list_skills()
+    isolated_manager.discover()
+    skills = isolated_manager.list_skills()
     discovered = {skill.name: skill for skill in skills}
 
     # Should discover the valid skill and skip the invalid one

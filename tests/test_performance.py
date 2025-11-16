@@ -31,7 +31,11 @@ def test_discovery_time_50_skills(temp_skills_dir: Path, skill_factory):
         )
 
     # Measure discovery time
-    manager = SkillManager(str(temp_skills_dir))
+    manager = SkillManager(
+        project_skill_dir=str(temp_skills_dir),
+        anthropic_config_dir="",  # Explicit opt-out
+        plugin_dirs=[],
+    )
     start_time = time.perf_counter()
     manager.discover()
     end_time = time.perf_counter()
@@ -102,7 +106,11 @@ def test_memory_usage_50_skills_10_percent_usage(temp_skills_dir: Path, skill_fa
         )
 
     # Discover all skills (metadata only)
-    manager = SkillManager(str(temp_skills_dir))
+    manager = SkillManager(
+        project_skill_dir=str(temp_skills_dir),
+        anthropic_config_dir="",  # Explicit opt-out
+        plugin_dirs=[],
+    )
     manager.discover()
     skills_metadata = manager.list_skills()
     assert len(skills_metadata) == 50

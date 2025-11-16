@@ -27,7 +27,11 @@ class TestSkillManagerPluginSources:
         if not plugin_dir.exists():
             pytest.skip("Fixture not found")
 
-        manager = SkillManager(plugin_dirs=[plugin_dir])
+        manager = SkillManager(
+            project_skill_dir="",  # Explicit opt-out
+            anthropic_config_dir="",  # Explicit opt-out
+            plugin_dirs=[plugin_dir]
+        )
 
         assert len(manager.sources) == 1
         source = manager.sources[0]
@@ -44,7 +48,11 @@ class TestSkillManagerPluginSources:
         if not (plugin1.exists() and plugin2.exists()):
             pytest.skip("Fixtures not found")
 
-        manager = SkillManager(plugin_dirs=[plugin1, plugin2])
+        manager = SkillManager(
+            project_skill_dir="",  # Explicit opt-out
+            anthropic_config_dir="",  # Explicit opt-out
+            plugin_dirs=[plugin1, plugin2]
+        )
 
         assert len(manager.sources) == 2
 
@@ -60,7 +68,11 @@ class TestSkillManagerPluginSources:
             pytest.skip("Fixture not found")
 
         # Should create source with fallback plugin name (directory name)
-        manager = SkillManager(plugin_dirs=[plugin_dir])
+        manager = SkillManager(
+            project_skill_dir="",  # Explicit opt-out
+            anthropic_config_dir="",  # Explicit opt-out
+            plugin_dirs=[plugin_dir]
+        )
 
         assert len(manager.sources) == 1
         source = manager.sources[0]
@@ -366,7 +378,11 @@ class TestPluginIntegrationEndToEnd:
             pytest.skip("Fixture not found")
 
         # 1. Initialize manager with plugin
-        manager = SkillManager(plugin_dirs=[plugin_dir])
+        manager = SkillManager(
+            project_skill_dir="",  # Explicit opt-out
+            anthropic_config_dir="",  # Explicit opt-out
+            plugin_dirs=[plugin_dir]
+        )
 
         # 2. Discover skills
         manager.discover()
@@ -396,7 +412,11 @@ class TestPluginIntegrationEndToEnd:
             pytest.skip("Fixture not found")
 
         # 1. Initialize manager
-        manager = SkillManager(plugin_dirs=[plugin_dir])
+        manager = SkillManager(
+            project_skill_dir="",  # Explicit opt-out
+            anthropic_config_dir="",  # Explicit opt-out
+            plugin_dirs=[plugin_dir]
+        )
 
         # 2. Async discover
         await manager.adiscover()
