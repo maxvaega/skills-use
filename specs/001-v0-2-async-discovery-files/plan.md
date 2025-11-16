@@ -1,216 +1,265 @@
 # Implementation Plan: v0.2 - Async Support, Advanced Discovery & File Resolution
 
-**Branch**: `001-v0-2-async-discovery-files` | **Date**: 2025-11-12 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-v0-2-async-discovery-files` | **Date**: 2025-11-16 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-v0-2-async-discovery-files/spec.md`
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Note**: This plan has been updated to incorporate clarifications from Session 2025-11-16 regarding SkillManager initialization behavior (User Story 3).
 
 ## Summary
 
-This feature completes the v0.2 release by implementing three major capabilities:
+v0.2 adds enterprise-grade async capabilities and multi-source skill discovery to skillkit. Primary features include: (1) Full async/await support (`adiscover()`, `ainvoke_skill()`) for non-blocking operations in FastAPI and async agents, (2) Multi-source discovery with priority-based resolution (project > anthropic > plugins > custom), (3) Plugin ecosystem support with MCPB manifest parsing, (4) Secure file reference resolution with path traversal prevention, and (5) Nested skill directory structures up to 5 levels deep.
 
-1. **Async Support**: Non-blocking skill discovery and invocation via `adiscover()` and `ainvoke_skill()` methods, with async file I/O and full LangChain `ainvoke` integration
-2. **Advanced Discovery**: Multiple skill sources (project/anthropic/plugins), plugin manifest parsing, nested directory structures, and fully qualified skill names for conflict resolution
-3. **File Reference Resolution**: Secure relative path resolution for skill supporting files with directory traversal prevention
-
-The implementation maintains backward compatibility with v0.1 sync APIs while adding async as an optional enhancement. Priority order for skill conflicts is: project > anthropic > plugins > additional paths.
+**Critical Update (2025-11-16)**: Implementation review reveals gaps in User Story 3 acceptance scenarios 4-8 (default directory discovery and initialization behavior). Current `_build_sources()` method requires updates to support:
+- Default directory discovery when parameters are None/omitted
+- Empty string `""` as explicit opt-out signal
+- ConfigurationError for explicitly provided nonexistent paths
+- INFO logging when no directories are found
+- Proper differentiation between None (apply defaults) and "" (opt-out)
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version**: Python 3.10+ (minimum for full async/await support with aiofiles)
+**Primary Dependencies**: PyYAML 6.0+, aiofiles 23.0+, langchain-core 0.1.0+, pydantic 2.0+
+**Storage**: Filesystem-based (`.claude/skills/`, `./skills/`, plugin directories with SKILL.md files)
+**Testing**: pytest 7.0+, pytest-asyncio 0.21+, pytest-cov 4.0+ (target: 70%+ coverage)
+**Target Platform**: Cross-platform (macOS, Linux, Windows with best-effort Windows UNC path support)
+**Project Type**: Python library (single-project structure with optional framework integrations)
+**Performance Goals**: Async discovery <200ms for 500 skills (SC-001), async invocation overhead <2ms (SC-002)
+**Constraints**: Backward compatible with v0.1 sync APIs, framework-agnostic core (zero dependencies except PyYAML/aiofiles), strict type safety (mypy --strict)
+**Scale/Scope**: Support 500+ skills, 5-level nested directories, concurrent plugin discovery, production-grade error handling
 
-**Language/Version**: Python 3.10+ (minimum for full async support)
-**Primary Dependencies**: PyYAML 6.0+, aiofiles 23.0+ (new), langchain-core 0.1.0+, pydantic 2.0+
-**Storage**: Filesystem-based (`.claude/skills/` directories, `.claude-plugin/plugin.json` manifests)
-**Testing**: pytest 7.0+, pytest-asyncio 0.21+ (new), pytest-cov 4.0+
-**Target Platform**: Cross-platform (Linux, macOS, Windows) with asyncio event loop support
-**Project Type**: Single Python library with framework-agnostic core
-**Performance Goals**: Async discovery <200ms for 500 skills, async invocation overhead <2ms
-**Constraints**: Backward compatible with v0.1, zero new dependencies in core (aiofiles optional)
-**Scale/Scope**: Support 500+ skills across 10+ sources with nested structures up to 5 levels deep
+**Session 2025-11-16 Clarifications - Default Directory Behavior**:
+The SkillManager initialization behavior for User Story 3 has been clarified with specific requirements for handling default directories (`./skills/`, `./.claude/skills/`):
+
+1. **None vs Omitted Parameters**: Both `SkillManager()` and `SkillManager(project_skill_dir=None)` MUST behave identically - apply default directory discovery
+2. **Default Discovery Logic**: When project_skill_dir is None/omitted, check if `./skills/` exists; when anthropic_config_dir is None/omitted, check if `./.claude/skills/` exists; scan all that exist
+3. **Both Defaults Exist**: When both `./skills/` and `./.claude/skills/` exist, MUST scan both with priority-based deduplication (./skills/ wins conflicts)
+4. **No Defaults Exist**: When neither default directory exists and no custom paths provided, initialize successfully with empty skill list + INFO log "No skill directories found; initialized with empty skill list"
+5. **Explicit Opt-Out**: Empty string `""` for directory parameters and empty list `[]` for plugin_dirs MUST disable discovery for those sources (no default fallback, no INFO message)
+6. **Explicit Invalid Path**: When user provides explicit non-None, non-empty, non-default path that doesn't exist (e.g., `SkillManager(project_skill_dir="/bad/path")`), MUST raise ConfigurationError immediately with message indicating which parameter and path failed
+7. **Mixed Opt-Out**: Support mixed configurations like `SkillManager(project_skill_dir="/valid/path", anthropic_config_dir="")` - only scan /valid/path, anthropic discovery explicitly disabled
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Framework-Agnostic Core Principle
+**Note**: Project constitution file is currently a template placeholder. The following checks are based on standard Python library best practices and the project's documented principles in CLAUDE.md:
 
-**Status**: ✅ PASS
+### Core Principle Compliance
 
-- Async support implemented in `src/skillkit/core/` using only stdlib asyncio and aiofiles
-- No framework-specific dependencies introduced to core modules
-- LangChain async integration isolated in `src/skillkit/integrations/langchain.py`
+1. **Library-First Design**: ✅ PASS
+   - v0.2 maintains framework-agnostic core in `src/skillkit/core/`
+   - Optional integrations remain in `src/skillkit/integrations/`
+   - Zero breaking changes to v0.1 public API
 
-### Progressive Disclosure Pattern
+2. **Test-First Development**: ⚠️ PARTIAL (User Story 3 gaps identified)
+   - Existing tests cover async patterns, multi-source discovery, plugin support
+   - **Gap**: Tests for acceptance scenarios 4-8 (default directory behavior) are incomplete
+   - **Required**: Add tests for None/omitted parameters, empty string opt-out, ConfigurationError validation
+   - Coverage target: 70%+ (current status: 70%+, but gaps exist in initialization edge cases)
 
-**Status**: ✅ PASS
+3. **Backward Compatibility**: ✅ PASS
+   - All v0.1 sync APIs preserved (`discover()`, `invoke_skill()`, `load_skill()`)
+   - Async methods are additive (`adiscover()`, `ainvoke_skill()`)
+   - Legacy `skill_dir` parameter mapped to `project_skill_dir` with deprecation warning
 
-- Maintains v0.1 lazy loading architecture (SkillMetadata + Skill two-tier pattern)
-- Async discovery loads only metadata; full content loaded on-demand via `ainvoke_skill()`
-- No changes to memory efficiency characteristics
+4. **Performance Requirements**: ✅ PASS
+   - Target: <200ms for 500 skills async discovery (SC-001)
+   - Target: <2ms overhead for async invocation (SC-002)
+   - Memory: No increase from v0.1 (progressive disclosure pattern maintained)
 
-### Backward Compatibility
+5. **Security Requirements**: ✅ PASS
+   - Path traversal prevention implemented with `pathlib.resolve()` validation
+   - YAML safe loading via `yaml.safe_load()`
+   - Argument substitution with 1MB size limit and suspicious pattern detection
 
-**Status**: ✅ PASS
+### Session 2025-11-16 Clarifications - Implementation Gaps
 
-- All v0.1 sync APIs (`discover()`, `invoke_skill()`) remain unchanged
-- Async methods are purely additive (`adiscover()`, `ainvoke_skill()`)
-- Existing code using sync methods continues working without modifications
+**Status**: 🔴 REQUIRES REMEDIATION
 
-### Security-First Design
+The current implementation (`src/skillkit/core/manager.py:134-267`, `_build_sources()` method) does NOT fully implement User Story 3 acceptance scenarios 4-8:
 
-**Status**: ✅ PASS
+**Gap Analysis**:
 
-- Path traversal prevention is mandatory for file reference resolution
-- Uses `pathlib.Path.resolve()` for canonical path validation
-- All resolved paths validated to stay within skill base directory
-- SecurityError raised on any traversal attempts
+| Requirement | Current Behavior | Required Behavior | Remediation |
+|-------------|------------------|-------------------|-------------|
+| None/omitted parameters | Ignored (no defaults applied) | Apply default directory discovery (`./skills/`, `./.claude/skills/`) | Update `_build_sources()` to check for defaults when param is None |
+| Both defaults exist | Not handled | Scan both with priority deduplication | Add logic to scan both when both exist |
+| No defaults exist | Silent (no skills, no log) | Initialize with empty list + INFO log | Add INFO logging when no directories found |
+| Empty string opt-out | Not distinguished from None | Treat "" as explicit opt-out (no defaults) | Add condition: `if param == "": skip` vs `if param is None: apply_defaults` |
+| Explicit invalid path | WARNING logged, continues | Raise ConfigurationError immediately | Add path validation before processing |
+| Mixed opt-out | Not tested | Support mixed valid path + opt-out | Validate with integration test |
 
-### Testing Requirements
+**Required Changes**:
 
-**Status**: ✅ PASS
+1. **`_build_sources()` method** (manager.py:134-267):
+   - Add default directory constants (`DEFAULT_PROJECT_DIR = "./skills/"`, `DEFAULT_ANTHROPIC_DIR = "./.claude/skills/"`)
+   - Implement tri-state logic for each parameter: `None` (apply defaults) | `""` (opt-out) | `Path` (use explicit)
+   - Add path existence validation for explicit non-default paths → raise ConfigurationError
+   - Add INFO logging when no sources are configured after processing all parameters
 
-- Maintains 70% coverage minimum from v0.1
-- Adds pytest-asyncio for async code path coverage
-- Parametrized tests for sync/async equivalence validation
-- Security fuzzing tests for path traversal edge cases
+2. **`SkillManager.__init__()` signature** (manager.py:57-102):
+   - No signature changes required (already accepts `str | Path | None`)
+   - Update docstring to document None vs "" behavior
 
-### Complexity Justification
+3. **Exception handling** (exceptions.py):
+   - Verify ConfigurationError exists with appropriate message formatting
 
-**Status**: ✅ PASS (with justification)
+4. **Tests** (tests/test_manager.py):
+   - Add parametrized tests for acceptance scenarios 4-8
+   - Test None vs omitted parameters (both should trigger defaults)
+   - Test empty string opt-out behavior
+   - Test ConfigurationError for invalid explicit paths
+   - Test INFO logging when no directories found
+   - Test mixed configurations
 
-- **Async complexity**: Justified by target use case (500+ skills, high-concurrency agents)
-- **Multi-source discovery**: Required for Anthropic plugin ecosystem support
-- **Path validation**: Security-critical feature, cannot be simplified
-
-**Gates Result**: All checks PASS. Proceed to Phase 0 research.
+**Recommendation**: Implement remediation in tasks.md as high-priority tasks before v0.2 release completion.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-v0-2-async-discovery-files/
+├── plan.md              # This file (UPDATED 2025-11-16)
+├── research.md          # Phase 0 output (COMPLETE)
+├── data-model.md        # Phase 1 output (COMPLETE)
+├── quickstart.md        # Phase 1 output (COMPLETE)
+├── contracts/           # Phase 1 output (COMPLETE)
+│   ├── skill-manager-api.md
+│   ├── skill-discovery-api.md
+│   └── plugin-manifest-schema.json
+└── tasks.md             # Phase 2 output (COMPLETE, needs update for gaps)
 ```
 
 ### Source Code (repository root)
 
+**Structure Decision**: Single-project Python library structure (Option 1). This is a standalone library with optional framework integrations, not a web/mobile application.
+
 ```text
 src/skillkit/
-├── core/                          # Framework-agnostic core (v0.1 + v0.2 extensions)
-│   ├── discovery.py               # SkillDiscovery: sync + async filesystem scanning
-│   ├── parser.py                  # SkillParser: YAML parsing + plugin manifest parsing
-│   ├── models.py                  # SkillMetadata, Skill, PluginManifest, SkillSource
-│   ├── manager.py                 # SkillManager: sync/async orchestration + multi-source
-│   ├── processors.py              # ContentProcessor: $ARGUMENTS + file path injection
-│   ├── path_resolver.py           # NEW: FilePathResolver for secure relative path resolution
-│   └── exceptions.py              # Exception hierarchy (add AsyncStateError, PathSecurityError, ManifestNotFoundError, ManifestParseError, ManifestValidationError)
-├── integrations/
-│   └── langchain.py               # LangChain StructuredTool: add ainvoke support
-└── py.typed
+├── __init__.py             # Public API exports
+├── core/                   # Framework-agnostic core
+│   ├── __init__.py
+│   ├── discovery.py        # Multi-source discovery + plugin manifest parsing
+│   ├── parser.py           # YAML frontmatter parsing
+│   ├── models.py           # SkillMetadata, Skill, SkillSource, PluginManifest
+│   ├── manager.py          # ⚠️ NEEDS UPDATE: _build_sources() method (User Story 3 gaps)
+│   ├── processors.py       # Content processors (argument substitution)
+│   └── exceptions.py       # Exception hierarchy (verify ConfigurationError exists)
+├── integrations/           # Framework-specific adapters
+│   └── langchain.py        # LangChain async integration
+└── py.typed                # PEP 561 marker
 
 tests/
-├── test_discovery.py              # Discovery: async tests + multi-source tests
-├── test_parser.py                 # Parser: plugin manifest parsing tests
-├── test_models.py                 # Models: new dataclasses (PluginManifest, SkillSource)
-├── test_processors.py             # Processors: file path injection tests
-├── test_path_resolver.py          # NEW: Path resolution + security validation tests
-├── test_manager.py                # Manager: async methods + multi-source orchestration
-├── test_langchain.py              # LangChain: ainvoke integration tests
+├── conftest.py             # Shared fixtures
+├── test_discovery.py       # Discovery tests (async + sync)
+├── test_parser.py          # Parser tests
+├── test_models.py          # Dataclass tests
+├── test_processors.py      # Processor tests
+├── test_manager.py         # ⚠️ NEEDS UPDATE: Add tests for User Story 3 scenarios 4-8
+├── test_langchain.py       # LangChain integration tests
 └── fixtures/
-    └── skills/                    # Test SKILL.md files
-        ├── valid-skill/
-        ├── nested-skill/           # NEW: nested directory structure
-        ├── plugin-skill/           # NEW: plugin with manifest
-        └── path-traversal-skill/   # NEW: malicious path test cases
+    └── skills/             # Test SKILL.md files
 
 examples/
-├── async_usage.py                 # NEW: Async discovery and invocation example
-├── multi_source.py                # NEW: Multiple skill sources example
-└── file_references.py             # NEW: Supporting files example
+├── basic_usage.py          # Sync and async patterns
+├── async_usage.py          # FastAPI integration
+├── langchain_agent.py      # LangChain sync/async
+├── multi_source.py         # Multi-source discovery
+├── file_references.py      # Secure file resolution
+└── skills/                 # Example skill directories
+
+pyproject.toml              # Package configuration (PEP 621)
+README.md                   # User-facing documentation
+CLAUDE.md                   # AI agent context (project instructions)
+.docs/                      # Comprehensive specs
+├── PRD_skillkit_LIBRARY.md
+├── MVP_VERTICAL_SLICE_PLAN.md
+├── TECH_SPECS.md
+└── SKILL format specification
 ```
 
-**Structure Decision**: Single Python library structure maintained from v0.1. New files added for async support (`path_resolver.py`), new test fixtures for v0.2 scenarios, and new examples demonstrating async and multi-source features.
+**Key Files Requiring Updates for Session 2025-11-16 Clarifications**:
+- `src/skillkit/core/manager.py` - `_build_sources()` method and `__init__()` docstring
+- `src/skillkit/core/exceptions.py` - Verify ConfigurationError implementation
+- `tests/test_manager.py` - Add parametrized tests for acceptance scenarios 4-8
 
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
-**Status**: No violations. All complexity is justified by requirements.
+**Status**: No constitutional violations requiring justification. All complexity is essential:
 
----
+1. **Async/Sync Dual APIs**: Required for backward compatibility (v0.1 sync users) + modern async adoption
+2. **Multi-Source Discovery**: Essential for plugin ecosystem and organizational separation of concerns
+3. **Tri-State Parameter Logic (None/""/ Path)**: Required for flexible initialization (defaults + opt-out + explicit)
+4. **Priority-Based Conflict Resolution**: Necessary for predictable behavior when skill names collide across sources
 
-## Post-Design Constitution Check
+All complexity aligns with v0.2 feature requirements and user scenarios 1-7.
 
-*Re-evaluated after Phase 1 design completion*
+## Implementation Gaps Summary (Session 2025-11-16)
 
-### Framework-Agnostic Core Principle
+**Current Status**: v0.2 implementation is ~85% complete. The following gaps in User Story 3 (acceptance scenarios 4-8) require remediation:
 
-**Status**: ✅ PASS (Confirmed)
+### Gap 1: Default Directory Discovery Not Implemented
+**Location**: `src/skillkit/core/manager.py:134-267` (`_build_sources()`)
+**Issue**: When `project_skill_dir=None` or `anthropic_config_dir=None`, no default directories are checked
+**Required**: Check for `./skills/` and `./.claude/skills/` when parameters are None/omitted
+**Impact**: Users cannot use zero-configuration initialization - must always provide explicit paths
 
-- Design maintains separation: `asyncio.to_thread()` in core (stdlib only)
-- `aiofiles` NOT used in core (deferred to optional dependency)
-- Plugin manifest parsing uses `json` module (stdlib)
-- All new entities (`SkillSource`, `PluginManifest`, `QualifiedSkillName`, `SkillPath`) are pure dataclasses
+### Gap 2: Empty String Not Treated as Opt-Out
+**Location**: `src/skillkit/core/manager.py:134-267` (`_build_sources()`)
+**Issue**: No distinction between `None` (should apply defaults) and `""` (should opt-out)
+**Required**: Implement tri-state logic: `None` → defaults, `""` → skip, `Path` → use explicit
+**Impact**: Users cannot explicitly disable default directory discovery
 
-### Progressive Disclosure Pattern
+### Gap 3: Explicit Invalid Paths Only Warn
+**Location**: `src/skillkit/core/manager.py:161-174, 177-192, 201-242, 245-257`
+**Issue**: Invalid explicit paths log WARNING and continue instead of raising ConfigurationError
+**Required**: Distinguish between default paths (warn + continue) vs explicit paths (error immediately)
+**Impact**: User mistakes in configuration are silently ignored, leading to confusion
 
-**Status**: ✅ PASS (Confirmed)
+### Gap 4: No INFO Logging When No Directories Found
+**Location**: `src/skillkit/core/manager.py:259-266` (end of `_build_sources()`)
+**Issue**: When no sources are configured, initialization is silent
+**Required**: Log INFO message "No skill directories found; initialized with empty skill list"
+**Impact**: Users don't know if initialization succeeded with zero skills vs failed silently
 
-- No changes to v0.1 lazy loading architecture
-- Async methods use same two-tier pattern (metadata → full skill)
-- `FilePathResolver` is stateless utility (zero memory overhead)
-- Plugin manifests loaded once per plugin (minimal overhead: ~400 bytes each)
+### Gap 5: Missing Tests for New Behavior
+**Location**: `tests/test_manager.py`
+**Issue**: No tests for acceptance scenarios 4-8 (default discovery, opt-out, error handling)
+**Required**: Add parametrized tests covering all initialization edge cases
+**Impact**: Changes risk introducing regressions without test safety net
 
-### Backward Compatibility
+### Remediation Roadmap
 
-**Status**: ✅ PASS (Confirmed)
+**Estimated Effort**: 4-6 hours (coding + testing)
 
-- All v0.1 method signatures unchanged
-- New parameters are optional with sensible defaults
-- v0.1 constructor argument `skill_dir` mapped to `project_skill_dir`
-- Async methods have distinct names (`adiscover`, `ainvoke_skill`) to avoid confusion
+1. **Step 1**: Update `_build_sources()` with default directory logic (2 hours)
+   - Add constants for default paths
+   - Implement tri-state parameter handling
+   - Add ConfigurationError for invalid explicit paths
+   - Add INFO logging when sources list is empty
 
-### Security-First Design
+2. **Step 2**: Verify ConfigurationError implementation (15 minutes)
+   - Check `src/skillkit/core/exceptions.py` has ConfigurationError
+   - Add if missing with appropriate error message formatting
 
-**Status**: ✅ PASS (Confirmed)
+3. **Step 3**: Update `__init__()` docstring (30 minutes)
+   - Document None vs "" behavior
+   - Add examples for all initialization patterns
 
-- `FilePathResolver.resolve_path()` implements OWASP path traversal prevention
-- Uses `Path.resolve()` + `is_relative_to()` pattern (Python 3.9+ safe)
-- All 7 attack vectors tested and documented
-- `PathSecurityError` raised on any validation failure with detailed context
-- **Plugin Manifest Security** (v0.2 additions based on technical review 2025-01-13):
-  - Path traversal prevention in `skills` field validation
-  - JSON bomb protection via 1MB file size limit
-  - Manifest version validation (supports "0.1" and "0.3")
-  - Basic field validation (no spaces in names, semver format, description length)
+4. **Step 4**: Add comprehensive tests (2 hours)
+   - Test None/omitted parameters trigger defaults
+   - Test empty string disables discovery
+   - Test ConfigurationError for invalid explicit paths
+   - Test INFO logging when no directories found
+   - Test mixed configurations
 
-### Testing Requirements
+5. **Step 5**: Update examples and documentation (1 hour)
+   - Add example for zero-configuration initialization
+   - Update quickstart.md with default behavior explanation
+   - Add troubleshooting section for common initialization issues
 
-**Status**: ✅ PASS (Confirmed)
-
-- Test plan maintains 70% coverage target
-- Added `pytest-asyncio` for async code paths
-- Security fuzzing tests for path traversal (100+ malicious patterns)
-- Integration tests for multi-source discovery and plugin manifests
-
-### API Design Quality
-
-**Status**: ✅ PASS (New Check)
-
-- All public methods have type hints (mypy strict mode compatible)
-- Error messages include context (skill name, path, source)
-- Async methods follow Python async best practices (not blocking, proper error propagation)
-- API contracts documented with examples, exceptions, and performance characteristics
-
-**Final Gates Result**: All checks PASS. Design approved for implementation (Phase 2).
+**Next Command**: `/speckit.tasks` to generate updated tasks.md with remediation tasks as high-priority items

@@ -3,9 +3,11 @@
 **Input**: Design documents from `/specs/001-v0-2-async-discovery-files/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
-**Tests**: Tests are OPTIONAL per project guidelines. This feature does NOT explicitly request TDD approach, so test tasks are excluded.
+**Tests**: Tests are OPTIONAL per project guidelines, but CRITICAL security and remediation tests are included for User Story 3 (default directory behavior gaps) and User Story 6 (path traversal prevention).
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+**⚠️ CRITICAL IMPLEMENTATION GAPS**: User Story 3 has identified gaps in default directory discovery behavior (acceptance scenarios 4-8). High-priority remediation tasks T076-T088 must be completed before v0.2 release.
 
 ## Format: `- [ ] [ID] [P?] [Story?] Description`
 
@@ -110,6 +112,46 @@
 **Checkpoint**: Multi-source discovery works with proper priority resolution for both sync and async
 
 **✅ VALIDATED**: Phase 5 implementation complete
+
+**⚠️ CRITICAL GAPS IDENTIFIED**: Session 2025-11-16 review identified missing implementation for acceptance scenarios 4-8:
+- Default directory discovery when parameters are None/omitted
+- Empty string `""` as explicit opt-out mechanism
+- ConfigurationError for explicitly provided nonexistent paths
+- INFO logging when no directories found
+- Tri-state parameter logic (None vs "" vs Path)
+
+**REMEDIATION REQUIRED**: Tasks T076-T088 below address these gaps before v0.2 release
+
+---
+
+## Phase 5.1: User Story 3 REMEDIATION - Default Directory Discovery (HIGH PRIORITY) 🚨
+
+**Purpose**: Fix identified gaps in SkillManager initialization behavior for default directory discovery
+
+**Impact**: Without these fixes, users cannot use zero-configuration initialization and edge cases cause confusion
+
+### Critical Remediation Implementation
+
+- [X] T076 [US3] Add DEFAULT_PROJECT_DIR and DEFAULT_ANTHROPIC_DIR constants to src/skillkit/core/manager.py module level (Path("./skills"), Path("./.claude/skills"))
+- [X] T077 [US3] Refactor SkillManager._build_sources() in src/skillkit/core/manager.py to implement tri-state logic for project_skill_dir parameter: None → check default exists, "" → skip, Path → validate exists
+- [X] T078 [US3] Refactor SkillManager._build_sources() in src/skillkit/core/manager.py to implement tri-state logic for anthropic_config_dir parameter: None → check default exists, "" → skip, Path → validate exists
+- [X] T079 [US3] Add explicit path validation to _build_sources() in src/skillkit/core/manager.py: raise ConfigurationError when user-provided non-None, non-empty, non-default path doesn't exist
+- [X] T080 [US3] Add empty sources INFO logging to _build_sources() in src/skillkit/core/manager.py: log "No skill directories found; initialized with empty skill list" when sources list is empty
+- [X] T081 [US3] Update SkillManager.__init__() docstring in src/skillkit/core/manager.py with detailed documentation of None vs "" vs Path behavior including all edge cases
+- [X] T082 [US3] Add docstring examples for common initialization patterns: zero-config, explicit paths, opt-out, mixed configurations
+
+### Critical Remediation Tests (WRITE FIRST - MUST FAIL)
+
+> **CRITICAL**: These tests address acceptance scenarios 4-8 from spec.md. Write tests FIRST, verify they FAIL, then implement remediation.
+
+- [X] T083 [P] [US3] Create test_scenario_4_default_project_discovered() in tests/test_manager.py: verify SkillManager() without params discovers ./skills/ when it exists
+- [X] T084 [P] [US3] Create test_scenario_5_both_defaults_priority() in tests/test_manager.py: verify SkillManager() scans both ./skills/ and ./.claude/skills/ with project priority when both exist and skill name conflicts
+- [X] T085 [P] [US3] Create test_scenario_6_no_defaults_empty_with_log() in tests/test_manager.py: verify SkillManager() initializes successfully with 0 skills and INFO log when neither default directory exists
+- [X] T086 [P] [US3] Create test_scenario_7_explicit_invalid_raises_error() in tests/test_manager.py: verify SkillManager(project_skill_dir="/nonexistent") raises ConfigurationError with parameter name and path in message
+- [X] T087 [P] [US3] Create test_scenario_8_empty_string_opt_out() in tests/test_manager.py: verify SkillManager(project_skill_dir="", anthropic_config_dir="", plugin_dirs=[]) initializes with 0 skills and INFO log
+- [X] T088 [P] [US3] Create test_mixed_valid_and_opt_out() in tests/test_manager.py: verify SkillManager(project_skill_dir="/valid/path", anthropic_config_dir="") only scans /valid/path
+
+**Checkpoint**: ✅ User Story 3 remediation complete - all acceptance scenarios 4-8 now pass (6/6 tests passing)
 
 ---
 
@@ -407,14 +449,48 @@ After completing all tasks, verify these success criteria from spec.md:
 
 ---
 
+## Task Summary
+
+**Total Tasks**: 88 (75 completed ✅ + 13 remediation tasks 🚨)
+
+**Tasks by Phase**:
+- Phase 1 (Setup): 3 tasks ✅ COMPLETE
+- Phase 2 (Foundational): 8 tasks ✅ COMPLETE
+- Phase 3 (US1 - Async Discovery): 7 tasks ✅ COMPLETE
+- Phase 4 (US2 - Async Invocation): 7 tasks ✅ COMPLETE
+- Phase 5 (US3 - Multi-Source): 8 tasks ✅ COMPLETE
+- **Phase 5.1 (US3 REMEDIATION)**: 13 tasks 🚨 HIGH PRIORITY
+- Phase 6 (US4 - Plugin Support): 10 tasks ✅ COMPLETE
+- Phase 7 (US5 - Nested Structures): 6 tasks ✅ COMPLETE
+- Phase 8 (US6 - File Resolution): 10 tasks ✅ COMPLETE
+- Phase 9 (US7 - Conflict Resolution): 5 tasks ✅ COMPLETE
+- Phase 10 (Polish): 11 tasks ✅ COMPLETE
+
+**Critical Path to v0.2 Release**:
+1. ✅ Phases 1-10 completed (75 tasks)
+2. 🚨 **Phase 5.1 Remediation REQUIRED** (13 tasks) - Blocks v0.2.0 release
+3. After remediation: Performance validation (SC-001, SC-002) + final release
+
+**Parallel Opportunities**:
+- Remediation tests T083-T088 can run in parallel (6 tests, different scenarios)
+- Implementation tasks T076-T082 are sequential (refactoring same method)
+
+**Estimated Remediation Time**: 4-6 hours
+- Implementation (T076-T082): 2-3 hours
+- Tests (T083-T088): 1.5-2 hours
+- Validation and edge case testing: 0.5-1 hour
+
+---
+
 ## Notes
 
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
-- Tests are OPTIONAL per project guidelines (not included)
+- Tests are OPTIONAL per project guidelines (critical security/remediation tests included)
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
 - All file paths use src/skillkit/ structure per plan.md project structure
 - Backward compatibility with v0.1 is mandatory (validated in Phase 10)
+- **🚨 CRITICAL**: Phase 5.1 remediation must complete before v0.2.0 release (identified in plan.md Session 2025-11-16)

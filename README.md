@@ -261,27 +261,6 @@ from pathlib import Path
 manager = SkillManager(project_skill_dir=Path("/custom/skills"))
 ```
 
-### Concurrent async invocations
-
-```python
-import asyncio
-
-async def process_multiple_files():
-    manager = SkillManager()
-    await manager.adiscover()
-
-    # Process 10+ files concurrently
-    results = await asyncio.gather(
-        manager.ainvoke_skill("csv-parser", "data1.csv"),
-        manager.ainvoke_skill("csv-parser", "data2.csv"),
-        manager.ainvoke_skill("json-parser", "data.json"),
-        # ... more concurrent invocations
-    )
-    return results
-
-asyncio.run(process_multiple_files())
-```
-
 ### Error handling
 
 ```python

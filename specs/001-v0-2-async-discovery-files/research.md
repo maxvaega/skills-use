@@ -1264,6 +1264,198 @@ class SkillManager:
 
 ---
 
-**Document Status**: Complete and ready for Phase 1 (Design)
-**Last Updated**: 2025-11-12
-**Reviewed By**: Research phase (pending design review)
+## Decision 7: SkillManager Initialization Behavior and Default Directory Discovery
+
+**Added**: 2025-11-16 (Session 2025-11-16 clarifications for User Story 3)
+
+### Context
+
+User Story 3 requires SkillManager to support flexible initialization patterns including:
+1. Zero-configuration usage with default directories (`./skills/`, `./.claude/skills/`)
+2. Explicit path configuration for custom locations
+3. Opt-out mechanism to disable default discovery
+4. Clear error reporting for invalid configurations
+
+The original v0.2 implementation did not address these initialization semantics, leading to gaps in acceptance scenarios 4-8.
+
+### Decision
+
+**Implement tri-state parameter logic with default directory discovery: `None` (apply defaults) | `""` (opt-out) | `Path` (use explicit)**
+
+### Rationale
+
+1. **Zero-Configuration Usability**: Users should be able to initialize `SkillManager()` without parameters and have skills discovered automatically if default directories exist. This is critical for getting started and reduces friction.
+
+2. **Pythonic Conventions**: Using `None` for "apply defaults" is idiomatic Python (matches function default parameters). Empty string `""` as opt-out is explicit and unambiguous.
+
+3. **Clear Error Handling**: Distinguishing between default paths (warn if missing) and explicit paths (error if missing) provides clear feedback:
+   - Default missing → INFO log, continue (user may not have skills yet)
+   - Explicit missing → ConfigurationError (user made a mistake)
+
+4. **Flexibility for Edge Cases**: Supports advanced use cases like:
+   - Disable project skills but enable anthropic: `SkillManager(project_skill_dir="", anthropic_config_dir="./.claude/skills")`
+   - Start with zero skills regardless of filesystem: `SkillManager(project_skill_dir="", anthropic_config_dir="", plugin_dirs=[])`
+
+5. **Consistency with Priorities**: Default directories respect the same priority system (./skills/ > ./.claude/skills/) as explicit multi-source configuration
+
+### Alternatives Considered
+
+| Alternative | Pros | Cons | Why Rejected |
+|-------------|------|------|--------------|
+| **Always require explicit paths** | Simple, no ambiguity | Poor UX, forces boilerplate | Contradicts zero-configuration goal; requires users to always specify paths even for standard layout |
+| **Use special sentinel value (e.g., `SKIP`)** | Explicit opt-out | Non-Pythonic, requires imports | Empty string `""` is clearer and doesn't require special constants |
+| **Separate `use_defaults` boolean parameter** | Clear intent | Extra parameter, complex interactions | Increases API surface; tri-state approach is more concise |
+| **Auto-detect only, no opt-out** | Simplest implementation | No way to disable defaults | Prevents advanced use cases where users need empty manager |
+
+### Implementation Specification
+
+#### Default Directory Constants
+
+```python
+# In manager.py module-level constants
+DEFAULT_PROJECT_DIR = Path("./skills")
+DEFAULT_ANTHROPIC_DIR = Path("./.claude/skills")
+```
+
+#### Tri-State Parameter Logic
+
+For `project_skill_dir` parameter:
+- `None` (or omitted) → Check if `DEFAULT_PROJECT_DIR` exists → Add to sources if exists
+- `""` (empty string) → Skip (explicit opt-out, no default fallback)
+- `Path` or `str` (non-empty) → Validate exists → Add to sources OR raise ConfigurationError
+
+Same logic applies to `anthropic_config_dir`.
+
+For `plugin_dirs` parameter:
+- `None` (or omitted) → No plugins configured (skip)
+- `[]` (empty list) → Explicit opt-out (skip)
+- `[Path, ...]` (non-empty list) → Validate each path → Add valid ones OR raise ConfigurationError for invalid
+
+#### Updated `_build_sources()` Method Logic
+
+```python
+def _build_sources(...) -> List[SkillSource]:
+    sources: List[SkillSource] = []
+
+    # Project skills - tri-state logic
+    if project_skill_dir is None:
+        # Apply default
+        if DEFAULT_PROJECT_DIR.exists():
+            sources.append(SkillSource(SourceType.PROJECT, DEFAULT_PROJECT_DIR.resolve(), PRIORITY_PROJECT))
+    elif project_skill_dir == "":
+        # Explicit opt-out - skip
+        pass
+    else:
+        # Explicit path - validate existence
+        path = Path(project_skill_dir)
+        if not path.exists() or not path.is_dir():
+            raise ConfigurationError(
+                f"Explicitly configured directory does not exist: project_skill_dir='{path}'"
+            )
+        sources.append(SkillSource(SourceType.PROJECT, path.resolve(), PRIORITY_PROJECT))
+
+    # Similar logic for anthropic_config_dir
+    # ... (same tri-state pattern)
+
+    # Plugin dirs - handle None vs []
+    if plugin_dirs is not None and plugin_dirs != []:
+        for plugin_dir in plugin_dirs:
+            path = Path(plugin_dir)
+            if not path.exists() or not path.is_dir():
+                raise ConfigurationError(
+                    f"Explicitly configured plugin directory does not exist: '{path}'"
+                )
+            # ... (rest of plugin logic)
+
+    # INFO logging when no sources configured
+    if not sources:
+        logger.info("No skill directories found; initialized with empty skill list")
+
+    return sources
+```
+
+#### Error Message Format
+
+ConfigurationError messages must include:
+1. The parameter name that failed
+2. The path that was provided
+3. What the issue is (doesn't exist, not a directory, etc.)
+
+Example:
+```
+ConfigurationError: Explicitly configured directory does not exist: project_skill_dir='/nonexistent/path'
+```
+
+### Test Coverage Requirements
+
+Must add tests for all acceptance scenarios 4-8:
+
+```python
+# Scenario 4: Default project directory exists
+def test_default_project_dir_discovered(tmp_path):
+    # Create ./skills/ in working dir
+    # Initialize SkillManager() without params
+    # Assert skills from ./skills/ are discovered
+
+# Scenario 5: Both defaults exist with conflict
+def test_both_defaults_priority_resolution(tmp_path):
+    # Create ./skills/ and ./.claude/skills/ with same skill name
+    # Initialize SkillManager() without params
+    # Assert ./skills/ version wins (priority 100 > 50)
+
+# Scenario 6: No defaults exist
+def test_no_defaults_exist_empty_manager(tmp_path, caplog):
+    # Ensure no ./skills/ or ./.claude/skills/ exist
+    # Initialize SkillManager() without params
+    # Assert 0 skills registered
+    # Assert INFO log "No skill directories found"
+
+# Scenario 7: Explicit invalid path raises error
+def test_explicit_invalid_path_raises_error():
+    # Initialize SkillManager(project_skill_dir="/nonexistent/path")
+    # Assert raises ConfigurationError with clear message
+
+# Scenario 8: Explicit opt-out with empty string
+def test_empty_string_opt_out(tmp_path):
+    # Create ./skills/ and ./.claude/skills/
+    # Initialize SkillManager(project_skill_dir="", anthropic_config_dir="", plugin_dirs=[])
+    # Assert 0 skills registered
+    # Assert NO INFO log (intentional, not error condition)
+```
+
+### Performance Expectations
+
+- **No performance impact**: Default directory checks are simple `Path.exists()` calls (~1ms total)
+- **Memory**: No change (still lazy loading)
+- **Initialization time**: <5ms additional overhead for default checks
+
+### Security Considerations
+
+1. **Path Traversal**: Default paths are relative to CWD, validated via `Path.resolve()` before use
+2. **Symlink Attacks**: Same validation as explicit paths (existing symlink handling in discovery.py)
+3. **Race Conditions**: Directory existence checks are inherently racy but acceptable (initialization-time only)
+
+### User Documentation Updates Required
+
+1. **quickstart.md**: Add zero-configuration example as primary pattern
+2. **README.md**: Update initialization examples to show default behavior first
+3. **manager.py docstring**: Document tri-state parameter semantics
+4. **examples/basic_usage.py**: Add example demonstrating default discovery
+
+### References
+
+- Python PEP 20 (Zen of Python): "Explicit is better than implicit" - supports tri-state approach
+- Python stdlib conventions: Use of `None` for default values (e.g., `open(mode=None)`)
+- User feedback: Request for zero-configuration initialization (User Story 3 motivation)
+
+### Backward Compatibility
+
+- **v0.1 Compatibility**: Fully preserved. Users with explicit paths see no change.
+- **Breaking Change**: None. New behavior only applies when parameters are omitted/None.
+- **Migration**: No migration required. Existing code works identically.
+
+---
+
+**Document Status**: Updated with Session 2025-11-16 clarifications
+**Last Updated**: 2025-11-16
+**Reviewed By**: Implementation review (gaps identified)

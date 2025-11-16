@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from skillkit.core.discovery import SkillDiscovery
-from skillkit.core.exceptions import SkillNotFoundError, SkillsUseError
+from skillkit.core.exceptions import ConfigurationError, SkillNotFoundError, SkillsUseError
 from skillkit.core.models import (
     InitMode,
     Skill,
@@ -20,6 +20,10 @@ from skillkit.core.models import (
 from skillkit.core.parser import SkillParser
 
 logger = logging.getLogger(__name__)
+
+# Default directory paths for zero-configuration initialization
+DEFAULT_PROJECT_DIR = Path("./skills")
+DEFAULT_ANTHROPIC_DIR = Path("./.claude/skills")
 
 # Priority constants for source resolution
 PRIORITY_PROJECT = 100
@@ -62,43 +66,94 @@ class SkillManager:
         plugin_dirs: List[Path | str] | None = None,
         additional_search_paths: List[Path | str] | None = None,
     ) -> None:
-        """Initialize skill manager with multiple source support.
+        """Initialize skill manager with flexible multi-source configuration.
 
         Args:
             skill_dir: (Deprecated) Legacy v0.1 parameter, mapped to project_skill_dir
-            project_skill_dir: Path to project skills directory (priority: 100)
-            anthropic_config_dir: Path to Anthropic config directory (priority: 50)
+
+            project_skill_dir: Project skills directory (priority: 100)
+                - None (default): Check if ./skills/ exists → add if exists (zero-config)
+                - "" (empty string): Explicit opt-out → skip (no default fallback)
+                - Path/str: Validate exists → add OR raise ConfigurationError
+
+            anthropic_config_dir: Anthropic config directory (priority: 50)
+                - None (default): Check if ./.claude/skills/ exists → add if exists (zero-config)
+                - "" (empty string): Explicit opt-out → skip (no default fallback)
+                - Path/str: Validate exists → add OR raise ConfigurationError
+
             plugin_dirs: List of plugin root directories (priority: 10 each)
+                - None (default): No plugins configured (skip)
+                - [] (empty list): Explicit opt-out (skip)
+                - [Path, ...]: Validate each exists → add OR raise ConfigurationError
+
             additional_search_paths: Additional skill directories (priority: 5, 4, 3, ...)
+                - None (default): No additional paths (skip)
+                - [Path, ...]: Validate each exists → add OR raise ConfigurationError
+
+        Raises:
+            ConfigurationError: When explicitly provided directory path doesn't exist
 
         Priority Resolution:
             When skills with the same name exist in multiple sources, the source with
             the highest priority wins. Lower-priority versions remain accessible via
             fully qualified names (e.g., "plugin-name:skill-name").
 
+        Default Directory Behavior:
+            When parameters are None/omitted, SkillManager checks for default directories:
+            - ./skills/ (project skills)
+            - ./.claude/skills/ (Anthropic config)
+            If both exist, BOTH are scanned with project priority (100) > anthropic (50).
+            If neither exists, manager initializes with empty skill list (no error).
+
+        Explicit Opt-Out:
+            Use empty string "" or empty list [] to explicitly disable discovery for a source:
+            - SkillManager(project_skill_dir="") → Skip project skills even if ./skills/ exists
+            - SkillManager(plugin_dirs=[]) → Skip plugin discovery
+
         Duplicate Plugin Names:
             If multiple plugins have the same name, they will be automatically
             disambiguated with numeric suffixes (e.g., "my-plugin-2", "my-plugin-3").
 
-        Example:
-            >>> # v0.1 compatibility (deprecated)
-            >>> manager = SkillManager(skill_dir="./skills")
+        Examples:
+            >>> # Zero-configuration initialization (uses defaults if they exist)
+            >>> manager = SkillManager()  # Auto-discovers ./skills/ and ./.claude/skills/
+            >>> manager.discover()
 
-            >>> # v0.2 multi-source configuration with priority order
+            >>> # Explicit configuration (all paths must exist)
+            >>> manager = SkillManager(
+            ...     project_skill_dir="./my-skills",  # Must exist or raises ConfigurationError
+            ...     anthropic_config_dir="./.claude/skills",
+            ... )
+
+            >>> # Opt-out of defaults (start with zero skills)
+            >>> manager = SkillManager(
+            ...     project_skill_dir="",       # Disable project skills
+            ...     anthropic_config_dir="",    # Disable anthropic skills
+            ...     plugin_dirs=[],             # Disable plugins
+            ... )  # Initializes with empty skill list, no INFO log
+
+            >>> # Mixed configuration (explicit path + opt-out)
+            >>> manager = SkillManager(
+            ...     project_skill_dir="./custom-skills",  # Use this instead of ./skills/
+            ...     anthropic_config_dir="",              # Disable anthropic discovery
+            ... )
+
+            >>> # Full multi-source configuration
             >>> manager = SkillManager(
             ...     project_skill_dir="./skills",           # Highest priority (100)
             ...     anthropic_config_dir="./.claude/skills", # Medium priority (50)
-            ...     plugin_dirs=[                             # Plugin priority (10)
-            ...         "./plugins/data-tools",
-            ...         "./plugins/web-tools"
-            ...     ],
-            ...     additional_search_paths=["./shared"]     # Lowest priority (5)
+            ...     plugin_dirs=["./plugins/data-tools"],    # Plugin priority (10)
+            ...     additional_search_paths=["./shared"],    # Lowest priority (5)
             ... )
 
+            >>> # Priority resolution example
             >>> # If "csv-parser" exists in both project and plugin:
             >>> manager.discover()
-            >>> manager.get_skill("csv-parser")           # Gets project version (priority 100)
-            >>> manager.get_skill("data-tools:csv-parser") # Gets plugin version explicitly
+            >>> manager.get_skill("csv-parser")            # Gets project version (priority 100)
+            >>> manager.get_skill("data-tools:csv-parser")  # Gets plugin version explicitly
+
+            >>> # v0.1 compatibility (deprecated)
+            >>> manager = SkillManager(skill_dir="./skills")  # Logs deprecation warning
         """
         # v0.1 compatibility: map skill_dir to project_skill_dir
         if skill_dir is not None and project_skill_dir is None:
@@ -138,60 +193,107 @@ class SkillManager:
         plugin_dirs: List[Path | str] | None,
         additional_search_paths: List[Path | str] | None,
     ) -> List[SkillSource]:
-        """Build priority-ordered list of skill sources.
+        """Build priority-ordered list of skill sources with tri-state parameter logic.
 
         Args:
             project_skill_dir: Project skills directory (priority: 100)
+                - None/omitted: Check if DEFAULT_PROJECT_DIR (./skills/) exists → add if exists
+                - "" (empty string): Explicit opt-out → skip (no default fallback)
+                - Path/str: Validate exists → add OR raise ConfigurationError
             anthropic_config_dir: Anthropic config directory (priority: 50)
+                - None/omitted: Check if DEFAULT_ANTHROPIC_DIR (./.claude/skills/) exists → add if exists
+                - "" (empty string): Explicit opt-out → skip (no default fallback)
+                - Path/str: Validate exists → add OR raise ConfigurationError
             plugin_dirs: Plugin directories (priority: 10 each)
+                - None/omitted: No plugins configured (skip)
+                - []: Explicit opt-out (skip)
+                - [Path, ...]: Validate each → add valid OR raise ConfigurationError
             additional_search_paths: Additional skill directories (priority: 5, 4, 3, ...)
 
         Returns:
             List of SkillSource objects sorted by priority (descending)
 
+        Raises:
+            ConfigurationError: When explicitly provided non-empty path doesn't exist
+
         Notes:
             - Sources are sorted by priority: PROJECT (100) > ANTHROPIC (50) > PLUGIN (10) > CUSTOM (5-)
             - Plugin manifests ARE parsed here to extract plugin names
             - Duplicate plugin names are automatically disambiguated with numeric suffixes
-            - Non-existent directories are filtered out with warnings
+            - Default directory paths (./skills/, ./.claude/skills/) do NOT raise errors when missing
+            - Explicitly provided paths MUST exist or ConfigurationError is raised
         """
         sources: List[SkillSource] = []
 
-        # Project skills (highest priority)
-        if project_skill_dir is not None:
-            project_path = (
-                Path(project_skill_dir) if isinstance(project_skill_dir, str) else project_skill_dir
-            )
-            if project_path.exists() and project_path.is_dir():
+        # Project skills (highest priority) - TRI-STATE LOGIC
+        if project_skill_dir is None:
+            # None/omitted: Apply default directory discovery
+            if DEFAULT_PROJECT_DIR.exists() and DEFAULT_PROJECT_DIR.is_dir():
                 sources.append(
                     SkillSource(
                         source_type=SourceType.PROJECT,
-                        directory=project_path.resolve(),
+                        directory=DEFAULT_PROJECT_DIR.resolve(),
                         priority=PRIORITY_PROJECT,
                     )
                 )
-            else:
-                logger.warning(f"Project skill directory does not exist: {project_path}")
+        elif project_skill_dir == "":
+            # Empty string: Explicit opt-out (skip)
+            pass
+        else:
+            # Explicit path: Validate existence
+            project_path = (
+                Path(project_skill_dir) if isinstance(project_skill_dir, str) else project_skill_dir
+            )
+            if not project_path.exists() or not project_path.is_dir():
+                raise ConfigurationError(
+                    f"Explicitly configured directory does not exist: project_skill_dir='{project_path}'",
+                    parameter_name="project_skill_dir",
+                    invalid_path=str(project_path),
+                )
+            sources.append(
+                SkillSource(
+                    source_type=SourceType.PROJECT,
+                    directory=project_path.resolve(),
+                    priority=PRIORITY_PROJECT,
+                )
+            )
 
-        # Anthropic config skills
-        if anthropic_config_dir is not None:
+        # Anthropic config skills - TRI-STATE LOGIC
+        if anthropic_config_dir is None:
+            # None/omitted: Apply default directory discovery
+            if DEFAULT_ANTHROPIC_DIR.exists() and DEFAULT_ANTHROPIC_DIR.is_dir():
+                sources.append(
+                    SkillSource(
+                        source_type=SourceType.ANTHROPIC,
+                        directory=DEFAULT_ANTHROPIC_DIR.resolve(),
+                        priority=PRIORITY_ANTHROPIC,
+                    )
+                )
+        elif anthropic_config_dir == "":
+            # Empty string: Explicit opt-out (skip)
+            pass
+        else:
+            # Explicit path: Validate existence
             anthropic_path = (
                 Path(anthropic_config_dir)
                 if isinstance(anthropic_config_dir, str)
                 else anthropic_config_dir
             )
-            if anthropic_path.exists() and anthropic_path.is_dir():
-                sources.append(
-                    SkillSource(
-                        source_type=SourceType.ANTHROPIC,
-                        directory=anthropic_path.resolve(),
-                        priority=PRIORITY_ANTHROPIC,
-                    )
+            if not anthropic_path.exists() or not anthropic_path.is_dir():
+                raise ConfigurationError(
+                    f"Explicitly configured directory does not exist: anthropic_config_dir='{anthropic_path}'",
+                    parameter_name="anthropic_config_dir",
+                    invalid_path=str(anthropic_path),
                 )
-            else:
-                logger.warning(f"Anthropic config directory does not exist: {anthropic_path}")
+            sources.append(
+                SkillSource(
+                    source_type=SourceType.ANTHROPIC,
+                    directory=anthropic_path.resolve(),
+                    priority=PRIORITY_ANTHROPIC,
+                )
+            )
 
-        # Plugin skills (with duplicate name detection)
+        # Plugin skills (with duplicate name detection and validation)
         if plugin_dirs:
             from skillkit.core.discovery import discover_plugin_manifest
 
@@ -200,64 +302,80 @@ class SkillManager:
 
             for plugin_dir in plugin_dirs:
                 plugin_path = Path(plugin_dir) if isinstance(plugin_dir, str) else plugin_dir
-                if plugin_path.exists() and plugin_path.is_dir():
-                    # T038: Parse plugin manifest
-                    manifest = discover_plugin_manifest(plugin_path.resolve())
 
-                    if manifest:
-                        plugin_name = manifest.name
-                    else:
-                        # No manifest found or parsing failed - use directory name as fallback
-                        plugin_name = plugin_path.name
-                        logger.warning(
-                            f"No valid plugin manifest found at {plugin_path}. "
-                            f"Using directory name '{plugin_name}' as plugin identifier."
-                        )
-
-                    # T062: Check for duplicate plugin names
-                    if plugin_name in plugin_name_counts:
-                        # Duplicate detected - disambiguate with suffix
-                        plugin_name_counts[plugin_name] += 1
-                        disambiguated_name = f"{plugin_name}-{plugin_name_counts[plugin_name]}"
-                        logger.warning(
-                            f"Duplicate plugin name '{plugin_name}' detected. "
-                            f"Disambiguating as '{disambiguated_name}' for plugin at {plugin_path}. "
-                            f"Consider renaming the plugin to avoid conflicts."
-                        )
-                        plugin_name = disambiguated_name
-                    else:
-                        plugin_name_counts[plugin_name] = 1
-
-                    # Create plugin source with disambiguated name
-                    sources.append(
-                        SkillSource(
-                            source_type=SourceType.PLUGIN,
-                            directory=plugin_path.resolve(),
-                            priority=PRIORITY_PLUGIN,
-                            plugin_name=plugin_name,
-                            plugin_manifest=manifest,
-                        )
+                # Validate explicit plugin path exists
+                if not plugin_path.exists() or not plugin_path.is_dir():
+                    raise ConfigurationError(
+                        f"Explicitly configured plugin directory does not exist: '{plugin_path}'",
+                        parameter_name="plugin_dirs",
+                        invalid_path=str(plugin_path),
                     )
-                else:
-                    logger.warning(f"Plugin directory does not exist: {plugin_path}")
 
-        # Additional search paths (lowest priority)
+                # T038: Parse plugin manifest
+                manifest = discover_plugin_manifest(plugin_path.resolve())
+
+                if manifest:
+                    plugin_name = manifest.name
+                else:
+                    # No manifest found or parsing failed - use directory name as fallback
+                    plugin_name = plugin_path.name
+                    logger.warning(
+                        f"No valid plugin manifest found at {plugin_path}. "
+                        f"Using directory name '{plugin_name}' as plugin identifier."
+                    )
+
+                # T062: Check for duplicate plugin names
+                if plugin_name in plugin_name_counts:
+                    # Duplicate detected - disambiguate with suffix
+                    plugin_name_counts[plugin_name] += 1
+                    disambiguated_name = f"{plugin_name}-{plugin_name_counts[plugin_name]}"
+                    logger.warning(
+                        f"Duplicate plugin name '{plugin_name}' detected. "
+                        f"Disambiguating as '{disambiguated_name}' for plugin at {plugin_path}. "
+                        f"Consider renaming the plugin to avoid conflicts."
+                    )
+                    plugin_name = disambiguated_name
+                else:
+                    plugin_name_counts[plugin_name] = 1
+
+                # Create plugin source with disambiguated name
+                sources.append(
+                    SkillSource(
+                        source_type=SourceType.PLUGIN,
+                        directory=plugin_path.resolve(),
+                        priority=PRIORITY_PLUGIN,
+                        plugin_name=plugin_name,
+                        plugin_manifest=manifest,
+                    )
+                )
+
+        # Additional search paths (lowest priority, with validation)
         if additional_search_paths:
             for i, search_path in enumerate(additional_search_paths):
                 custom_path = Path(search_path) if isinstance(search_path, str) else search_path
-                if custom_path.exists() and custom_path.is_dir():
-                    sources.append(
-                        SkillSource(
-                            source_type=SourceType.CUSTOM,
-                            directory=custom_path.resolve(),
-                            priority=PRIORITY_CUSTOM_BASE - i,  # Decrement for each additional path
-                        )
+
+                # Validate explicit custom path exists
+                if not custom_path.exists() or not custom_path.is_dir():
+                    raise ConfigurationError(
+                        f"Explicitly configured custom directory does not exist: '{custom_path}'",
+                        parameter_name="additional_search_paths",
+                        invalid_path=str(custom_path),
                     )
-                else:
-                    logger.warning(f"Custom skill directory does not exist: {custom_path}")
+
+                sources.append(
+                    SkillSource(
+                        source_type=SourceType.CUSTOM,
+                        directory=custom_path.resolve(),
+                        priority=PRIORITY_CUSTOM_BASE - i,  # Decrement for each additional path
+                    )
+                )
 
         # Sort by priority (descending)
         sources.sort(key=lambda s: s.priority, reverse=True)
+
+        # INFO logging when no sources configured (not an error, just informational)
+        if not sources:
+            logger.info("No skill directories found; initialized with empty skill list")
 
         logger.debug(
             f"Built {len(sources)} skill sources with priorities: "

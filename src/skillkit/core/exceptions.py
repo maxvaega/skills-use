@@ -121,6 +121,44 @@ class PathSecurityError(SkillSecurityError):
         self.base_directory = base_directory
 
 
+class ConfigurationError(SkillsUseError):
+    """Raised when SkillManager initialization configuration is invalid.
+
+    This exception is raised when explicitly provided directory paths
+    do not exist or are not valid directories. Note that default
+    directory paths (./skills/, ./.claude/skills/) do NOT raise this
+    error when missing - they are silently skipped.
+
+    Attributes:
+        parameter_name: Name of the parameter that failed validation
+        invalid_path: The path that was provided but doesn't exist
+
+    Example:
+        # This raises ConfigurationError (explicit path doesn't exist)
+        manager = SkillManager(project_skill_dir="/bad/path")
+
+        # This does NOT raise error (default path missing is OK)
+        manager = SkillManager()  # No error even if ./skills/ missing
+    """
+
+    def __init__(
+        self,
+        message: str,
+        parameter_name: str | None = None,
+        invalid_path: str | None = None,
+    ) -> None:
+        """Initialize ConfigurationError with configuration details.
+
+        Args:
+            message: Error description
+            parameter_name: The parameter that failed validation
+            invalid_path: The path that was invalid
+        """
+        super().__init__(message)
+        self.parameter_name = parameter_name
+        self.invalid_path = invalid_path
+
+
 class AsyncStateError(SkillsUseError):
     """Raised when async/sync methods are mixed incorrectly.
 
