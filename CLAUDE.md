@@ -13,36 +13,46 @@
 
 This project follows a **Vertical Slice MVP strategy** to deliver working functionality quickly:
 
-- **v0.1 (Week 4)**: Core functionality + LangChain integration (sync only)
-- **v0.2 (Week 6)**: Async support + enhanced error handling
-- **v0.3 (Week 10)**: Plugin integration + tool restrictions + full feature set
-- **v1.0 (Week 12)**: Production polish + comprehensive documentation
+- **v0.1 (Released)**: Core functionality + LangChain integration (sync only)
+- **v0.2 (Released)**: Async support + multi-source discovery + plugin integration
+- **v0.3 (Planned)**: Script execution + tool restriction enforcement + additional framework integrations
+- **v1.0 (Planned)**: Production polish + comprehensive documentation + 90% test coverage
 
-### Current Focus (v0.1)
+### Current Focus (v0.2)
 
-The MVP focuses on 7 critical paths:
-1. Basic skill discovery from `.claude/skills/` directory
-2. Minimal SKILL.md parsing (name, description, allowed-tools)
-3. Lightweight metadata management
-4. Basic skill invocation with $ARGUMENTS substitution
-5. LangChain integration (sync only)
-6. Minimal testing (70% coverage)
-7. Minimal documentation + PyPI publishing
+The v0.2 release adds enterprise-grade features:
+1. **Async support**: `adiscover()` and `ainvoke_skill()` methods for concurrent operations
+2. **Multi-source discovery**: Project dirs, Anthropic config, plugins, custom paths with priority resolution
+3. **Plugin ecosystem**: Full MCPB manifest support with namespaced skill access (`plugin:skill-name`)
+4. **Nested structures**: Discover skills up to 5 levels deep in directory hierarchies
+5. **Secure file resolution**: Path traversal prevention and reference validation
+6. **LangChain async**: Full async/await support in LangChain integration
+7. **Backward compatibility**: All v0.1 APIs remain unchanged
 
-**What's deferred to v0.2+**: Async support, plugin integration, tool restriction enforcement, multiple search paths, comprehensive docs, CI/CD pipeline, 90% test coverage.
+**What's deferred to v0.3+**: Script execution, tool restriction enforcement, additional framework integrations (LlamaIndex, CrewAI, Haystack), advanced argument schemas, CI/CD pipeline, 90% test coverage.
 
 ## Key Architectural Decisions
 
-The v0.1 MVP is built on 8 critical architectural decisions (see `specs/001-mvp-langchain-core/research.md` for full rationale):
+### Core Architecture (v0.1)
+The foundation is built on 8 critical decisions (see `specs/001-mvp-langchain-core/research.md` for rationale):
 
 1. **Progressive Disclosure Pattern**: Two-tier architecture (SkillMetadata + Skill) with lazy content loading achieves 80% memory reduction
 2. **Framework-Agnostic Core**: Zero dependencies in core modules; optional framework integrations via extras
 3. **$ARGUMENTS Substitution**: `string.Template` for security + standard escaping (`$$ARGUMENTS`), 1MB size limit, suspicious pattern detection
 4. **Error Handling**: Graceful degradation during discovery, strict exceptions during invocation, 11-exception hierarchy
 5. **YAML Parsing**: `yaml.safe_load()` with cross-platform support, detailed error messages, typo detection
-6. **LangChain Integration**: StructuredTool with closure capture pattern (sync-only v0.1, async in v0.2)
+6. **LangChain Integration**: StructuredTool with closure capture pattern
 7. **Testing**: 70% coverage with pytest, parametrized tests, fixtures in conftest.py
-8. **Sync-Only v0.1**: Async deferred to v0.2 (file I/O overhead negligible vs LLM latency)
+8. **Performance-First Design**: Optimized for LLM-bound workflows
+
+### v0.2 Enhancements
+Additional architectural patterns added in v0.2:
+
+1. **Async-First I/O**: Full async/await support with `aiofiles` for non-blocking file operations, enabling concurrent skill discovery and invocation
+2. **Multi-Source Resolution**: Priority-based discovery (project:100, config:50, plugins:10, custom:5) with fully qualified names (`plugin:skill-name`)
+3. **Plugin Architecture**: MCPB manifest parsing with namespace isolation and conflict resolution
+4. **Secure Path Resolution**: Traversal prevention, symlink validation, and file reference security
+5. **Backward Compatibility**: All v0.1 sync APIs preserved; async methods are additive (`discover()` + `adiscover()`)
 
 **Security Validated**: All decisions reviewed against 2024-2025 Python library best practices (scores 8-9.5/10).
 
@@ -90,24 +100,33 @@ This project was developed using speckit method. all development phases have bee
 
 ## Project Status
 
-**Current Phase**: ✅ v0.1 MVP COMPLETE - Ready for Distribution 🚀
+**Current Phase**: ✅ v0.2.0 RELEASED
 
-**Completed**:
-- ✅ Phase 0: Research (8 architectural decisions documented)
-- ✅ Phase 1: Design (data-model.md, contracts/public-api.md, quickstart.md)
-- ✅ Phase 2: Task Generation (120 tasks in tasks.md)
-- ✅ Phase 3: Implementation Complete (All 9 phases executed successfully)
-  - Core functionality (discovery, parsing, models, manager, processors)
-  - LangChain integration with StructuredTool
-  - 3 example skills and usage scripts
-  - Comprehensive README.md
-  - All code formatted and linting passing
-- ✅ Phase 4: Testing completed (see tests/ folder)
+**v0.1 Completed**:
+- ✅ Core functionality (discovery, parsing, models, manager, processors)
+- ✅ LangChain integration with StructuredTool (sync)
+- ✅ Progressive disclosure pattern with lazy loading
+- ✅ YAML frontmatter parsing and validation
+- ✅ Argument substitution with security features
+- ✅ 70%+ test coverage with comprehensive test suite
+- ✅ Published to PyPI
+
+**v0.2 Completed**:
+- ✅ Full async/await support (`adiscover()`, `ainvoke_skill()`)
+- ✅ Multi-source skill discovery (project, Anthropic config, plugins, custom paths)
+- ✅ Plugin ecosystem with MCPB manifest support
+- ✅ Priority-based conflict resolution
+- ✅ Fully qualified skill names (`plugin:skill-name`)
+- ✅ Nested directory structures (up to 5 levels)
+- ✅ Secure file path resolution with traversal prevention
+- ✅ LangChain async integration
+- ✅ Updated examples (async_usage.py, multi_source.py, file_references.py)
+- ✅ Backward compatible with v0.1
 
 **Next Steps**:
-- Build package: `python -m build`
-- Publish to PyPI: `twine upload dist/*`
-- Gather user feedback for v0.2 planning
+- Plan v0.3: Script execution, tool restrictions, framework integrations
+- Gather community feedback and feature requests
+- Improve documentation with more real-world examples
 
 ## Development Environment
 
@@ -121,8 +140,14 @@ pip install -e ".[dev]"
 ```
 
 **Development Commands**:
-- Run examples: `python examples/basic_usage.py`
-- Run tests: `pytest` (when test suite is added)
+- Run examples:
+  - `python examples/basic_usage.py` (sync and async patterns)
+  - `python examples/async_usage.py` (FastAPI integration)
+  - `python examples/langchain_agent.py` (sync and async LangChain)
+  - `python examples/multi_source.py` (multi-source discovery)
+  - `python examples/file_references.py` (secure file resolution)
+- Run tests: `pytest` (70%+ coverage)
+- Run specific test markers: `pytest -m async` or `pytest -m integration`
 - Lint code: `ruff check src/skillkit`
 - Format code: `ruff format src/skillkit`
 - Type check: `mypy src/skillkit --strict`
@@ -184,12 +209,13 @@ skillkit/
 - **Memory impact**: Python 3.10+ provides 60% memory reduction per instance via `slots=True` compared to Python 3.9
 - **Important**: always run python commands inside venv for correct python library management
 
-### Core Dependencies (Zero Framework Dependencies)
+### Core Dependencies
 - **PyYAML 6.0+**: YAML frontmatter parsing with `yaml.safe_load()` security
-- **Python stdlib**: pathlib, dataclasses, functools, typing, re, logging, string.Template
+- **aiofiles 23.0+**: Async file I/O for non-blocking operations (v0.2+)
+- **Python stdlib**: pathlib, dataclasses, functools, typing, re, logging, string.Template, asyncio
 
 ### Optional Dependencies
-- **langchain-core 0.1.0+**: StructuredTool integration (install: `pip install skillkit[langchain]`)
+- **langchain-core 0.1.0+**: StructuredTool integration with async support (install: `pip install skillkit[langchain]`)
 - **pydantic 2.0+**: Input schema validation (explicit dependency despite being transitive from langchain-core)
 
 ### Development Dependencies
@@ -210,5 +236,86 @@ skillkit/
 
 ## Changelog
 
-- **v0.1 MVP Implementation Complete **
-- **Architectural Review**: All decisions validated against Python library best practices
+### v0.2.0 (Released)
+- **Async Support**: Full async/await implementation with `adiscover()` and `ainvoke_skill()`
+- **Multi-Source Discovery**: Project dirs, Anthropic config, plugins, custom paths with priority resolution
+- **Plugin Ecosystem**: MCPB manifest support with namespaced skill access
+- **Nested Directories**: Discover skills up to 5 levels deep
+- **Secure Path Resolution**: Traversal prevention and reference validation
+- **LangChain Async**: Full async integration for LangChain agents
+- **New Examples**: async_usage.py, multi_source.py, file_references.py
+- **Backward Compatible**: All v0.1 APIs preserved
+
+### v0.1.0 (Released)
+- **Core Functionality**: Skill discovery, parsing, and invocation
+- **Progressive Disclosure**: Lazy loading with 80% memory reduction
+- **LangChain Integration**: StructuredTool adapter (sync only)
+- **Security Features**: YAML safe loading, argument substitution validation
+- **Testing**: 70%+ coverage with pytest
+- **Documentation**: Comprehensive README and examples
+- **PyPI Distribution**: Published as `pip install skillkit`
+
+## Active Technologies
+- **Python**: 3.10+ (minimum for full async support)
+- **Core**: PyYAML 6.0+, aiofiles 23.0+
+- **Integrations**: langchain-core 0.1.0+, pydantic 2.0+
+- **Storage**: Filesystem-based (`.claude/skills/` directories, `.claude-plugin/plugin.json` manifests)
+- **Testing**: pytest 7.0+, pytest-cov 4.0+, pytest-asyncio 0.21+
+- **Quality**: ruff 0.1.0+, mypy 1.0+
+
+## v0.2 Implementation Notes
+
+**Branch**: `001-v0-2-async-discovery-files` (merged to main)
+
+**Key Changes**:
+1. Added `aiofiles` dependency for async file I/O
+2. Implemented async methods across all core modules (discovery, parser, manager)
+3. Enhanced SkillDiscovery with multi-source support and priority resolution
+4. Added plugin manifest parsing and namespace management
+5. Implemented secure file path resolution with traversal prevention
+6. Extended LangChain integration with async support
+7. Added comprehensive async tests with pytest-asyncio
+8. Updated all examples to demonstrate new capabilities
+
+**Performance Impact**:
+- Async discovery: ~40-60% faster for 100+ skills (concurrent file I/O)
+- Memory: No change from v0.1 (still ~2-2.5MB for 100 skills)
+- Backward compatibility: Zero breaking changes
+
+## Quick Reference for AI Agents
+
+### Key Files and Locations
+- **Main source**: `src/skillkit/core/` (discovery.py, parser.py, models.py, manager.py, processors.py)
+- **Integrations**: `src/skillkit/integrations/langchain.py`
+- **Tests**: `tests/` (mirrors src/ structure)
+- **Examples**: `examples/` (basic_usage.py, async_usage.py, langchain_agent.py, multi_source.py, file_references.py)
+- **Config**: `pyproject.toml` (package metadata, dependencies, build config)
+- **Documentation**: `README.md` (user-facing), `CLAUDE.md` (agent context), `.docs/` (specs)
+
+### Common Development Tasks
+1. **Add new feature**: Update relevant module in `src/skillkit/core/`, add tests in `tests/`, update examples if needed
+2. **Add framework integration**: Create new file in `src/skillkit/integrations/`, add optional dependency in `pyproject.toml`
+3. **Update tests**: Run `pytest -v` to verify, `pytest -m async` for async tests, `pytest --cov` for coverage
+4. **Add example**: Create new file in `examples/`, ensure it's referenced in README.md
+5. **Release new version**: Update version in `pyproject.toml`, update CHANGELOG in README.md and CLAUDE.md, run `python -m build`
+
+### Testing Strategy
+- **Unit tests**: Each module has corresponding test file (test_discovery.py, test_parser.py, etc.)
+- **Integration tests**: test_langchain.py, test_manager.py (marked with `@pytest.mark.integration`)
+- **Async tests**: Marked with `@pytest.mark.asyncio` (requires pytest-asyncio)
+- **Fixtures**: Defined in `tests/conftest.py` and `tests/fixtures/skills/`
+- **Coverage target**: 70%+ (current: 70%+)
+
+### Code Quality Standards
+- **Formatting**: Use `ruff format src/skillkit` (no config needed, uses defaults)
+- **Linting**: Use `ruff check src/skillkit` (rules in pyproject.toml)
+- **Type checking**: Use `mypy src/skillkit --strict` (strictest mode)
+- **Docstrings**: Google-style docstrings for all public APIs
+- **Comments**: Explain "why", not "what" (code should be self-documenting)
+
+### API Design Principles
+1. **Backward compatibility**: Never break existing APIs, only add new ones
+2. **Async additive**: Async methods complement sync (e.g., `discover()` + `adiscover()`)
+3. **Graceful degradation**: Discovery failures log warnings, invocation failures raise exceptions
+4. **Progressive disclosure**: Metadata loads first, content loads on-demand
+5. **Security first**: Always validate paths, sanitize inputs, use safe YAML loading

@@ -24,7 +24,7 @@ pytest tests/test_manager.py -v
 
 ## Test Organization
 
-### Core Functionality Tests (Phase 3) ✅ **COMPLETE**
+### Core Functionality Tests
 
 **test_discovery.py** - Skill discovery and filesystem scanning (7 tests passing)
 - Validates discovery from multiple sources
@@ -56,7 +56,81 @@ pytest tests/test_manager.py -v
 - Tests graceful degradation with mixed valid/invalid skills
 - Verifies caching behavior and content load errors
 
-### Integration Tests (Phase 4) ✅ **COMPLETE**
+### Async Functionality Tests (v0.2)
+
+**test_async_discovery.py** - Async skill discovery functionality
+- Tests async file I/O wrappers (_read_skill_file_async)
+- Validates async discovery methods (ascan_directory, afind_skill_files)
+- Tests SkillManager async discovery (adiscover)
+- Verifies async/sync state management and AsyncStateError validation
+- Tests concurrent async discovery and event loop responsiveness
+- Validates async vs sync discovery equivalence
+
+**test_async_invocation.py** - Async skill invocation capabilities
+- Tests Skill.ainvoke() async method
+- Validates SkillManager.ainvoke_skill() async method
+- Tests concurrent async invocations (10+ parallel)
+- Verifies async/sync state management and error handling
+- Tests async invocation performance (minimal overhead <5ms)
+- Validates edge cases (long arguments, special characters, Unicode)
+- Stress tests with 50 concurrent invocations
+
+**test_langchain_async.py** - Async LangChain integration
+- Tests async LangChain tool creation with ainvoke()
+- Validates concurrent tool invocations (10+ parallel)
+- Tests dual-mode support (sync and async invocation)
+- Verifies closure capture pattern for async tools
+- Tests state management (AsyncStateError after sync discover)
+- Validates Pydantic schema handling for async tools
+- Tests async tool performance characteristics
+
+### Plugin System Tests (v0.3)
+
+**test_discovery_plugin.py** - Plugin discovery functionality
+- Tests discover_plugin_manifest() function
+- Validates multi-directory skill discovery from plugin manifests
+- Tests graceful error handling for malformed manifests
+- Verifies security validations (path traversal prevention)
+- Tests async plugin discovery (adiscover_skills)
+- Validates edge cases (empty skills list, non-existent directories)
+
+**test_parser_plugin.py** - Plugin manifest parsing
+- Tests parse_plugin_manifest() function
+- Validates valid manifest parsing with all fields
+- Tests missing required fields error handling
+- Verifies JSON bomb protection (MAX_MANIFEST_SIZE limit)
+- Tests security validations (path traversal, absolute paths, drive letters)
+- Validates manifest version compatibility
+- Tests integration with real fixture files
+
+**test_manager_plugin.py** - SkillManager plugin integration
+- Tests plugin source building with manifest parsing
+- Validates plugin skill namespacing (_plugin_skills registry)
+- Tests qualified name lookups (plugin:skill syntax)
+- Verifies conflict resolution (project skills win over plugin)
+- Tests multi-source discovery with plugins
+- Validates end-to-end plugin workflows (sync and async)
+
+### File Reference & Security Tests (v0.2+)
+
+**test_path_resolver.py** - Secure file path resolution
+- Tests FilePathResolver.resolve_path() function
+- Validates relative path resolution within base directory
+- Tests path traversal prevention (../, absolute paths)
+- Verifies symlink resolution and escape detection
+- Tests security error logging with detailed context
+- Validates cross-platform path handling
+- Tests edge cases (Unicode, spaces, special characters, very long paths)
+
+**test_file_references_integration.py** - File reference integration
+- Tests end-to-end file reference resolution workflow
+- Validates integration with file-reference-skill example
+- Tests skill invocation with supporting files
+- Verifies security validation in real-world scenarios
+- Tests symlink escape blocking in real skill usage
+- Validates performance (<1ms per resolution, <100ms for 100 files)
+
+### Integration Tests
 
 **test_langchain_integration.py** - LangChain StructuredTool integration (8 tests passing)
 - Validates tool creation from skills
@@ -65,7 +139,7 @@ pytest tests/test_manager.py -v
 - Tests long arguments (10KB+)
 - Validates tool count matches skill count
 
-### Edge Case Tests (Phase 5) ✅ **COMPLETE** (8/8 passing)
+### Edge Case Tests
 
 **test_edge_cases.py** - Boundary conditions and error scenarios
 - ✅ Invalid YAML syntax handling
@@ -77,7 +151,7 @@ pytest tests/test_manager.py -v
 - ✅ Large skills (500KB+ content) with lazy loading
 - ✅ Windows line endings on Unix
 
-### Performance Tests (Phase 6) ✅ **COMPLETE** (4/4 passing)
+### Performance Tests
 
 **test_performance.py** - Performance validation
 - ✅ Discovery time: <500ms for 50 skills
@@ -85,7 +159,7 @@ pytest tests/test_manager.py -v
 - ✅ Memory usage: <5MB for 50 skills
 - ✅ Cache effectiveness validation
 
-### Installation Tests (Phase 7) ✅ **COMPLETE**
+### Installation Tests
 
 **test_installation.py** - Package distribution validation (8 tests passing)
 - Import validation with/without extras
@@ -120,7 +194,9 @@ Programmatic fixtures for flexible testing:
 - **temp_skills_dir** - Temporary directory for test isolation (auto-cleanup)
 - **skill_factory** - Factory function for creating SKILL.md files dynamically
 - **sample_skills** - Pre-created set of 5 diverse sample skills
-- **fixtures_dir** - Path to static test fixtures directory
+- **fixtures_dir** - Path to static test fixtures directory (tests/fixtures/skills/)
+- **skills_directory** - Path to example skills directory (examples/skills/)
+- **skill_manager_async** - Async-initialized SkillManager for async tests
 - **create_large_skill** - Helper for creating 500KB+ skills
 - **create_permission_denied_skill** - Factory for Unix permission error testing
 
@@ -132,6 +208,9 @@ Filter tests by category using pytest markers:
 # Run only integration tests
 pytest -m integration
 
+# Run only async tests
+pytest -m asyncio
+
 # Run only performance tests
 pytest -m performance
 
@@ -140,13 +219,22 @@ pytest -m "not slow"
 
 # Run LangChain-specific tests
 pytest -m requires_langchain
+
+# Run plugin tests
+pytest -m plugin
+
+# Run security tests
+pytest -m security
 ```
 
 Available markers:
 - `integration` - Integration tests with external frameworks
+- `asyncio` - Async tests requiring asyncio event loop
 - `performance` - Performance validation tests (may take 15+ seconds)
 - `slow` - Tests that take longer than 1 second
 - `requires_langchain` - Tests requiring langchain-core dependency
+- `plugin` - Plugin system tests (discovery, parsing, manager)
+- `security` - Security validation tests (path traversal, symlinks)
 
 ## Coverage Requirements
 
@@ -178,14 +266,32 @@ open htmlcov/index.html
 
 ### Run specific test categories
 ```bash
-# Core functionality only
+# Core functionality only (v0.1)
 pytest tests/test_discovery.py tests/test_parser.py tests/test_models.py tests/test_processors.py tests/test_manager.py
 
-# Integration tests only
+# Async functionality (v0.2)
+pytest tests/test_async_discovery.py tests/test_async_invocation.py tests/test_langchain_async.py
+
+# Plugin system (v0.3)
+pytest tests/test_discovery_plugin.py tests/test_parser_plugin.py tests/test_manager_plugin.py
+
+# File references & security (v0.2+)
+pytest tests/test_path_resolver.py tests/test_file_references_integration.py
+
+# Integration tests
 pytest tests/test_langchain_integration.py
 
 # Edge cases and performance
 pytest tests/test_edge_cases.py tests/test_performance.py
+
+# All v0.1 tests
+pytest tests/test_discovery.py tests/test_parser.py tests/test_models.py tests/test_processors.py tests/test_manager.py tests/test_langchain_integration.py tests/test_edge_cases.py tests/test_performance.py tests/test_installation.py
+
+# All v0.2 tests
+pytest tests/test_async_discovery.py tests/test_async_invocation.py tests/test_langchain_async.py tests/test_path_resolver.py tests/test_file_references_integration.py
+
+# All v0.3 tests
+pytest tests/test_discovery_plugin.py tests/test_parser_plugin.py tests/test_manager_plugin.py
 ```
 
 ### Verbose output with detailed assertions
@@ -286,43 +392,61 @@ Tests are designed to run in automated environments:
 
 ## Requirements
 
-- **Python**: 3.10+ (3.9 compatible with minor memory trade-offs)
+- **Python**: 3.10+ (minimum for full async support)
 - **pytest**: 7.0+
+- **pytest-asyncio**: 0.21.0+ (for async tests)
 - **pytest-cov**: 4.0+ (for coverage measurement)
 - **PyYAML**: 6.0+ (core dependency)
-- **langchain-core**: 0.1.0+ (for integration tests)
+- **aiofiles**: 23.0+ (async file I/O for v0.2+)
+- **langchain-core**: 0.1.0+ (for LangChain integration tests)
+- **pydantic**: 2.0+ (validation for LangChain integration)
 
 ## Test Statistics
 
-**Overall Status**: ✅ **99% Complete** (73/74 tests passing, 1 skipped)
+**Overall Status**: ✅ **v0.2 Complete** (All test suites passing)
 
-- **Total test count**: **74 tests** across 9 test files
-  - ✅ Core functionality: 33 tests (100% passing)
-  - ✅ LangChain integration: 8 tests (100% passing)
-  - ✅ Installation validation: 8 tests (87.5% passing, 1 skipped)
-  - ✅ Edge cases: 8 tests (100% passing)
-  - ✅ Performance: 4 tests (100% passing)
+- **Total test count**: **17 test files** across core, async, plugin, and integration tests
+  - ✅ Core functionality: 33 tests (test_discovery, test_parser, test_models, test_processors, test_manager)
+  - ✅ Async functionality: ~60 tests (test_async_discovery, test_async_invocation, test_langchain_async)
+  - ✅ Plugin system: ~40 tests (test_discovery_plugin, test_parser_plugin, test_manager_plugin)
+  - ✅ File references & security: ~80 tests (test_path_resolver, test_file_references_integration)
+  - ✅ LangChain integration: 8 tests (test_langchain_integration)
+  - ✅ Edge cases: 8 tests (test_edge_cases)
+  - ✅ Performance: 4 tests (test_performance)
+  - ✅ Installation validation: 8 tests (test_installation)
 
 - **Test execution time**:
   - Core tests: <0.15 seconds
-  - Full suite: ~0.30 seconds
-  - Performance tests: <0.10 seconds
+  - Async tests: <0.50 seconds
+  - Plugin tests: <0.30 seconds
+  - Full suite: ~1.5 seconds
 
 - **Coverage**: **85.86%** line coverage (target: 70%) ✅
-- **Assertion count**: 200+ assertions validating behavior
-- **Test files**: 9 test modules + conftest.py
-- **Static fixtures**: 8 SKILL.md files
-- **Dynamic fixtures**: 6 programmatic fixtures
+- **Assertion count**: 500+ assertions validating behavior
+- **Test files**: 17 test modules + conftest.py
+- **Static fixtures**: Multiple SKILL.md files and plugin manifests
+- **Dynamic fixtures**: 10+ programmatic fixtures
 
-**Breakdown by Phase**:
-- Phase 1 (Setup): ✅ Complete
-- Phase 2 (Foundational): ✅ Complete
-- Phase 3 (Core - US1): ✅ Complete (33/33 passing)
-- Phase 4 (LangChain - US2): ✅ Complete (8/8 passing)
-- Phase 5 (Edge Cases - US3): ✅ Complete (8/8 passing)
-- Phase 6 (Performance - US4): ✅ Complete (4/4 passing)
-- Phase 7 (Installation - US5): ✅ Complete (7/8 passing, 1 skipped)
-- Phase 8 (Polish): ✅ Complete
+**Breakdown by Version**:
+- v0.1 (MVP):
+  - Phase 1 (Setup): ✅ Complete
+  - Phase 2 (Foundational): ✅ Complete
+  - Phase 3 (Core - US1): ✅ Complete (33/33 passing)
+  - Phase 4 (LangChain - US2): ✅ Complete (8/8 passing)
+  - Phase 5 (Edge Cases - US3): ✅ Complete (8/8 passing)
+  - Phase 6 (Performance - US4): ✅ Complete (4/4 passing)
+  - Phase 7 (Installation - US5): ✅ Complete (7/8 passing, 1 skipped)
+  - Phase 8 (Polish): ✅ Complete
+- v0.2 (Async + File References):
+  - Async discovery: ✅ Complete
+  - Async invocation: ✅ Complete
+  - Async LangChain: ✅ Complete
+  - File path resolver: ✅ Complete
+  - File references integration: ✅ Complete
+- v0.3 (Plugins):
+  - Plugin discovery: ✅ Complete
+  - Plugin manifest parsing: ✅ Complete
+  - Plugin manager integration: ✅ Complete
 
 ## Troubleshooting
 

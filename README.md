@@ -22,11 +22,13 @@ skillkit is compatible with existings skills (SKILL.md), so you can browse and u
 ## Features
 
 - **Framework-free**: can be used without any framework, or with other frameworks (currently only compatible with LangChain - more coming in the future!)
-- **Multi-source skill discovery** from local directories
+- **Model-agnostic design**: Works with any LLM
+- **Multi-source skill discovery**: From project, Anthropic config, plugins, and custom directories with priority-based conflict resolution
 - **YAML frontmatter parsing** with comprehensive validation
 - **Progressive disclosure pattern** (metadata-first loading, 80% memory reduction)
-- **Security features**: Input validation, size limits, suspicious pattern detection
-- **Model-agnostic design**: Works with any LLM
+- **Plugin ecosystem**: Full support for Anthropic's MCPB plugin manifests with namespaced skill access
+- **Nested directory structures**: Discover skills in any directory hierarchy up to 5 levels deep
+- **Security features**: Input validation, size limits, suspicious pattern detection, path security, secure file resolution
 
 ---
 
@@ -56,7 +58,7 @@ The web is full of great skills! here are some repositories you can check out:
 
 ## Installation
 
-### Core library
+### Core library (includes async support)
 
 ```bash
 pip install skillkit
@@ -66,6 +68,12 @@ pip install skillkit
 
 ```bash
 pip install skillkit[langchain]
+```
+
+### All extras (LangChain + dev tools)
+
+```bash
+pip install skillkit[all]
 ```
 
 ### Development dependencies
@@ -105,10 +113,12 @@ $ARGUMENTS
 
 ### 2. Use standalone (without frameworks)
 
+#### Simple usage
+
 ```python
 from skillkit import SkillManager
 
-# Create manager (defaults to /.claude/skills/)
+# Create manager (defaults to ./.claude/skills/)
 manager = SkillManager()
 
 # Discover skills
@@ -140,7 +150,7 @@ manager.discover()
 tools = create_langchain_tools(manager)
 
 # Create agent
-llm = ChatOpenAI(model="gpt-4")
+llm = ChatOpenAI(model="gpt-5.1")
 prompt = "You are a helpful assistant. use the available skills tools to answer the user queries."
 agent = create_agent(
     llm, 
@@ -152,6 +162,61 @@ agent = create_agent(
 query="What are Common Architectural Scenarios in python?"
 messages = [HumanMessage(content=query)]
 result = agent.invoke({"messages": messages})
+```
+
+### 4. Async LangChain Integration
+
+```python
+import asyncio
+from skillkit import SkillManager
+from skillkit.integrations.langchain import create_langchain_tools
+from langchain.agents import AgentExecutor
+from langchain_openai import ChatOpenAI
+
+async def run_agent():
+    manager = SkillManager()
+    await manager.adiscover()
+
+    tools = create_langchain_tools(manager)
+    prompt = "You are a helpful assistant. use the available skills tools to answer the user queries."
+    llm = ChatOpenAI(model="gpt-5.1")
+
+    agent = create_agent(
+        llm,
+        tools,
+        system_prompt=prompt
+        )
+
+    query="What are Common Architectural Scenarios in python?"
+    messages = [HumanMessage(content=query)]
+    result = await agent.ainvoke({"messages": messages})
+
+asyncio.run(run_agent())
+```
+
+### Multi-Source Discovery with Priority Resolution
+
+```python
+from skillkit import SkillManager
+
+# Configure multiple skill sources
+manager = SkillManager(
+    project_skill_dir="./skills",              # Priority: 100 (highest)
+    anthropic_config_dir="./.claude/skills",  # Priority: 50
+    plugin_dirs=[                              # Priority: 10 each
+        "./plugins/data-tools",
+        "./plugins/web-tools"
+    ],
+    additional_search_paths=["./shared"]      # Priority: 5
+)
+
+manager.discover()
+
+# Simple name gets highest priority version
+skill = manager.get_skill("csv-parser")  # Gets project version if exists
+
+# Qualified name accesses specific plugin version
+skill = manager.get_skill("data-tools:csv-parser")  # Explicit plugin version
 ```
 
 ## SKILL.md Format
@@ -192,7 +257,8 @@ Content with $ARGUMENTS placeholder...
 
 ```python
 from pathlib import Path
-manager = SkillManager(Path("/custom/skills"))
+
+manager = SkillManager(project_skill_dir=Path("/custom/skills"))
 ```
 
 ### Error handling
@@ -295,40 +361,37 @@ pip install -e ".[dev]"
 The project includes a comprehensive pytest-based test suite with 70%+ coverage validating core functionality, integrations, and edge cases.
 For detailed testing instructions, test organization, markers, and debugging tips, see **[tests/README.md](tests/README.md)**.
 
-```bash
-pytest
-pytest --cov=src/skillkit --cov-report=html
-```
-
-### Type checking
-
-```bash
-mypy src/skillkit --strict
-```
-
-### Linting
-
-```bash
-ruff check src/skillkit
-ruff format src/skillkit
-```
-
 ## Examples
 
 See `examples/` directory:
-- `basic_usage.py` - Standalone usage without frameworks
-- `langchain_agent.py` - LangChain agent integration
-- `skills/` - Example skills (code-reviewer, markdown-formatter, git-helper)
+- `basic_usage.py` - Standalone usage (sync and async patterns)
+- `async_usage.py` - Async usage with FastAPI integration
+- `langchain_agent.py` - LangChain agent integration (sync and async)
+- `multi_source.py` - Multi-source discovery and conflict resolution
+- `file_references.py` - Secure file path resolution
+- `skills/` - Example skills and plugins
 
 Run examples:
 ```bash
+# Basic sync usage
 python examples/basic_usage.py
-python examples/langchain_agent.py  # Requires langchain extras
+
+# Async usage with FastAPI
+python examples/async_usage.py
+
+# LangChain integration
+python examples/langchain_agent.py
+
+# Multi-source discovery
+python examples/multi_source.py
+
+# File path resolution
+python examples/file_references.py
 ```
 
 ## Roadmap
 
-### v0.1 (Current)
+### v0.1 (Released)
 - ✅ Core skill discovery and metadata management
 - ✅ YAML frontmatter parsing with validation
 - ✅ Progressive disclosure pattern (lazy loading)
@@ -336,32 +399,32 @@ python examples/langchain_agent.py  # Requires langchain extras
 - ✅ LangChain integration (sync only)
 - ✅ 70% test coverage
 
-### v0.2 (Planned) 👈 we are here
-- Async support (`adiscover()`, `ainvoke_skill()`)
-- Advanced Discovery (multiple search paths, plugin directory support, nested skill structure, skill name conflict resolution)
-- File reference resolution (supporting file access from scripts/, templates/ and docs/)
+### v0.2 (Released) ✨
+- ✅ Async support (`adiscover()`, `ainvoke_skill()`)
+- ✅ Multi-source discovery (project, Anthropic config, plugins, custom paths)
+- ✅ Plugin integration with MCPB manifest support
+- ✅ Nested directory structures (up to 5 levels deep)
+- ✅ Fully qualified skill names for conflict resolution
+- ✅ Secure file path resolution with traversal prevention
+- ✅ LangChain async integration (`ainvoke`)
+- ✅ Backward compatible with v0.1
 
 ### v0.3 (Planned)
 - Script Execution (script detection, execution with variables, stdout/stderr capture, sandboxing)
+- Tool restriction enforcement (allowed-tools validation)
+- Additional framework integrations (LlamaIndex, CrewAI, Haystack)
 
 ### v0.4 (Planned)
-- Plugin integration
+- Advanced arguments schemas
+- Skill versioning and compatibility checks
 - Enhanced error handling and recovery
 - Performance optimizations
 
-### v0.5 (Planned)
-- Additional Frameworks integration
-
-### v0.5 (Planned)
-- Tool restriction enforcement (allowed-tools enforcement, tool filtering, violation error handling)
-
 ### v1.0 (Planned)
-- Plugin integration for dynamic skill loading
-- Nested directory support
-- Advanced arguments schemas
-- Skill versioning and compatibility checks
 - Comprehensive documentation
 - 90% test coverage
+- Production-ready stability
+- Full plugin ecosystem support
 
 ## License
 
@@ -398,4 +461,4 @@ Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed information.
 ## Acknowledgments
 
 - Inspired by Anthropic's Agent Skills functionality
-- Built with Python, PyYAML, LangChain, and Pydantic
+- Built with Python, PyYAML, LangChain, Pydantic and Claude itself!

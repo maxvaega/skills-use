@@ -1,0 +1,18 @@
+{
+  "manifest_version": "0.1",
+  "name": "example-plugin",
+  "version": "1.0.0",
+  "description": "Example plugin demonstrating plugin manifest structure with multiple skill directories",
+  "author": {
+    "name": "Skillkit Team",
+    "email": "team@skillkit.example.com",
+    "url": "https://github.com/skillkit/example-plugin"
+  },
+  "skills": ["skills/"],
+  "display_name": "Example Plugin",
+  "homepage": "https://github.com/skillkit/example-plugin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skillkit/example-plugin"
+  }
+}

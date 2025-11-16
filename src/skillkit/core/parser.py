@@ -1,9 +1,11 @@
 """YAML frontmatter parser for SKILL.md files.
 
 This module provides the SkillParser class for extracting and validating
-YAML frontmatter from skill files.
+YAML frontmatter from skill files, and plugin manifest parsing functionality.
 """
 
+import asyncio
+import json
 import logging
 import re
 from pathlib import Path
@@ -14,11 +16,17 @@ import yaml
 from skillkit.core.exceptions import (
     InvalidFrontmatterError,
     InvalidYAMLError,
+    ManifestNotFoundError,
+    ManifestParseError,
+    ManifestValidationError,
     MissingRequiredFieldError,
 )
-from skillkit.core.models import SkillMetadata
+from skillkit.core.models import PluginManifest, SkillMetadata
 
 logger = logging.getLogger(__name__)
+
+# Security constant: Maximum plugin manifest file size (1 MB)
+MAX_MANIFEST_SIZE = 1_000_000  # bytes
 
 
 class SkillParser:
@@ -238,3 +246,170 @@ class SkillParser:
             logger.debug(
                 f"Unknown fields in {skill_path} (will be ignored): {', '.join(unknown_fields)}"
             )
+
+    async def _read_manifest_async(self, path: Path) -> str:
+        """Async wrapper for reading plugin manifest files.
+
+        Uses asyncio.to_thread() to avoid blocking the event loop during file I/O.
+
+        Args:
+            path: Absolute path to plugin.json manifest file
+
+        Returns:
+            File content as string
+
+        Raises:
+            FileNotFoundError: If manifest file doesn't exist
+            PermissionError: If no read permission
+            UnicodeDecodeError: If file encoding invalid
+        """
+
+        def _read() -> str:
+            with open(path, encoding="utf-8") as f:
+                return f.read()
+
+        return await asyncio.to_thread(_read)
+
+
+def parse_plugin_manifest(manifest_path: Path) -> PluginManifest:
+    """Parse and validate plugin.json manifest with security checks.
+
+    This function parses a plugin manifest file (.claude-plugin/plugin.json)
+    following the MCPB (Model Context Protocol Bundle) specification v0.3.
+
+    Security Features:
+        - JSON bomb protection via file size limit (1MB)
+        - Path traversal prevention in skills field
+        - Required field validation
+        - Format validation (semver, author structure, etc.)
+
+    Args:
+        manifest_path: Absolute path to plugin.json file
+
+    Returns:
+        PluginManifest instance with validated data
+
+    Raises:
+        ManifestNotFoundError: If manifest file doesn't exist
+        ManifestParseError: If file is too large or JSON parsing fails
+        ManifestValidationError: If required fields missing or validation fails
+        (raised from PluginManifest.__post_init__)
+
+    Example:
+        >>> manifest_path = Path("./plugins/my-plugin/.claude-plugin/plugin.json")
+        >>> manifest = parse_plugin_manifest(manifest_path)
+        >>> print(f"{manifest.name} v{manifest.version}")
+        my-plugin v1.0.0
+
+    Reference:
+        MCPB Manifest Specification:
+        https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md
+    """
+    # Check file exists
+    if not manifest_path.exists():
+        raise ManifestNotFoundError(
+            f"Plugin manifest not found: {manifest_path}\n"
+            f"Expected location: .claude-plugin/plugin.json"
+        )
+
+    # SECURITY: Check file size (JSON bomb prevention)
+    file_size = manifest_path.stat().st_size
+    if file_size > MAX_MANIFEST_SIZE:
+        raise ManifestParseError(
+            f"Manifest too large: {file_size:,} bytes (max {MAX_MANIFEST_SIZE:,})",
+            manifest_path=str(manifest_path),
+        )
+
+    # Parse JSON with error handling
+    try:
+        with open(manifest_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        raise ManifestParseError(
+            f"Invalid JSON in {manifest_path.name}:\n  Line {e.lineno}, Column {e.colno}: {e.msg}",
+            manifest_path=str(manifest_path),
+            parse_error=e,
+        ) from e
+    except UnicodeDecodeError as e:
+        raise ManifestParseError(
+            f"Manifest file contains invalid UTF-8: {manifest_path}",
+            manifest_path=str(manifest_path),
+            parse_error=e,
+        ) from e
+    except OSError as e:
+        raise ManifestParseError(
+            f"Failed to read manifest file: {manifest_path}",
+            manifest_path=str(manifest_path),
+            parse_error=e,
+        ) from e
+
+    # Validate data is a dictionary
+    if not isinstance(data, dict):
+        raise ManifestValidationError(
+            f"Manifest must be a JSON object, got {type(data).__name__}",
+            field_name="root",
+            invalid_value=str(type(data).__name__),
+        )
+
+    # Validate required fields
+    required = ["name", "version", "description", "author"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        raise ManifestValidationError(
+            f"Missing required fields: {', '.join(missing)}\nRequired: {', '.join(required)}",
+            field_name=missing[0] if missing else None,
+        )
+
+    # Extract manifest_version (optional, defaults to "0.1")
+    manifest_version = data.get("manifest_version", "0.1")
+
+    # Normalize skills field
+    skills = data.get("skills", ["skills/"])
+    if isinstance(skills, str):
+        skills = [skills]
+    elif not isinstance(skills, list):
+        raise ManifestValidationError(
+            f"'skills' must be string or array, got {type(skills).__name__}",
+            field_name="skills",
+            invalid_value=str(type(skills).__name__),
+        )
+
+    # Validate author is dict or string
+    author = data["author"]
+    if isinstance(author, str):
+        # Convert string to dict format
+        author = {"name": author}
+    elif isinstance(author, dict):
+        # Already in dict format
+        pass
+    else:
+        raise ManifestValidationError(
+            f"'author' must be string or object, got {type(author).__name__}",
+            field_name="author",
+            invalid_value=str(type(author).__name__),
+        )
+
+    # Build manifest (validation happens in __post_init__)
+    try:
+        return PluginManifest(
+            manifest_version=manifest_version,
+            name=data["name"],
+            version=data["version"],
+            description=data["description"],
+            author=author,
+            skills=skills,
+            manifest_path=manifest_path,
+            display_name=data.get("display_name"),
+            homepage=data.get("homepage"),
+            repository=data.get("repository"),
+        )
+    except ManifestValidationError:
+        # Re-raise validation errors from __post_init__
+        raise
+    except Exception as e:
+        # Catch unexpected errors and wrap them
+        raise ManifestParseError(
+            f"Unexpected error parsing manifest: {e}",
+            manifest_path=str(manifest_path),
+            parse_error=e,
+        ) from e

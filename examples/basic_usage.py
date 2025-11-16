@@ -2,8 +2,10 @@
 """Basic usage example for skillkit library.
 
 This script demonstrates standalone usage without framework integration.
+Shows both sync (v0.1) and async (v0.2) patterns.
 """
 
+import asyncio
 import logging
 from pathlib import Path
 
@@ -13,10 +15,10 @@ from skillkit import SkillManager
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 
 
-def main() -> None:
-    """Demonstrate basic skill manager usage."""
+def sync_example() -> None:
+    """Demonstrate sync skill manager usage (v0.1 compatible)."""
     print("=" * 60)
-    print("skillkit: Basic Usage Example")
+    print("skillkit: Basic Usage Example (Sync)")
     print("=" * 60)
 
     # Use example skills from examples/skills/ directory
@@ -77,8 +79,72 @@ def main() -> None:
         print(f"  Error: {e}")
 
     print("\n" + "=" * 60)
-    print("Example complete!")
+    print("Sync example complete!")
     print("=" * 60)
+
+
+async def async_example() -> None:
+    """Demonstrate async skill manager usage (v0.2+)."""
+    print("\n\n" + "=" * 60)
+    print("skillkit: Basic Usage Example (Async)")
+    print("=" * 60)
+
+    # Use example skills from examples/skills/ directory
+    skills_dir = Path(__file__).parent / "skills"
+    print(f"\nUsing skills directory: {skills_dir}")
+
+    # Create skill manager
+    manager = SkillManager(skills_dir)
+
+    # Async discover skills (non-blocking)
+    print("\n[1] Discovering skills asynchronously...")
+    await manager.adiscover()
+
+    # List all skills
+    print("\n[2] Available skills:")
+    skills = manager.list_skills()
+    for skill in skills:
+        print(f"  - {skill.name}: {skill.description}")
+
+    # Async invoke skill with arguments
+    print("\n[3] Invoking skill asynchronously...")
+    try:
+        result = await manager.ainvoke_skill(
+            "code-reviewer", "Review the function calculate_total() in src/billing.py"
+        )
+        print(f"\nResult preview (first 300 chars):\n{'-' * 60}")
+        print(result[:300])
+        print("..." if len(result) > 300 else "")
+        print("-" * 60)
+    except Exception as e:
+        print(f"  Error: {e}")
+
+    # Concurrent invocations (async advantage)
+    print("\n[4] Concurrent skill invocations...")
+    try:
+        results = await asyncio.gather(
+            manager.ainvoke_skill("code-reviewer", "Review auth module"),
+            manager.ainvoke_skill("git-helper", "Generate commit message"),
+            manager.ainvoke_skill("markdown-formatter", "Format README"),
+        )
+        print(f"  Processed {len(results)} invocations concurrently")
+        for i, result in enumerate(results):
+            print(f"  Result {i + 1} length: {len(result)} chars")
+    except Exception as e:
+        print(f"  Error: {e}")
+
+    print("\n" + "=" * 60)
+    print("Async example complete!")
+    print("=" * 60)
+
+
+def main() -> None:
+    """Run both sync and async examples."""
+    # Run sync example
+    sync_example()
+
+    # Run async example
+    asyncio.run(async_example())
 
 
 if __name__ == "__main__":

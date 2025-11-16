@@ -16,6 +16,7 @@ from skillkit.core.exceptions import (
     InvalidFrontmatterError,
     InvalidYAMLError,
     MissingRequiredFieldError,
+    PathSecurityError,
     SizeLimitExceededError,
     SkillInvocationError,
     SkillNotFoundError,
@@ -26,6 +27,7 @@ from skillkit.core.exceptions import (
 )
 from skillkit.core.manager import SkillManager
 from skillkit.core.models import Skill, SkillMetadata
+from skillkit.core.path_resolver import FilePathResolver
 
 __version__ = "0.1.0"
 
@@ -34,6 +36,7 @@ __all__ = [
     "SkillManager",
     "SkillMetadata",
     "Skill",
+    "FilePathResolver",
     # Base exceptions
     "SkillsUseError",
     "SkillParsingError",
@@ -50,4 +53,5 @@ __all__ = [
     # Security exceptions
     "SuspiciousInputError",
     "SizeLimitExceededError",
+    "PathSecurityError",
 ]

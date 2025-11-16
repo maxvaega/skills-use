@@ -41,17 +41,17 @@ class ContentProcessor(ABC):
 
 
 class BaseDirectoryProcessor(ContentProcessor):
-    """Injects base directory context at beginning of content."""
+    """Injects base directory context and file path resolution helper at beginning of content."""
 
     def process(self, content: str, context: Dict[str, Any]) -> str:
-        """Inject base directory at beginning of content.
+        """Inject base directory and file path resolution helper at beginning of content.
 
         Args:
             content: Raw skill content
             context: Processing context (must contain 'base_directory' key)
 
         Returns:
-            Content with base directory prepended
+            Content with base directory and file resolution helper prepended
 
         Example:
             >>> processor = BaseDirectoryProcessor()
@@ -60,10 +60,21 @@ class BaseDirectoryProcessor(ContentProcessor):
             >>> print(result)
             Base directory for this skill: /home/user/.claude/skills/my-skill
 
+            Supporting files can be referenced using relative paths from this base directory.
+            Use FilePathResolver.resolve_path(base_dir, relative_path) to securely access files.
+
             # My Skill
         """
         base_dir = context.get("base_directory", "")
-        return f"Base directory for this skill: {base_dir}\n\n{content}"
+
+        # Build header with base directory and file resolution helper
+        header = f"Base directory for this skill: {base_dir}\n\n"
+        header += (
+            "Supporting files can be referenced using relative paths from this base directory.\n"
+        )
+        header += "Use FilePathResolver.resolve_path(base_dir, relative_path) to securely access files.\n\n"
+
+        return f"{header}{content}"
 
 
 class ArgumentSubstitutionProcessor(ContentProcessor):

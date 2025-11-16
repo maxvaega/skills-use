@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skillkit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Python library implementing Anthropic's Agent Skills functionality for LLM-powered agents"
 readme = "README.md"
 license = {text = "MIT"}
@@ -12,14 +12,16 @@ authors = [
     {name = "Massimo Olivieri", email = "olivmassimo@gmail.com"}
 ]
 keywords = [
-    "anthropic",
-    "claude",
     "skills",
     "agents",
     "llm",
     "langchain",
     "ai",
     "prompt-engineering",
+    "anthropic",
+    "claude",
+    "tools",
+    "agent-tools",
 ]
 requires-python = ">=3.10"
 classifiers = [
@@ -42,12 +44,21 @@ langchain = [
     "langchain-core>=0.1.0",
     "pydantic>=2.0",
 ]
+async = [
+    # Note: asyncio is stdlib, no additional async I/O dependencies needed
+    # We use asyncio.to_thread() pattern per research decision 1
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
+    "pytest-asyncio>=0.21",
     "ruff>=0.1.0",
     "mypy>=1.0",
     "types-PyYAML",
+]
+all = [
+    "langchain-core>=0.1.0",
+    "pydantic>=2.0",
 ]
 
 [project.urls]
@@ -64,11 +75,13 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+asyncio_mode = "auto"
 markers = [
     "integration: Integration tests with external frameworks (LangChain)",
     "performance: Performance and timing tests",
     "slow: Tests that take >5 seconds to complete",
     "requires_langchain: Tests requiring langchain-core to be installed",
+    "asyncio: Async tests requiring pytest-asyncio",
 ]
 addopts = [
     "-v",

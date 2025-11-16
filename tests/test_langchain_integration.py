@@ -28,7 +28,7 @@ from langchain_core.tools import StructuredTool
 
 @pytest.mark.integration
 @pytest.mark.requires_langchain
-def test_create_langchain_tools_returns_list(temp_skills_dir, skill_factory):
+def test_create_langchain_tools_returns_list(isolated_manager, skill_factory):
     """Test create_langchain_tools() returns List[StructuredTool].
 
     Validates:
@@ -37,17 +37,16 @@ def test_create_langchain_tools_returns_list(temp_skills_dir, skill_factory):
         - Empty manager returns empty list
     """
     # Test with empty directory
-    manager = SkillManager(temp_skills_dir)
-    manager.discover()
-    tools = create_langchain_tools(manager)
+    isolated_manager.discover()
+    tools = create_langchain_tools(isolated_manager)
 
     assert isinstance(tools, list)
     assert len(tools) == 0
 
     # Test with skills
     skill_factory("test-skill", "A test skill", "Content")
-    manager.discover()
-    tools = create_langchain_tools(manager)
+    isolated_manager.discover()
+    tools = create_langchain_tools(isolated_manager)
 
     assert isinstance(tools, list)
     assert len(tools) == 1
@@ -56,7 +55,7 @@ def test_create_langchain_tools_returns_list(temp_skills_dir, skill_factory):
 
 @pytest.mark.integration
 @pytest.mark.requires_langchain
-def test_langchain_tool_count_matches_skills(temp_skills_dir, skill_factory):
+def test_langchain_tool_count_matches_skills(isolated_manager, skill_factory):
     """Test that 3 skills create 3 StructuredTool objects.
 
     Validates:
@@ -70,18 +69,17 @@ def test_langchain_tool_count_matches_skills(temp_skills_dir, skill_factory):
     skill_factory("skill-3", "Third skill", "Content 3")
 
     # Discover and convert to tools
-    manager = SkillManager(temp_skills_dir)
-    manager.discover()
-    tools = create_langchain_tools(manager)
+    isolated_manager.discover()
+    tools = create_langchain_tools(isolated_manager)
 
     # Verify count
     assert len(tools) == 3
-    assert len(manager.list_skills()) == 3
+    assert len(isolated_manager.list_skills()) == 3
 
 
 @pytest.mark.integration
 @pytest.mark.requires_langchain
-def test_langchain_tool_has_correct_name(temp_skills_dir, skill_factory):
+def test_langchain_tool_has_correct_name(isolated_manager, skill_factory):
     """Test that tool.name matches skill name.
 
     Validates:
@@ -92,9 +90,8 @@ def test_langchain_tool_has_correct_name(temp_skills_dir, skill_factory):
     skill_factory("code-reviewer", "Reviews code quality", "Review this: $ARGUMENTS")
     skill_factory("test-generator", "Generates unit tests", "Generate tests for: $ARGUMENTS")
 
-    manager = SkillManager(temp_skills_dir)
-    manager.discover()
-    tools = create_langchain_tools(manager)
+    isolated_manager.discover()
+    tools = create_langchain_tools(isolated_manager)
 
     # Create name mapping
     tool_names = {tool.name for tool in tools}

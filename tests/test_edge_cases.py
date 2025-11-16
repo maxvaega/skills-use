@@ -30,7 +30,7 @@ from skillkit.core.exceptions import (
 
 
 def test_missing_required_field_logs_error_and_continues(
-    temp_skills_dir: Path, skill_factory, caplog
+    isolated_manager, temp_skills_dir: Path, skill_factory, caplog
 ):
     """Test that discovery skips invalid skill with ERROR log when required field missing."""
     # Create one valid skill and one invalid skill (missing name)
@@ -49,9 +49,8 @@ def test_missing_required_field_logs_error_and_continues(
 
     # Discover skills with logging capture
     with caplog.at_level(logging.ERROR):
-        manager = SkillManager(str(temp_skills_dir))
-        manager.discover()
-        skills = manager.list_skills()
+        isolated_manager.discover()
+        skills = isolated_manager.list_skills()
 
     # Verify only valid skill was discovered
     assert len(skills) == 1
@@ -65,7 +64,7 @@ def test_missing_required_field_logs_error_and_continues(
     )
 
 
-def test_invalid_yaml_syntax_raises_validation_error(temp_skills_dir: Path):
+def test_invalid_yaml_syntax_raises_validation_error(isolated_manager, temp_skills_dir: Path):
     """Test that invalid YAML syntax raises ValidationError with helpful message."""
     # Create skill with malformed YAML
     invalid_dir = temp_skills_dir / "invalid-yaml"
@@ -74,12 +73,11 @@ def test_invalid_yaml_syntax_raises_validation_error(temp_skills_dir: Path):
         "---\nname: test\ndescription: [unclosed bracket\n---\nContent"
     )
 
-    manager = SkillManager(str(temp_skills_dir))
-    manager.discover()
+    isolated_manager.discover()
 
     # Attempting to get the skill should fail gracefully
     # (discovery logs error but doesn't crash)
-    skills = manager.list_skills()
+    skills = isolated_manager.list_skills()
     assert len(skills) == 0  # Invalid skill not discovered
 
 
@@ -110,7 +108,7 @@ def test_content_load_error_when_file_deleted_after_discovery(
 
 
 def test_duplicate_skill_names_first_wins_with_warning(
-    temp_skills_dir: Path, caplog
+    isolated_manager, temp_skills_dir: Path, caplog
 ):
     """Test that first skill wins when duplicates exist, with WARNING logged."""
     # Create two skills with same name in different directories manually
@@ -130,16 +128,15 @@ def test_duplicate_skill_names_first_wins_with_warning(
 
     # Discover with logging
     with caplog.at_level(logging.WARNING):
-        manager = SkillManager(str(temp_skills_dir))
-        manager.discover()
-        skills = manager.list_skills()
+        isolated_manager.discover()
+        skills = isolated_manager.list_skills()
 
     # Verify only one skill discovered
     assert len(skills) == 1
     assert skills[0].name == "duplicate-skill"
 
     # Verify first skill's description was kept
-    metadata = manager.get_skill("duplicate-skill")
+    metadata = isolated_manager.get_skill("duplicate-skill")
     assert "First skill" in metadata.description
 
     # Verify WARNING was logged
@@ -148,7 +145,7 @@ def test_duplicate_skill_names_first_wins_with_warning(
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Unix-only test (chmod)")
 def test_permission_denied_skill_logs_error_and_continues(
-    temp_skills_dir: Path, create_permission_denied_skill, caplog
+    isolated_manager, temp_skills_dir: Path, create_permission_denied_skill, caplog
 ):
     """Test that discovery handles permission errors gracefully (Unix only)."""
     # Create a skill with no read permissions
@@ -156,9 +153,8 @@ def test_permission_denied_skill_logs_error_and_continues(
 
     # Discover with logging
     with caplog.at_level(logging.ERROR):
-        manager = SkillManager(str(temp_skills_dir))
-        manager.discover()
-        skills = manager.list_skills()
+        isolated_manager.discover()
+        skills = isolated_manager.list_skills()
 
     # Verify skill was not discovered (no crash)
     assert len(skills) == 0

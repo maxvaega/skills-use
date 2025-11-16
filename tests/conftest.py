@@ -6,6 +6,8 @@ This module provides:
 - skill_factory: Factory function for creating SKILL.md files programmatically
 - sample_skills: Pre-created set of 5 diverse sample skills
 - fixtures_dir: Path to static test fixtures
+- isolated_manager: SkillManager with all default discovery disabled (for isolated tests)
+- skill_manager_async: Async-initialized SkillManager with example skills
 - Helper functions for common assertions and complex skill creation
 """
 
@@ -222,3 +224,66 @@ This skill should trigger a permission error.
         return skill_dir
 
     return _create_permission_denied
+
+
+@pytest.fixture
+def skills_directory() -> Path:
+    """
+    Return path to example skills directory.
+
+    Returns:
+        Path: Path to examples/skills/ directory with test skills
+    """
+    return Path(__file__).parent.parent / "examples" / "skills"
+
+
+@pytest.fixture
+def isolated_manager(temp_skills_dir: Path):
+    """
+    Create a SkillManager with all default discovery disabled (isolated testing).
+
+    This fixture creates a manager that ONLY discovers skills from the temp_skills_dir,
+    explicitly opting out of:
+    - Anthropic config directory (./.claude/skills/)
+    - Plugin discovery
+    - Additional search paths
+
+    Returns:
+        SkillManager: Manager configured for isolated testing (not yet discovered)
+
+    Usage:
+        >>> def test_my_feature(isolated_manager, skill_factory):
+        ...     skill_factory("test-skill", "Test description", "Content")
+        ...     isolated_manager.discover()
+        ...     assert len(isolated_manager.list_skills()) == 1  # Only finds test-skill
+
+    Note:
+        This manager uses temp_skills_dir as project_skill_dir. Call discover()
+        after setting up your test skills with skill_factory.
+    """
+    from skillkit import SkillManager
+
+    return SkillManager(
+        project_skill_dir=temp_skills_dir,
+        anthropic_config_dir="",  # Explicit opt-out of default discovery
+        plugin_dirs=[],  # Explicit opt-out of plugins
+    )
+
+
+@pytest.fixture
+async def skill_manager_async(skills_directory: Path):
+    """
+    Create and initialize a SkillManager asynchronously.
+
+    Returns:
+        SkillManager: Async-initialized manager with discovered skills
+
+    Note:
+        This fixture uses async discovery and sets init_mode to ASYNC.
+        Use this for testing async invocation and LangChain async integration.
+    """
+    from skillkit import SkillManager
+
+    manager = SkillManager(skills_directory)
+    await manager.adiscover()
+    return manager
