@@ -164,7 +164,7 @@ messages = [HumanMessage(content=query)]
 result = agent.invoke({"messages": messages})
 ```
 
-### Async LangChain Integration
+### 4. Async LangChain Integration
 
 ```python
 import asyncio
