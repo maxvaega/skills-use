@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: "Script execution support for skills - Enable skills to bundle executable scripts (Python, Shell, JavaScript, etc.) that agents can invoke for deterministic operations"
 
+## Clarifications
+
+### Session 2025-01-17
+
+- Q: When are scripts detected in the progressive disclosure loading pattern? → A: During skill invocation (lazy, when the skill is first used) - scripts are detected after content is loaded but before execution
+- Q: After scripts are detected during skill invocation, how are they made available to the agent for execution in LangChain? → A: Scripts become callable methods on the StructuredTool instance (e.g., `tool.execute_script(script_name, args)`)
+- Q: How are arguments passed to scripts when the agent invokes them? → A: Arguments are passed as JSON via stdin (scripts must read and parse JSON from standard input)
+- Q: How does the system determine which interpreter to use for each script type? → A: Extension-based mapping with fallback to shebang line (e.g., `.py` → `python3`, `.sh` → `bash`, `.js` → `node`, then check shebang if needed)
+- Q: How does the system handle scripts that produce extremely large output (e.g., 100MB to stdout)? → A: Capture up to a size limit (10MB), then truncate with warning logged
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Execute Skill Scripts for Deterministic Processing (Priority: P1)
@@ -17,7 +27,7 @@ As a user interacting with an AI agent, I want skills to perform deterministic o
 
 **Acceptance Scenarios**:
 
-1. **Given** a skill with a Python script in `scripts/extract.py`, **When** the agent invokes the skill with a file path as argument, **Then** the script executes with the skill's base directory as working directory, captures stdout/stderr, and returns the output to the agent
+1. **Given** a skill with a Python script in `scripts/extract.py`, **When** the agent invokes the skill with arguments `{"file_path": "/path/to/doc.pdf"}` passed as JSON via stdin, **Then** the script executes with the skill's base directory as working directory, receives the JSON via stdin, captures stdout/stderr, and returns the output to the agent
 2. **Given** a skill script that performs data transformation, **When** the script completes successfully (exit code 0), **Then** the transformed data is available in stdout for the agent to use
 3. **Given** a skill script that fails with an error, **When** the script exits with non-zero code, **Then** the error message from stderr is captured and returned to the agent for error handling
 4. **Given** a skill with nested scripts in `scripts/utils/parser.py`, **When** the agent invokes the nested script, **Then** the script path is resolved correctly relative to the skill base directory
@@ -102,46 +112,48 @@ As a skill author, I want my scripts to be automatically discovered so that I do
 
 **Acceptance Scenarios**:
 
-1. **Given** a skill with scripts in `scripts/extract.py`, `scripts/convert.sh`, and `scripts/utils/parser.py`, **When** script detection runs, **Then** all three scripts are detected with correct relative paths
-2. **Given** a skill with non-executable files like `data/config.yaml` and `README.md`, **When** script detection runs, **Then** these files are excluded from detection
-3. **Given** a skill with 50 scripts, **When** script detection runs, **Then** detection completes in under 10 milliseconds
-4. **Given** a script file with extension `.py`, `.sh`, `.js`, `.rb`, or `.pl`, **When** detection runs, **Then** the file is identified as executable and the script type is determined from the extension
+1. **Given** a skill with scripts in `scripts/extract.py`, `scripts/convert.sh`, and `scripts/utils/parser.py`, **When** the skill is invoked for the first time (triggering lazy script detection), **Then** all three scripts are detected with correct relative paths
+2. **Given** a skill with non-executable files like `data/config.yaml` and `README.md`, **When** script detection runs during skill invocation, **Then** these files are excluded from detection
+3. **Given** a skill with 50 scripts, **When** the skill is invoked and script detection runs, **Then** detection completes in under 10 milliseconds
+4. **Given** a script file with extension `.py`, `.sh`, `.js`, `.rb`, or `.pl`, **When** detection runs during skill invocation, **Then** the file is identified as executable and the script type is determined from the extension
 
 ---
 
 ### Edge Cases
 
 - What happens when a script path contains special characters or spaces?
-- How does the system handle scripts that produce extremely large output (e.g., 100MB to stdout)?
 - What happens when a script is deleted or moved while the skill is loaded in memory?
 - How does the system handle scripts that crash with segmentation faults or other signals?
 - What happens when the working directory doesn't have write permissions?
 - How does the system handle concurrent script executions from the same skill?
 - What happens when environment variables exceed system limits?
 - How does the system handle scripts on different platforms (Windows vs Unix)?
+- What happens when arguments cannot be serialized to JSON (e.g., circular references, non-JSON-serializable objects)?
+- How does the system handle scripts that don't read from stdin or fail to parse the JSON input?
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
 - **FR-001**: System MUST execute scripts within the skill's base directory as the working directory
-- **FR-002**: System MUST capture stdout, stderr, exit code, and execution time for all script executions
+- **FR-002**: System MUST capture stdout, stderr, exit code, and execution time for all script executions; stdout and stderr are each captured up to 10MB, beyond which output is truncated with a WARNING log entry
 - **FR-003**: System MUST inject environment variables (SKILL_NAME, SKILL_BASE_DIR, SKILL_VERSION, SKILLKIT_VERSION) before script execution
 - **FR-004**: System MUST validate script paths using FilePathResolver before execution to prevent path traversal attacks
 - **FR-005**: System MUST enforce execution timeouts with configurable duration (default 30 seconds) and kill processes that exceed the timeout
 - **FR-006**: System MUST reject scripts with setuid or setgid permissions before execution
 - **FR-007**: System MUST log all script executions with timestamp, skill name, script path, arguments (truncated to 256 chars), exit code, and execution time for security auditing
 - **FR-008**: System MUST enforce tool restrictions by checking if "Bash" is in the skill's allowed-tools list before executing scripts
-- **FR-009**: System MUST detect executable scripts in skill directories by file extension (.py, .sh, .js, .rb, .pl) and optional shebang line
+- **FR-009**: System MUST detect executable scripts lazily during skill invocation (after content is loaded but before script execution) by scanning skill directories for files with executable extensions (.py, .sh, .js, .rb, .pl); interpreter selection uses extension-based mapping (.py → python3, .sh → bash, .js → node, .rb → ruby, .pl → perl) with shebang line fallback for edge cases
 - **FR-010**: System MUST resolve symlinks and verify the final resolved path is within the skill base directory
-- **FR-011**: System MUST pass arguments to scripts without modification or shell interpolation to prevent injection attacks
+- **FR-011**: System MUST pass arguments to scripts as JSON-serialized data via stdin (scripts read from standard input and parse JSON); this prevents shell interpolation and injection attacks while supporting complex data structures
 - **FR-012**: System MUST handle script execution errors gracefully by returning error information in the execution result rather than crashing
 - **FR-013**: Users MUST be able to configure script timeout via SkillManager initialization parameter
-- **FR-014**: Users MUST be able to execute scripts directly via SkillManager.execute_skill_script() API
+- **FR-014**: Users MUST be able to execute scripts directly via SkillManager.execute_skill_script() API; LangChain integration MUST expose scripts as callable methods on StructuredTool instances (e.g., `tool.execute_script(script_name, args)`)
 - **FR-015**: System MUST scan both `scripts/` directory (primary) and skill root directory (secondary fallback) for executable files
 - **FR-016**: System MUST support nested script directories (e.g., `scripts/utils/parser.py`) up to reasonable depth
 - **FR-017**: Script detection MUST complete in under 10ms for skills with fewer than 50 scripts
 - **FR-018**: System MUST return execution results in a structured format (ScriptExecutionResult dataclass) with stdout, stderr, exit_code, execution_time_ms, and script_path fields
+- **FR-019**: System MUST raise an InterpreterNotFoundError if the required interpreter (python3, bash, node, ruby, perl) is not available in PATH during script execution
 
 ### Key Entities *(include if feature involves data)*
 
@@ -156,7 +168,7 @@ As a skill author, I want my scripts to be automatically discovered so that I do
 
 - **SC-001**: Scripts execute with less than 50ms overhead (excluding actual script runtime) for 95% of executions
 - **SC-002**: 100% of path traversal attacks (tested with patterns like `../../etc/passwd`, `/etc/passwd`, symlinks outside skill dir) are blocked before execution
-- **SC-003**: All script outputs up to 10MB are captured completely without truncation or data loss
+- **SC-003**: All script outputs up to 10MB are captured completely without truncation or data loss; outputs exceeding 10MB are truncated at the limit with a WARNING log entry including skill name, script path, and actual output size
 - **SC-004**: Script timeouts are enforced within ±100ms of configured timeout value
 - **SC-005**: 100% of script executions are logged with all required audit fields (timestamp, skill name, script path, exit code, duration)
 - **SC-006**: Tool restriction enforcement prevents 100% of unauthorized script executions when Bash is not in allowed-tools
@@ -168,13 +180,13 @@ As a skill author, I want my scripts to be automatically discovered so that I do
 ## Assumptions *(mandatory)*
 
 - Scripts are provided by trusted skill authors; the system validates paths and permissions but doesn't sandbox script execution beyond OS-level permissions
-- The agent process has necessary permissions to execute scripts (Python interpreter, bash shell, etc. are available in PATH)
-- Scripts use standard argument parsing and don't rely on shell-specific features that require `shell=True`
+- The agent process has necessary permissions to execute scripts; required interpreters (python3, bash, node, ruby, perl) are available in PATH and mapped from file extensions with shebang fallback
+- Scripts read arguments as JSON from stdin and write results to stdout; they don't rely on shell-specific features that require `shell=True`
 - Performance targets assume modern hardware (SSD storage, multi-core CPU) and reasonable script complexity
 - Audit logging uses Python's standard logging framework; persistence and log rotation are handled by deployment configuration
 - Tool restriction enforcement is complementary to framework-level tool filtering; frameworks may provide additional controls
 - Script detection runs once during skill invocation (lazy, not during initial discovery) to minimize performance impact
-- Large outputs (>10MB) may have performance implications; skills should stream or chunk large datasets when possible
+- Script outputs are captured up to 10MB per stream (stdout/stderr); outputs exceeding this limit are truncated with logged warnings; skills requiring larger outputs should write to files instead
 - Resource limits (CPU, memory) are enforced at the OS/container level, not by skillkit library
 - Cross-platform compatibility assumes standard interpreters (Python 3.10+, bash/sh, Node.js) are installed and available
 
@@ -215,4 +227,4 @@ As a skill author, I want my scripts to be automatically discovered so that I do
 - **FR-4.3 (Tool Restrictions)**: Script execution integrates with tool restriction enforcement (requires "Bash" in allowed-tools)
 - **v0.2.0 File Path Resolution**: Existing security patterns for validating file references are reused for script paths
 - **Anthropic Skills Specification**: Script execution aligns with Anthropic's skill format, enabling 100% compatibility with Anthropic skills that include scripts
-- **LangChain Bash Tool**: Scripts are executed via framework's Bash tool, maintaining framework-agnostic core architecture
+- **LangChain Integration**: Detected scripts are exposed as callable methods on StructuredTool instances (e.g., `tool.execute_script(script_name, args)`), allowing agents to invoke scripts through the skill's tool interface while maintaining framework-agnostic core architecture
