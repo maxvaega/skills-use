@@ -123,8 +123,11 @@ This project was developed using speckit method. all development phases have bee
 - ✅ Updated examples (async_usage.py, multi_source.py, file_references.py)
 - ✅ Backward compatible with v0.1
 
+**In Progress:**
+- v0.3: Script execution, tool restrictions
+
 **Next Steps**:
-- Plan v0.3: Script execution, tool restrictions, framework integrations
+- v0.3.1: Plan additional framework integrations
 - Gather community feedback and feature requests
 - Improve documentation with more real-world examples
 
@@ -262,6 +265,8 @@ skillkit/
 - **Storage**: Filesystem-based (`.claude/skills/` directories, `.claude-plugin/plugin.json` manifests)
 - **Testing**: pytest 7.0+, pytest-cov 4.0+, pytest-asyncio 0.21+
 - **Quality**: ruff 0.1.0+, mypy 1.0+
+- Filesystem-based (scripts stored in skill directories: `scripts/` or skill root) (001-script-execution)
+- Python 3.10+ (minimum for existing skillkit v0.3.0 compatibility) + PyYAML 6.0+ (existing), aiofiles 23.0+ (existing), subprocess (stdlib), pathlib (stdlib) (001-script-execution)
 
 ## v0.2 Implementation Notes
 
@@ -319,3 +324,6 @@ skillkit/
 3. **Graceful degradation**: Discovery failures log warnings, invocation failures raise exceptions
 4. **Progressive disclosure**: Metadata loads first, content loads on-demand
 5. **Security first**: Always validate paths, sanitize inputs, use safe YAML loading
+
+## Recent Changes
+- 001-script-execution: Added Python 3.10+ (minimum for v0.3.0 compatibility with existing codebase) + PyYAML 6.0+ (existing), aiofiles 23.0+ (existing), subprocess (stdlib), pathlib (stdlib)

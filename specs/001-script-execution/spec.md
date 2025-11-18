@@ -18,6 +18,9 @@
 - Q: How are arguments passed to scripts when the agent invokes them? → A: Arguments are passed as JSON via stdin (scripts must read and parse JSON from standard input)
 - Q: How does the system determine which interpreter to use for each script type? → A: Extension-based mapping with fallback to shebang line (e.g., `.py` → `python3`, `.sh` → `bash`, `.js` → `node`, then check shebang if needed)
 - Q: How does the system handle scripts that produce extremely large output (e.g., 100MB to stdout)? → A: Capture up to a size limit (10MB), then truncate with warning logged
+- Q: What should the system do when a script path contains spaces or special characters (e.g., `scripts/my script.py` or `scripts/file[1].py`)? → A: Allow all characters except path separators (.., /, \); rely on FilePathResolver validation
+- Q: How should the system handle scripts that crash with segmentation faults or other signals (e.g., SIGKILL, SIGSEGV)? → A: Return negative exit code (e.g., -11 for SIGSEGV), stderr="Signal: SIGSEGV", log as ERROR
+- Q: How should the system handle concurrent script executions from the same skill (e.g., agent invokes same script multiple times in parallel)? → A: Allow concurrent executions (each gets independent subprocess, no shared state)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -35,6 +38,7 @@ As a user interacting with an AI agent, I want skills to perform deterministic o
 2. **Given** a skill script that performs data transformation, **When** the script completes successfully (exit code 0), **Then** the transformed data is available in stdout for the agent to use
 3. **Given** a skill script that fails with an error, **When** the script exits with non-zero code, **Then** the error message from stderr is captured and returned to the agent for error handling
 4. **Given** a skill with nested scripts in `scripts/utils/parser.py`, **When** the agent invokes the nested script, **Then** the script path is resolved correctly relative to the skill base directory
+5. **Given** a script that crashes with a segmentation fault (SIGSEGV), **When** the script execution completes, **Then** exit_code is -11, stderr contains "Signal: SIGSEGV", and an ERROR log entry is created with signal details
 
 ---
 
@@ -125,11 +129,11 @@ As a skill author, I want my scripts to be automatically discovered so that I do
 
 ### Edge Cases
 
-- What happens when a script path contains special characters or spaces?
+- **Script paths with spaces or special characters** (e.g., `scripts/my script.py`, `scripts/file[1].py`): All characters are allowed except path separators (.., /, \); FilePathResolver validates the final resolved path is within the skill base directory regardless of filename characters
+- **Scripts that crash with segmentation faults or other signals** (SIGKILL, SIGSEGV, etc.): Return negative exit code matching the signal number (e.g., -11 for SIGSEGV), set stderr to "Signal: <SIGNAL_NAME>", and log as ERROR level with signal details for debugging
+- **Concurrent script executions from the same skill**: Each execution gets an independent subprocess with no shared state; multiple parallel invocations are supported without locking or serialization (subprocess module is thread-safe)
 - What happens when a script is deleted or moved while the skill is loaded in memory?
-- How does the system handle scripts that crash with segmentation faults or other signals?
 - What happens when the working directory doesn't have write permissions?
-- How does the system handle concurrent script executions from the same skill?
 - What happens when environment variables exceed system limits?
 - How does the system handle scripts on different platforms (Windows vs Unix)?
 - What happens when arguments cannot be serialized to JSON (e.g., circular references, non-JSON-serializable objects)?
@@ -140,9 +144,9 @@ As a skill author, I want my scripts to be automatically discovered so that I do
 ### Functional Requirements
 
 - **FR-001**: System MUST execute scripts within the skill's base directory as the working directory
-- **FR-002**: System MUST capture stdout, stderr, exit code, and execution time for all script executions; stdout and stderr are each captured up to 10MB, beyond which output is truncated with a WARNING log entry
+- **FR-002**: System MUST capture stdout, stderr, exit code, and execution time for all script executions; stdout and stderr are each captured up to 10MB, beyond which output is truncated with a WARNING log entry; for scripts terminated by signals (SIGSEGV, SIGKILL, etc.), exit_code is set to negative signal number (e.g., -11 for SIGSEGV), stderr is set to "Signal: <SIGNAL_NAME>", and an ERROR log entry is created with signal details
 - **FR-003**: System MUST inject environment variables (SKILL_NAME, SKILL_BASE_DIR, SKILL_VERSION, SKILLKIT_VERSION) before script execution
-- **FR-004**: System MUST validate script paths using FilePathResolver before execution to prevent path traversal attacks
+- **FR-004**: System MUST validate script paths using FilePathResolver before execution to prevent path traversal attacks; script paths MAY contain spaces and special characters (all characters allowed except path separators .., /, \); validation focuses on ensuring the resolved path is within the skill base directory, not restricting filename characters
 - **FR-005**: System MUST enforce execution timeouts with configurable duration (default 30 seconds) and kill processes that exceed the timeout
 - **FR-006**: System MUST reject scripts with setuid or setgid permissions before execution
 - **FR-007**: System MUST log all script executions with timestamp, skill name, script path, arguments (truncated to 256 chars), exit code, and execution time for security auditing
@@ -187,6 +191,7 @@ As a skill author, I want my scripts to be automatically discovered so that I do
 - Scripts are provided by trusted skill authors; the system validates paths and permissions but doesn't sandbox script execution beyond OS-level permissions
 - The agent process has necessary permissions to execute scripts; required interpreters (python3, bash, node, ruby, perl) are available in PATH and mapped from file extensions with shebang fallback
 - Scripts read arguments as JSON from stdin and write results to stdout; they don't rely on shell-specific features that require `shell=True`
+- Concurrent script executions are supported with independent subprocesses per invocation; scripts are responsible for managing their own file-level concurrency (e.g., file locking) if needed
 - Performance targets assume modern hardware (SSD storage, multi-core CPU) and reasonable script complexity
 - Audit logging uses Python's standard logging framework; persistence and log rotation are handled by deployment configuration
 - Tool restriction enforcement is complementary to framework-level tool filtering; frameworks may provide additional controls
