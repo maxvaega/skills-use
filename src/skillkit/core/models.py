@@ -100,11 +100,13 @@ class Skill:
         metadata: Lightweight metadata from discovery phase
         base_directory: Base directory context for skill execution
         _processor: Content processor chain (initialized in __post_init__)
+        _scripts: Cached detected scripts (lazy-loaded, v0.3+)
     """
 
     metadata: SkillMetadata
     base_directory: Path
     _processor: "CompositeProcessor" = field(init=False, repr=False)
+    _scripts: list | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         """Initialize processor chain (avoids inline imports anti-pattern).
@@ -269,6 +271,44 @@ class Skill:
             "skill_name": self.metadata.name,
         }
         return self._processor.process(content, context)
+
+    @property
+    def scripts(self) -> list:
+        """Lazy load detected scripts (v0.3+).
+
+        Scripts are detected once on first access and cached for the skill's lifetime.
+        Detection scans the skill's scripts/ directory and root directory for executable
+        scripts (.py, .sh, .js, .rb, .pl).
+
+        Returns:
+            List of ScriptMetadata instances (may be empty if no scripts found)
+
+        Raises:
+            ScriptDetectionError: If script detection fails critically
+
+        Performance:
+            - First access: ~5-10ms (directory scanning + description extraction)
+            - Subsequent: <1μs (cached)
+
+        Example:
+            >>> skill.scripts
+            [ScriptMetadata(name='extract', path=Path('scripts/extract.py'), ...)]
+        """
+        # Return cached scripts if already detected
+        if self._scripts is not None:
+            return self._scripts
+
+        # Import ScriptDetector only when needed (circular dependency prevention)
+        from skillkit.core.scripts import ScriptDetector
+
+        # Detect scripts and cache results
+        detector = ScriptDetector()
+        scripts = detector.detect_scripts(self.base_directory)
+
+        # Use object.__setattr__ because dataclass is frozen
+        object.__setattr__(self, "_scripts", scripts)
+
+        return scripts
 
 
 @dataclass(frozen=True, slots=True)

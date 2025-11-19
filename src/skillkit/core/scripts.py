@@ -703,4 +703,445 @@ class ScriptExecutor:
         self.max_output_size = max_output_size
         self.use_cache = use_cache
 
-    # Implementation will be added in Phase 3 (User Story 1)
+    def _validate_script_path(self, script_path: Path, skill_base_dir: Path) -> Path:
+        """Validate script path and prevent path traversal attacks.
+
+        Args:
+            script_path: Path to the script (can be relative or absolute)
+            skill_base_dir: Base directory of the skill
+
+        Returns:
+            Resolved absolute path to the script
+
+        Raises:
+            PathSecurityError: If path escapes skill directory or is invalid
+            FileNotFoundError: If script doesn't exist
+
+        Security:
+            - Uses os.path.realpath() to resolve symlinks
+            - Uses os.path.commonpath() to verify paths stay within skill directory
+            - Rejects paths pointing outside skill base directory
+        """
+        from skillkit.core.exceptions import PathSecurityError
+
+        # Ensure skill_base_dir is absolute
+        skill_base_dir = Path(os.path.realpath(skill_base_dir))
+
+        # Convert to absolute path if relative
+        if not script_path.is_absolute():
+            script_path = skill_base_dir / script_path
+
+        # Resolve to canonical path (follows symlinks)
+        try:
+            resolved_path = Path(os.path.realpath(script_path))
+        except (OSError, RuntimeError) as e:
+            raise PathSecurityError(
+                f"Invalid script path or symlink loop: {script_path}"
+            ) from e
+
+        # Verify path stays within skill_base_dir
+        try:
+            common = Path(os.path.commonpath([str(skill_base_dir), str(resolved_path)]))
+        except ValueError as e:
+            # Paths on different drives (Windows)
+            raise PathSecurityError(
+                f"Script path on different drive: {script_path}"
+            ) from e
+
+        if common != skill_base_dir:
+            raise PathSecurityError(
+                f"Script path escapes skill directory: {script_path} -> {resolved_path}"
+            )
+
+        # Additional check: resolved path must start with skill_base_dir
+        if not str(resolved_path).startswith(str(skill_base_dir) + os.sep):
+            raise PathSecurityError(
+                f"Script path outside skill directory: {resolved_path}"
+            )
+
+        # Verify file exists and is a regular file
+        if not resolved_path.is_file():
+            raise FileNotFoundError(f"Script not found: {resolved_path}")
+
+        return resolved_path
+
+    def _check_permissions(self, script_path: Path) -> None:
+        """Check script permissions and reject dangerous configurations.
+
+        Args:
+            script_path: Absolute path to the script
+
+        Raises:
+            ScriptPermissionError: If script has setuid/setgid bits
+
+        Security:
+            - Rejects scripts with setuid bit (Unix-only)
+            - Rejects scripts with setgid bit (Unix-only)
+            - Skips checks on Windows (no setuid/setgid)
+        """
+        from skillkit.core.exceptions import ScriptPermissionError
+        import stat
+
+        # Skip permission checks on Windows
+        if os.name == 'nt':
+            return
+
+        # Get file status
+        file_stat = script_path.stat()
+        mode = file_stat.st_mode
+
+        # Check for setuid bit
+        has_setuid = bool(mode & stat.S_ISUID)
+
+        # Check for setgid bit
+        has_setgid = bool(mode & stat.S_ISGID)
+
+        # Reject scripts with dangerous permissions
+        if has_setuid or has_setgid:
+            raise ScriptPermissionError(
+                f"Script has dangerous permissions: {script_path}\n"
+                f"  Mode: {oct(mode)}\n"
+                f"  Setuid: {has_setuid}\n"
+                f"  Setgid: {has_setgid}\n"
+                f"  Recommendation: Remove dangerous bits with 'chmod u-s,g-s {script_path}'"
+            )
+
+    def _resolve_interpreter(self, script_path: Path) -> str:
+        """Resolve interpreter for script execution.
+
+        Args:
+            script_path: Path to the script
+
+        Returns:
+            Interpreter command name (e.g., 'python3', 'bash')
+
+        Raises:
+            InterpreterNotFoundError: If required interpreter not found in PATH
+
+        Strategy:
+            1. Map file extension to interpreter using INTERPRETER_MAP
+            2. Validate interpreter exists in PATH using shutil.which()
+            3. Raise error if interpreter not found
+        """
+        from skillkit.core.exceptions import InterpreterNotFoundError
+
+        # Get interpreter from extension
+        ext = script_path.suffix.lower()
+        interpreter = INTERPRETER_MAP.get(ext)
+
+        if not interpreter:
+            raise InterpreterNotFoundError(
+                f"No interpreter mapping for extension: {ext}"
+            )
+
+        # Verify interpreter exists in PATH
+        if not shutil.which(interpreter):
+            raise InterpreterNotFoundError(
+                f"Interpreter '{interpreter}' not found in PATH for {script_path.name}"
+            )
+
+        return interpreter
+
+    def _serialize_arguments(self, arguments: ScriptArguments) -> str:
+        """Serialize arguments to JSON for stdin.
+
+        Args:
+            arguments: Arguments dictionary
+
+        Returns:
+            JSON string
+
+        Raises:
+            ArgumentSerializationError: If arguments cannot be serialized
+            ArgumentSizeError: If serialized arguments exceed 10MB
+        """
+        from skillkit.core.exceptions import ArgumentSerializationError, ArgumentSizeError
+
+        try:
+            serialized = json.dumps(arguments, ensure_ascii=False, indent=None)
+        except (TypeError, ValueError) as e:
+            raise ArgumentSerializationError(
+                f"Cannot serialize arguments to JSON: {e}"
+            ) from e
+
+        # Check size limit (10MB)
+        size_bytes = len(serialized.encode('utf-8'))
+        if size_bytes > 10_000_000:
+            raise ArgumentSizeError(
+                f"Arguments too large: {size_bytes} bytes (max 10MB)"
+            )
+
+        return serialized
+
+    def _build_environment(
+        self,
+        skill_metadata,
+        skill_base_dir: Path
+    ) -> ScriptEnvironment:
+        """Build environment variables for script execution.
+
+        Args:
+            skill_metadata: SkillMetadata instance
+            skill_base_dir: Base directory of the skill
+
+        Returns:
+            Environment variables dict
+
+        Injects:
+            - SKILL_NAME: Name of the skill
+            - SKILL_BASE_DIR: Absolute path to skill directory
+            - SKILL_VERSION: Version from metadata (if available)
+            - SKILLKIT_VERSION: Current skillkit version
+        """
+        import skillkit
+
+        env = os.environ.copy()
+
+        # Inject skill metadata
+        env['SKILL_NAME'] = skill_metadata.name
+        env['SKILL_BASE_DIR'] = str(skill_base_dir)
+        env['SKILLKIT_VERSION'] = skillkit.__version__
+
+        # Add version if available
+        if hasattr(skill_metadata, 'version') and skill_metadata.version:
+            env['SKILL_VERSION'] = skill_metadata.version
+        else:
+            env['SKILL_VERSION'] = '0.0.0'
+
+        return env
+
+    def _execute_subprocess(
+        self,
+        interpreter: str,
+        script_path: Path,
+        arguments_json: str,
+        env: ScriptEnvironment,
+        skill_base_dir: Path
+    ) -> tuple[int, str, str, Optional[str], Optional[int]]:
+        """Execute script as subprocess.
+
+        Args:
+            interpreter: Interpreter command (e.g., 'python3')
+            script_path: Absolute path to script
+            arguments_json: JSON-serialized arguments
+            env: Environment variables
+            skill_base_dir: Working directory for execution
+
+        Returns:
+            Tuple of (exit_code, stdout, stderr, signal_name, signal_number)
+
+        Security:
+            - Uses shell=False (command injection prevention)
+            - Uses list-based arguments (no shell interpretation)
+            - Enforces timeout
+        """
+        try:
+            result = subprocess.run(
+                [interpreter, str(script_path)],
+                input=arguments_json,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                cwd=str(skill_base_dir),
+                shell=False,  # CRITICAL: Never use shell=True
+                check=False,
+                env=env
+            )
+
+            # Detect signal-based termination (Unix only)
+            signal_name = None
+            signal_number = None
+
+            if result.returncode < 0:
+                signal_number = -result.returncode
+                try:
+                    signal_name = signal_module.Signals(signal_number).name
+                except ValueError:
+                    signal_name = f"UNKNOWN_SIGNAL_{signal_number}"
+
+            return (
+                result.returncode,
+                result.stdout,
+                result.stderr,
+                signal_name,
+                signal_number
+            )
+
+        except subprocess.TimeoutExpired as e:
+            # Return timeout indication
+            stdout = e.stdout.decode('utf-8', errors='replace') if e.stdout else ''
+            stderr = e.stderr.decode('utf-8', errors='replace') if e.stderr else ''
+
+            return (
+                124,  # Conventional timeout exit code
+                stdout,
+                stderr + '\nTimeout',
+                None,
+                None
+            )
+
+    def _handle_output_truncation(
+        self,
+        stdout: str,
+        stderr: str
+    ) -> tuple[str, str, bool, bool]:
+        """Truncate output if it exceeds size limits.
+
+        Args:
+            stdout: Standard output
+            stderr: Standard error
+
+        Returns:
+            Tuple of (stdout, stderr, stdout_truncated, stderr_truncated)
+        """
+        stdout_truncated = False
+        stderr_truncated = False
+
+        # Truncate stdout if needed
+        if len(stdout.encode('utf-8')) > self.max_output_size:
+            # Truncate to max_output_size bytes
+            truncated_stdout = stdout.encode('utf-8')[:self.max_output_size].decode('utf-8', errors='ignore')
+            stdout = truncated_stdout + '\n[... OUTPUT TRUNCATED: exceeded 10MB limit ...]'
+            stdout_truncated = True
+
+        # Truncate stderr if needed
+        if len(stderr.encode('utf-8')) > self.max_output_size:
+            truncated_stderr = stderr.encode('utf-8')[:self.max_output_size].decode('utf-8', errors='ignore')
+            stderr = truncated_stderr + '\n[... STDERR TRUNCATED: exceeded 10MB limit ...]'
+            stderr_truncated = True
+
+        return stdout, stderr, stdout_truncated, stderr_truncated
+
+    def _detect_signal(
+        self,
+        exit_code: int,
+        signal_name: Optional[str],
+        signal_number: Optional[int]
+    ) -> tuple[Optional[str], Optional[int]]:
+        """Detect signal information from exit code.
+
+        Args:
+            exit_code: Process exit code
+            signal_name: Signal name from subprocess (if any)
+            signal_number: Signal number from subprocess (if any)
+
+        Returns:
+            Tuple of (signal_name, signal_number)
+        """
+        # If already detected by subprocess, return as-is
+        if signal_name is not None:
+            return signal_name, signal_number
+
+        # No signal detected
+        return None, None
+
+    def execute(
+        self,
+        script_path: Path,
+        arguments: ScriptArguments,
+        skill_base_dir: Path,
+        skill_metadata
+    ) -> ScriptExecutionResult:
+        """Execute a script with security controls.
+
+        Args:
+            script_path: Path to the script (relative or absolute)
+            arguments: Arguments to pass as JSON via stdin
+            skill_base_dir: Base directory of the skill
+            skill_metadata: SkillMetadata instance
+
+        Returns:
+            ScriptExecutionResult with execution details
+
+        Raises:
+            PathSecurityError: If path validation fails
+            ScriptPermissionError: If script has dangerous permissions
+            InterpreterNotFoundError: If interpreter not found
+            ArgumentSerializationError: If arguments cannot be serialized
+            ArgumentSizeError: If arguments too large
+
+        Example:
+            >>> executor = ScriptExecutor(timeout=30)
+            >>> result = executor.execute(
+            ...     script_path=Path('scripts/extract.py'),
+            ...     arguments={'file': 'document.pdf'},
+            ...     skill_base_dir=Path('/path/to/skill'),
+            ...     skill_metadata=skill.metadata
+            ... )
+            >>> if result.success:
+            ...     print(result.stdout)
+        """
+        # Start timing
+        start_time = time.perf_counter()
+
+        # Validate and resolve script path
+        validated_path = self._validate_script_path(script_path, skill_base_dir)
+
+        # Check permissions
+        self._check_permissions(validated_path)
+
+        # Resolve interpreter
+        interpreter = self._resolve_interpreter(validated_path)
+
+        # Serialize arguments
+        arguments_json = self._serialize_arguments(arguments)
+
+        # Build environment
+        env = self._build_environment(skill_metadata, skill_base_dir)
+
+        # Execute subprocess
+        exit_code, stdout, stderr, signal_name, signal_number = self._execute_subprocess(
+            interpreter,
+            validated_path,
+            arguments_json,
+            env,
+            skill_base_dir
+        )
+
+        # Handle output truncation
+        stdout, stderr, stdout_truncated, stderr_truncated = self._handle_output_truncation(
+            stdout,
+            stderr
+        )
+
+        # Detect signal
+        signal_name, signal_number = self._detect_signal(
+            exit_code,
+            signal_name,
+            signal_number
+        )
+
+        # Calculate execution time
+        execution_time_ms = (time.perf_counter() - start_time) * 1000
+
+        # Log execution details
+        if exit_code == 0:
+            logger.info(
+                f"Script executed successfully: {validated_path.name} "
+                f"(exit_code={exit_code}, time={execution_time_ms:.1f}ms)"
+            )
+        else:
+            logger.error(
+                f"Script execution failed: {validated_path.name} "
+                f"(exit_code={exit_code}, time={execution_time_ms:.1f}ms)"
+            )
+
+        # Log truncation warnings
+        if stdout_truncated:
+            logger.warning(f"Script stdout truncated: {validated_path.name}")
+
+        if stderr_truncated:
+            logger.warning(f"Script stderr truncated: {validated_path.name}")
+
+        # Return result
+        return ScriptExecutionResult(
+            stdout=stdout,
+            stderr=stderr,
+            exit_code=exit_code,
+            execution_time_ms=execution_time_ms,
+            script_path=validated_path,
+            signal=signal_name,
+            signal_number=signal_number,
+            stdout_truncated=stdout_truncated,
+            stderr_truncated=stderr_truncated
+        )

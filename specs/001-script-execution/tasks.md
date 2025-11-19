@@ -50,8 +50,8 @@ description: "Task list for Script Execution Support feature"
 - [X] T010 [P] Implement ScriptExecutionResult dataclass in src/skillkit/core/scripts.py with fields: stdout, stderr, exit_code, execution_time_ms, script_path, signal, signal_number, stdout_truncated, stderr_truncated, and properties: success, timeout, signaled
 - [X] T011 [P] Implement INTERPRETER_MAP constant dict in src/skillkit/core/scripts.py mapping extensions (.py, .sh, .js, .rb, .pl, .bat, .cmd, .ps1) to interpreters
 - [X] T012 [P] Add type aliases to src/skillkit/core/scripts.py: ScriptArguments, ScriptEnvironment, ScriptList
-- [ ] T013 Extend Skill dataclass in src/skillkit/core/models.py with _scripts field (Optional[List[ScriptMetadata]]) and scripts property (lazy-loaded)
-- [ ] T014 Update src/skillkit/__init__.py to export new script classes: ScriptMetadata, ScriptExecutionResult, and script exceptions
+- [X] T013 Extend Skill dataclass in src/skillkit/core/models.py with _scripts field (Optional[List[ScriptMetadata]]) and scripts property (lazy-loaded)
+- [X] T014 Update src/skillkit/__init__.py to export new script classes: ScriptMetadata, ScriptExecutionResult, and script exceptions
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -410,6 +410,7 @@ After implementation, verify these measurable outcomes from spec.md:
 - Focus on MVP first (US1 + LangChain integration) before adding security/convenience features
 - Security is critical: never use shell=True, always validate paths, enforce timeouts
 - Backward compatibility: all v0.1/v0.2 APIs must continue working unchanged
+- gitignore file is already configured, do not check
 
 ---
 

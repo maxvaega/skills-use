@@ -12,11 +12,16 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 # Public API exports
 from skillkit.core.exceptions import (
     ArgumentProcessingError,
+    ArgumentSerializationError,
+    ArgumentSizeError,
     ContentLoadError,
+    InterpreterNotFoundError,
     InvalidFrontmatterError,
     InvalidYAMLError,
     MissingRequiredFieldError,
     PathSecurityError,
+    ScriptNotFoundError,
+    ScriptPermissionError,
     SizeLimitExceededError,
     SkillInvocationError,
     SkillNotFoundError,
@@ -28,6 +33,7 @@ from skillkit.core.exceptions import (
 from skillkit.core.manager import SkillManager
 from skillkit.core.models import Skill, SkillMetadata
 from skillkit.core.path_resolver import FilePathResolver
+from skillkit.core.scripts import ScriptExecutionResult, ScriptMetadata
 
 __version__ = "0.1.0"
 
@@ -37,6 +43,9 @@ __all__ = [
     "SkillMetadata",
     "Skill",
     "FilePathResolver",
+    # Script classes (v0.3+)
+    "ScriptMetadata",
+    "ScriptExecutionResult",
     # Base exceptions
     "SkillsUseError",
     "SkillParsingError",
@@ -54,4 +63,10 @@ __all__ = [
     "SuspiciousInputError",
     "SizeLimitExceededError",
     "PathSecurityError",
+    # Script exceptions (v0.3+)
+    "InterpreterNotFoundError",
+    "ScriptNotFoundError",
+    "ScriptPermissionError",
+    "ArgumentSerializationError",
+    "ArgumentSizeError",
 ]
