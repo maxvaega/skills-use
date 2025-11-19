@@ -134,11 +134,11 @@ description: "Task list for Script Execution Support feature"
 
 ### Implementation for User Story 4
 
-- [ ] T045 [US4] Implement _check_tool_restrictions() method in ScriptExecutor to validate "Bash" is in skill_metadata.allowed_tools
-- [ ] T046 [US4] Raise ToolRestrictionError in _check_tool_restrictions() if Bash not allowed (with skill name and allowed tools list in error message)
-- [ ] T047 [US4] Call _check_tool_restrictions() in execute() before script execution (after path/permission validation)
-- [ ] T048 [US4] Handle None/empty allowed_tools (no restrictions) by allowing all script executions
-- [ ] T049 [US4] Add test fixture tests/fixtures/skills/restricted-skill/ with SKILL.md declaring allowed-tools without Bash
+- [X] T045 [US4] Implement _check_tool_restrictions() method in ScriptExecutor to validate "Bash" is in skill_metadata.allowed_tools
+- [X] T046 [US4] Raise ToolRestrictionError in _check_tool_restrictions() if Bash not allowed (with skill name and allowed tools list in error message)
+- [X] T047 [US4] Call _check_tool_restrictions() in execute() before script execution (after path/permission validation)
+- [X] T048 [US4] Handle None/empty allowed_tools (no restrictions) by allowing all script executions
+- [X] T049 [US4] Add test fixture tests/fixtures/skills/restricted-skill/ with SKILL.md declaring allowed-tools without Bash
 
 **Checkpoint**: Tool restrictions enforced - scripts only execute if Bash in allowed-tools or no restrictions defined
 
@@ -152,12 +152,12 @@ description: "Task list for Script Execution Support feature"
 
 ### Implementation for User Story 5
 
-- [ ] T050 [US5] Ensure _build_environment() in ScriptExecutor injects SKILL_NAME from skill_metadata.name
-- [ ] T051 [US5] Ensure _build_environment() in ScriptExecutor injects SKILL_BASE_DIR as absolute path string
-- [ ] T052 [US5] Ensure _build_environment() in ScriptExecutor injects SKILL_VERSION from skill_metadata.version
-- [ ] T053 [US5] Ensure _build_environment() in ScriptExecutor injects SKILLKIT_VERSION from skillkit.__version__
-- [ ] T054 [US5] Merge injected environment with os.environ (preserve system PATH, HOME, etc.)
-- [ ] T055 [US5] Update examples/script_execution.py to demonstrate environment variable usage in scripts
+- [X] T050 [US5] Ensure _build_environment() in ScriptExecutor injects SKILL_NAME from skill_metadata.name
+- [X] T051 [US5] Ensure _build_environment() in ScriptExecutor injects SKILL_BASE_DIR as absolute path string
+- [X] T052 [US5] Ensure _build_environment() in ScriptExecutor injects SKILL_VERSION from skill_metadata.version
+- [X] T053 [US5] Ensure _build_environment() in ScriptExecutor injects SKILLKIT_VERSION from skillkit.__version__
+- [X] T054 [US5] Merge injected environment with os.environ (preserve system PATH, HOME, etc.)
+- [X] T055 [US5] Update examples/script_execution.py to demonstrate environment variable usage in scripts
 
 **Checkpoint**: Environment context available - all scripts receive skill metadata via environment variables
 

@@ -845,6 +845,44 @@ class ScriptExecutor:
                 f"  Recommendation: Remove dangerous bits with 'chmod u-s,g-s {script_path}'"
             )
 
+    def _check_tool_restrictions(self, skill_metadata: "SkillMetadata") -> None:
+        """Check if script execution is allowed based on skill's tool restrictions.
+
+        Args:
+            skill_metadata: SkillMetadata instance containing allowed_tools
+
+        Raises:
+            ToolRestrictionError: If 'Bash' not in allowed_tools (when restrictions exist)
+
+        Security:
+            - Enforces tool restriction policy defined in SKILL.md
+            - None/empty allowed_tools = no restrictions (all tools allowed)
+            - Non-empty allowed_tools = must include 'Bash' to execute scripts
+
+        Notes:
+            Script execution requires the 'Bash' tool permission regardless of
+            the actual interpreter used (python3, node, etc.) because all script
+            execution goes through subprocess which is conceptually similar to
+            shell execution.
+        """
+        from skillkit.core.exceptions import ToolRestrictionError
+
+        # Handle None/empty allowed_tools (no restrictions)
+        if not skill_metadata.allowed_tools:
+            # No restrictions defined - allow all script executions
+            return
+
+        # Check if 'Bash' is in allowed tools
+        if 'Bash' not in skill_metadata.allowed_tools:
+            # Get allowed tools list for error message
+            allowed_tools_str = ', '.join(skill_metadata.allowed_tools)
+
+            raise ToolRestrictionError(
+                f"Script execution not allowed for skill '{skill_metadata.name}'. "
+                f"The skill's allowed-tools list does not include 'Bash'. "
+                f"Allowed tools: [{allowed_tools_str}]"
+            )
+
     def _resolve_interpreter(self, script_path: Path) -> str:
         """Resolve interpreter for script execution.
 
@@ -1122,6 +1160,9 @@ class ScriptExecutor:
 
         # Check permissions
         self._check_permissions(validated_path)
+
+        # Check tool restrictions (must be after path/permission validation)
+        self._check_tool_restrictions(skill_metadata)
 
         # Resolve interpreter
         interpreter = self._resolve_interpreter(validated_path)
