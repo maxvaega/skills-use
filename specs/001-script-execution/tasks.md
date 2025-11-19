@@ -171,13 +171,13 @@ description: "Task list for Script Execution Support feature"
 
 ### Implementation for User Story 6
 
-- [ ] T056 [US6] Implement recursive scanning in _scan_directories() up to max_depth levels (default 5)
-- [ ] T057 [US6] Exclude __pycache__, node_modules, .venv, venv directories in _is_executable_script()
-- [ ] T058 [US6] Skip hidden files (starting with '.') in _is_executable_script()
-- [ ] T059 [US6] Skip symlinks in _is_executable_script() to avoid confusion and duplicate detection
-- [ ] T060 [US6] Ensure detection completes in <10ms for 50 scripts by benchmarking detect_scripts() performance
-- [ ] T061 [US6] Add INFO level logging in detect_scripts() with script count summary: "Detected {count} scripts in skill '{skill_name}'"
-- [ ] T062 [US6] Handle graceful degradation if individual script parsing fails (log warning, skip script, continue detection)
+- [X] T056 [US6] Implement recursive scanning in _scan_directories() up to max_depth levels (default 5)
+- [X] T057 [US6] Exclude __pycache__, node_modules, .venv, venv directories in _is_executable_script()
+- [X] T058 [US6] Skip hidden files (starting with '.') in _is_executable_script()
+- [X] T059 [US6] Skip symlinks in _is_executable_script() to avoid confusion and duplicate detection
+- [X] T060 [US6] Ensure detection completes in <10ms for 50 scripts by benchmarking detect_scripts() performance
+- [X] T061 [US6] Add INFO level logging in detect_scripts() with script count summary: "Detected {count} scripts in skill '{skill_name}'"
+- [X] T062 [US6] Handle graceful degradation if individual script parsing fails (log warning, skip script, continue detection)
 
 **Checkpoint**: Automatic detection working - all executable scripts found recursively, excluding hidden/cache files
 
@@ -189,15 +189,15 @@ description: "Task list for Script Execution Support feature"
 
 **Dependencies**: Requires US1 (script execution), US6 (detection)
 
-- [ ] T063 [P] Define ScriptToolResult TypedDict in src/skillkit/integrations/langchain.py with type, tool_use_id, content, is_error fields
-- [ ] T064 Implement create_script_tools() function in src/skillkit/integrations/langchain.py to iterate skill.scripts and create StructuredTool per script
-- [ ] T065 Implement script tool wrapper function that calls SkillManager.execute_skill_script(), returns stdout on success, raises ToolException on failure
-- [ ] T066 Set tool name to "{skill_name}.{script_name}" format (e.g., "pdf-extractor.extract")
-- [ ] T067 Set tool description from script.description (extracted from first comment block) or empty string if no description
-- [ ] T068 Define free-form JSON input schema for script tools (single field accepting any JSON structure)
-- [ ] T069 Update to_langchain_tools() in LangChainSkillAdapter to call create_script_tools() and append to tools list
-- [ ] T070 Preserve prompt-based tool alongside script tools if skill has prompt (skills can expose 1+N tools)
-- [ ] T071 Update examples/langchain_agent.py to demonstrate script tool usage with LangChain agents
+- [X] T063 [P] Define ScriptToolResult TypedDict in src/skillkit/integrations/langchain.py with type, tool_use_id, content, is_error fields
+- [X] T064 Implement create_script_tools() function in src/skillkit/integrations/langchain.py to iterate skill.scripts and create StructuredTool per script
+- [X] T065 Implement script tool wrapper function that calls SkillManager.execute_skill_script(), returns stdout on success, raises ToolException on failure
+- [X] T066 Set tool name to "{skill_name}.{script_name}" format (e.g., "pdf-extractor.extract")
+- [X] T067 Set tool description from script.description (extracted from first comment block) or empty string if no description
+- [X] T068 Define free-form JSON input schema for script tools (single field accepting any JSON structure)
+- [X] T069 Update to_langchain_tools() in LangChainSkillAdapter to call create_script_tools() and append to tools list
+- [X] T070 Preserve prompt-based tool alongside script tools if skill has prompt (skills can expose 1+N tools)
+- [X] T071 Update examples/langchain_agent.py to demonstrate script tool usage with LangChain agents
 
 **Checkpoint**: LangChain integration complete - each script exposed as separate tool, both sync and async supported
 

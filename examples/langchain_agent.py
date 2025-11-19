@@ -70,6 +70,32 @@ def main() -> None:
         except Exception as e:
             print(f"Error: {e}")
 
+    # Demonstrate script tool invocation (v0.3+)
+    print("\n[3.5] Testing script tool invocation (v0.3+ feature)...")
+    script_tools = [tool for tool in tools if "." in tool.name]
+    if script_tools:
+        print(f"\nFound {len(script_tools)} script-based tools:")
+        for tool in script_tools:
+            print(f"  - {tool.name}")
+
+        test_script_tool = script_tools[0]
+        print(f"\nInvoking script tool: {test_script_tool.name}")
+        print("Note: Script tools accept JSON dict arguments instead of strings")
+        try:
+            result = test_script_tool.invoke(
+                {"arguments": {"file": "example.pdf", "pages": [1, 2, 3]}}
+            )
+            print(f"\nScript result preview (first 200 chars):\n{'-' * 60}")
+            print(result[:200])
+            print("..." if len(result) > 200 else "")
+            print("-" * 60)
+        except Exception as e:
+            print(f"Info: {e}")
+            print("(This is expected if the example script doesn't exist)")
+    else:
+        print("\nNo script-based tools found in discovered skills")
+        print("Script tools are created automatically for skills with scripts/ directories")
+
     # Example agent setup (requires API key)
     print("\n[4] Agent setup example (requires API key)...")
     if os.getenv("OPENAI_API_KEY"):
@@ -185,6 +211,32 @@ async def async_agent_demo() -> None:
             print("-" * 60)
         except Exception as e:
             print(f"Error: {e}")
+
+    # Demonstrate ASYNC script tool invocation (v0.3+)
+    print("\n[3.5] Testing ASYNC script tool invocation (v0.3+ feature)...")
+    script_tools = [tool for tool in tools if "." in tool.name]
+    if script_tools:
+        print(f"\nFound {len(script_tools)} script-based tools:")
+        for tool in script_tools:
+            print(f"  - {tool.name}")
+
+        test_script_tool = script_tools[0]
+        print(f"\nInvoking script tool asynchronously: {test_script_tool.name}")
+        print("Note: Script tools accept JSON dict arguments instead of strings")
+        try:
+            result = await test_script_tool.ainvoke(
+                {"arguments": {"file": "example.pdf", "pages": [1, 2, 3]}}
+            )
+            print(f"\nAsync script result preview (first 200 chars):\n{'-' * 60}")
+            print(result[:200])
+            print("..." if len(result) > 200 else "")
+            print("-" * 60)
+        except Exception as e:
+            print(f"Info: {e}")
+            print("(This is expected if the example script doesn't exist)")
+    else:
+        print("\nNo script-based tools found in discovered skills")
+        print("Script tools are created automatically for skills with scripts/ directories")
 
     # Demonstrate concurrent tool invocations (async advantage)
     print("\n[4] Testing CONCURRENT async tool invocations...")
