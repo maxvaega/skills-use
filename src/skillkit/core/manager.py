@@ -6,7 +6,7 @@ skill discovery, access, and invocation.
 
 import logging
 from pathlib import Path
-from typing import Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from skillkit.core.discovery import SkillDiscovery
 from skillkit.core.exceptions import ConfigurationError, SkillNotFoundError, SkillsUseError
@@ -18,6 +18,9 @@ from skillkit.core.models import (
     SourceType,
 )
 from skillkit.core.parser import SkillParser
+
+if TYPE_CHECKING:
+    from skillkit.core.scripts import ScriptExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +68,7 @@ class SkillManager:
         anthropic_config_dir: Path | str | None = None,
         plugin_dirs: List[Path | str] | None = None,
         additional_search_paths: List[Path | str] | None = None,
+        default_script_timeout: int = 30,
     ) -> None:
         """Initialize skill manager with flexible multi-source configuration.
 
@@ -89,6 +93,11 @@ class SkillManager:
             additional_search_paths: Additional skill directories (priority: 5, 4, 3, ...)
                 - None (default): No additional paths (skip)
                 - [Path, ...]: Validate each exists → add OR raise ConfigurationError
+
+            default_script_timeout: Default timeout for script execution in seconds (default: 30)
+                - Used by execute_skill_script() when custom timeout not specified
+                - Valid range: 1-600 seconds
+                - Individual executions can override this value
 
         Raises:
             ConfigurationError: When explicitly provided directory path doesn't exist
@@ -180,6 +189,9 @@ class SkillManager:
 
         # State tracking
         self._init_mode: InitMode = InitMode.UNINITIALIZED
+
+        # Script execution configuration (v0.3+)
+        self.default_script_timeout = default_script_timeout
 
         # Legacy v0.1 compatibility attribute
         self.skills_dir = (
@@ -892,3 +904,109 @@ class SkillManager:
         # Load skill and invoke asynchronously
         skill = self.load_skill(name)
         return await skill.ainvoke(arguments)
+
+    def execute_skill_script(
+        self,
+        skill_name: str,
+        script_name: str,
+        arguments: Dict[str, Any],
+        timeout: int | None = None,
+    ) -> "ScriptExecutionResult":
+        """Execute a specific script from a skill.
+
+        This method provides script execution capabilities for skills that bundle
+        executable scripts for deterministic operations like data transformation,
+        file processing, and system integrations.
+
+        Args:
+            skill_name: Name of the skill (e.g., 'pdf-extractor')
+            script_name: Name of the script without extension (e.g., 'extract')
+            arguments: Arguments to pass as JSON via stdin
+            timeout: Execution timeout in seconds (overrides default_script_timeout if specified)
+
+        Returns:
+            ScriptExecutionResult with execution details including:
+                - stdout: Captured standard output
+                - stderr: Captured standard error
+                - exit_code: Process exit code (0 = success)
+                - execution_time_ms: Execution duration in milliseconds
+                - script_path: Absolute path to executed script
+                - signal: Signal name if terminated by signal (Unix only)
+                - stdout_truncated/stderr_truncated: Truncation flags
+
+        Raises:
+            SkillNotFoundError: If skill doesn't exist in registry
+            ScriptNotFoundError: If script not found in skill's scripts
+            InterpreterNotFoundError: If required interpreter not available in PATH
+            PathSecurityError: If script path validation fails (path traversal attempt)
+            ScriptPermissionError: If script has dangerous permissions (setuid/setgid)
+            ArgumentSerializationError: If arguments cannot be JSON-serialized
+            ArgumentSizeError: If JSON payload exceeds 10MB
+            SkillsUseError: If manager not initialized (must call discover() first)
+
+        Security:
+            - Path validation prevents directory traversal attacks
+            - Permission checks reject setuid/setgid scripts
+            - Timeout enforcement prevents infinite loops
+            - Output size limits prevent memory exhaustion
+            - All executions are logged for auditing
+
+        Performance:
+            - Typical overhead: 10-50ms (path validation + subprocess spawn)
+            - Script detection is lazy (only runs when accessing skill.scripts)
+            - Detection time: <10ms for skills with ≤50 scripts
+
+        Example:
+            >>> manager = SkillManager()
+            >>> manager.discover()
+            >>> result = manager.execute_skill_script(
+            ...     skill_name="pdf-extractor",
+            ...     script_name="extract",
+            ...     arguments={"file": "document.pdf", "pages": [1, 2, 3]}
+            ... )
+            >>> if result.success:
+            ...     data = json.loads(result.stdout)
+            ...     print(f"Extracted {len(data['pages'])} pages")
+            >>> else:
+            ...     print(f"Script failed: {result.stderr}")
+
+        Version:
+            Added in v0.3.0
+        """
+        from skillkit.core.exceptions import ScriptNotFoundError
+        from skillkit.core.scripts import ScriptExecutor
+
+        # Validate manager is initialized
+        if self._init_mode == InitMode.UNINITIALIZED:
+            raise SkillsUseError(
+                "Manager not initialized. Call discover() or adiscover() before executing scripts."
+            )
+
+        # Look up skill
+        skill = self.load_skill(skill_name)
+
+        # Find script in skill's detected scripts (triggers lazy detection)
+        script_metadata = None
+        for script in skill.scripts:
+            if script.name == script_name:
+                script_metadata = script
+                break
+
+        if script_metadata is None:
+            raise ScriptNotFoundError(
+                f"Script '{script_name}' not found in skill '{skill_name}'. "
+                f"Available scripts: {', '.join(s.name for s in skill.scripts) or 'none'}"
+            )
+
+        # Use provided timeout or fallback to default
+        effective_timeout = timeout if timeout is not None else self.default_script_timeout
+
+        # Create executor and execute script
+        executor = ScriptExecutor(timeout=effective_timeout)
+
+        return executor.execute(
+            script_path=script_metadata.path,
+            arguments=arguments,
+            skill_base_dir=skill.base_directory,
+            skill_metadata=skill.metadata,
+        )

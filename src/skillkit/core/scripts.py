@@ -34,17 +34,19 @@ Version:
     Added in v0.3.0
 """
 
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Dict, Any, List, Optional
-import os
-import re
-import subprocess
 import json
-import shutil
-import time
-import signal as signal_module
 import logging
+import os
+import shutil
+import signal as signal_module
+import subprocess
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List
+
+if TYPE_CHECKING:
+    from skillkit.core.models import SkillMetadata
 
 # Type aliases for clarity
 ScriptArguments = Dict[str, Any]
@@ -216,14 +218,14 @@ class ScriptExecutionResult:
     Guaranteed to be within skill base directory (security validated).
     """
 
-    signal: Optional[str] = None
+    signal: str | None = None
     """Signal name if script was terminated by signal (Unix only).
 
     Examples: 'SIGSEGV', 'SIGKILL', 'SIGTERM', 'SIGINT'
     None if script exited normally.
     """
 
-    signal_number: Optional[int] = None
+    signal_number: int | None = None
     """Signal number if terminated by signal (Unix only).
 
     Examples: 11 (SIGSEGV), 9 (SIGKILL), 15 (SIGTERM)
@@ -342,7 +344,7 @@ class ScriptDescriptionExtractor:
             'This script processes data'
         """
         try:
-            with open(script_path, 'r', encoding='utf-8', errors='replace') as f:
+            with open(script_path, encoding='utf-8', errors='replace') as f:
                 lines = [f.readline() for _ in range(max_lines)]
 
             script_type = _get_script_type(script_path)
@@ -629,7 +631,7 @@ class ScriptDetector:
 
     def _extract_metadata(
         self, script_path: Path, skill_base_dir: Path
-    ) -> Optional[ScriptMetadata]:
+    ) -> ScriptMetadata | None:
         """Extract metadata from a script file.
 
         Args:
@@ -779,8 +781,9 @@ class ScriptExecutor:
             - Rejects scripts with setgid bit (Unix-only)
             - Skips checks on Windows (no setuid/setgid)
         """
-        from skillkit.core.exceptions import ScriptPermissionError
         import stat
+
+        from skillkit.core.exceptions import ScriptPermissionError
 
         # Skip permission checks on Windows
         if os.name == 'nt':
@@ -875,7 +878,7 @@ class ScriptExecutor:
 
     def _build_environment(
         self,
-        skill_metadata,
+        skill_metadata: "SkillMetadata",
         skill_base_dir: Path
     ) -> ScriptEnvironment:
         """Build environment variables for script execution.
@@ -917,7 +920,7 @@ class ScriptExecutor:
         arguments_json: str,
         env: ScriptEnvironment,
         skill_base_dir: Path
-    ) -> tuple[int, str, str, Optional[str], Optional[int]]:
+    ) -> tuple[int, str, str, str | None, int | None]:
         """Execute script as subprocess.
 
         Args:
@@ -1014,14 +1017,12 @@ class ScriptExecutor:
 
     def _detect_signal(
         self,
-        exit_code: int,
-        signal_name: Optional[str],
-        signal_number: Optional[int]
-    ) -> tuple[Optional[str], Optional[int]]:
-        """Detect signal information from exit code.
+        signal_name: str | None,
+        signal_number: int | None
+    ) -> tuple[str | None, int | None]:
+        """Detect signal information from subprocess.
 
         Args:
-            exit_code: Process exit code
             signal_name: Signal name from subprocess (if any)
             signal_number: Signal number from subprocess (if any)
 
@@ -1040,7 +1041,7 @@ class ScriptExecutor:
         script_path: Path,
         arguments: ScriptArguments,
         skill_base_dir: Path,
-        skill_metadata
+        skill_metadata: "SkillMetadata"
     ) -> ScriptExecutionResult:
         """Execute a script with security controls.
 
@@ -1106,7 +1107,6 @@ class ScriptExecutor:
 
         # Detect signal
         signal_name, signal_number = self._detect_signal(
-            exit_code,
             signal_name,
             signal_number
         )

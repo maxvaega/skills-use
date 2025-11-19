@@ -72,18 +72,18 @@ description: "Task list for Script Execution Support feature"
 - [X] T019 [US1] Implement _extract_metadata() method in ScriptDetector to create ScriptMetadata from detected files
 - [X] T020 [US1] Implement _get_script_type() helper function in src/skillkit/core/scripts.py to map extensions to script types
 - [X] T021 [P] [US1] Implement ScriptExecutor class __init__ in src/skillkit/core/scripts.py with timeout, max_output_size, use_cache parameters
-- [ ] T022 [US1] Implement _validate_script_path() method in ScriptExecutor using os.path.realpath and os.path.commonpath for path traversal prevention
-- [ ] T023 [US1] Implement _check_permissions() method in ScriptExecutor to reject setuid/setgid scripts
-- [ ] T024 [US1] Implement _resolve_interpreter() method in ScriptExecutor with extension mapping and shebang fallback
-- [ ] T025 [US1] Implement _serialize_arguments() method in ScriptExecutor with JSON serialization and size limit validation
-- [ ] T026 [US1] Implement _build_environment() method in ScriptExecutor to inject SKILL_NAME, SKILL_BASE_DIR, SKILL_VERSION, SKILLKIT_VERSION
-- [ ] T027 [US1] Implement _execute_subprocess() method in ScriptExecutor to run subprocess.run() with shell=False, capture output, handle signals
-- [ ] T028 [US1] Implement _handle_output_truncation() method in ScriptExecutor to truncate stdout/stderr at 10MB limit
-- [ ] T029 [US1] Implement _detect_signal() method in ScriptExecutor to parse negative exit codes as signals
-- [ ] T030 [US1] Implement execute() orchestration method in ScriptExecutor coordinating all validation, execution, and error handling steps
-- [ ] T031 [US1] Add audit logging to ScriptExecutor.execute() for INFO (success), ERROR (failure), WARNING (timeout/truncation) levels
-- [ ] T032 [US1] Extend SkillManager in src/skillkit/core/manager.py with default_script_timeout parameter in __init__
-- [ ] T033 [US1] Implement execute_skill_script() method in SkillManager to look up skill, find script, call ScriptExecutor, handle errors
+- [X] T022 [US1] Implement _validate_script_path() method in ScriptExecutor using os.path.realpath and os.path.commonpath for path traversal prevention
+- [X] T023 [US1] Implement _check_permissions() method in ScriptExecutor to reject setuid/setgid scripts
+- [X] T024 [US1] Implement _resolve_interpreter() method in ScriptExecutor with extension mapping and shebang fallback
+- [X] T025 [US1] Implement _serialize_arguments() method in ScriptExecutor with JSON serialization and size limit validation
+- [X] T026 [US1] Implement _build_environment() method in ScriptExecutor to inject SKILL_NAME, SKILL_BASE_DIR, SKILL_VERSION, SKILLKIT_VERSION
+- [X] T027 [US1] Implement _execute_subprocess() method in ScriptExecutor to run subprocess.run() with shell=False, capture output, handle signals
+- [X] T028 [US1] Implement _handle_output_truncation() method in ScriptExecutor to truncate stdout/stderr at 10MB limit
+- [X] T029 [US1] Implement _detect_signal() method in ScriptExecutor to parse negative exit codes as signals
+- [X] T030 [US1] Implement execute() orchestration method in ScriptExecutor coordinating all validation, execution, and error handling steps
+- [X] T031 [US1] Add audit logging to ScriptExecutor.execute() for INFO (success), ERROR (failure), WARNING (timeout/truncation) levels
+- [X] T032 [US1] Extend SkillManager in src/skillkit/core/manager.py with default_script_timeout parameter in __init__
+- [X] T033 [US1] Implement execute_skill_script() method in SkillManager to look up skill, find script, call ScriptExecutor, handle errors
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - scripts can be detected, executed, and results returned
 
