@@ -723,6 +723,7 @@ class ScriptExecutor:
             - Uses os.path.realpath() to resolve symlinks
             - Uses os.path.commonpath() to verify paths stay within skill directory
             - Rejects paths pointing outside skill base directory
+            - Validates symlinks don't point outside skill directory
         """
         from skillkit.core.exceptions import PathSecurityError
 
@@ -733,10 +734,17 @@ class ScriptExecutor:
         if not script_path.is_absolute():
             script_path = skill_base_dir / script_path
 
+        # Check if path is a symlink BEFORE resolving
+        is_symlink = script_path.is_symlink()
+
         # Resolve to canonical path (follows symlinks)
         try:
             resolved_path = Path(os.path.realpath(script_path))
         except (OSError, RuntimeError) as e:
+            logger.error(
+                f"Security violation: Invalid script path or symlink loop detected - "
+                f"path={script_path}, skill_base_dir={skill_base_dir}"
+            )
             raise PathSecurityError(
                 f"Invalid script path or symlink loop: {script_path}"
             ) from e
@@ -746,20 +754,44 @@ class ScriptExecutor:
             common = Path(os.path.commonpath([str(skill_base_dir), str(resolved_path)]))
         except ValueError as e:
             # Paths on different drives (Windows)
+            logger.error(
+                f"Security violation: Script path on different drive - "
+                f"path={script_path}, skill_base_dir={skill_base_dir}"
+            )
             raise PathSecurityError(
                 f"Script path on different drive: {script_path}"
             ) from e
 
         if common != skill_base_dir:
+            logger.error(
+                f"Security violation: Path traversal attempt detected - "
+                f"path={script_path}, resolved={resolved_path}, skill_base_dir={skill_base_dir}"
+            )
             raise PathSecurityError(
                 f"Script path escapes skill directory: {script_path} -> {resolved_path}"
             )
 
         # Additional check: resolved path must start with skill_base_dir
         if not str(resolved_path).startswith(str(skill_base_dir) + os.sep):
+            logger.error(
+                f"Security violation: Script path outside skill directory - "
+                f"path={script_path}, resolved={resolved_path}, skill_base_dir={skill_base_dir}"
+            )
             raise PathSecurityError(
                 f"Script path outside skill directory: {resolved_path}"
             )
+
+        # If it was a symlink, verify the target is also within skill directory
+        if is_symlink:
+            # Extra validation: symlink target must be within skill directory
+            if not str(resolved_path).startswith(str(skill_base_dir)):
+                logger.error(
+                    f"Security violation: Symlink points outside skill directory - "
+                    f"symlink={script_path}, target={resolved_path}, skill_base_dir={skill_base_dir}"
+                )
+                raise PathSecurityError(
+                    f"Symlink points outside skill directory: {script_path} -> {resolved_path}"
+                )
 
         # Verify file exists and is a regular file
         if not resolved_path.is_file():
@@ -801,6 +833,10 @@ class ScriptExecutor:
 
         # Reject scripts with dangerous permissions
         if has_setuid or has_setgid:
+            logger.error(
+                f"Security violation: Script has dangerous permissions - "
+                f"path={script_path}, mode={oct(mode)}, setuid={has_setuid}, setgid={has_setgid}"
+            )
             raise ScriptPermissionError(
                 f"Script has dangerous permissions: {script_path}\n"
                 f"  Mode: {oct(mode)}\n"
@@ -1113,6 +1149,27 @@ class ScriptExecutor:
 
         # Calculate execution time
         execution_time_ms = (time.perf_counter() - start_time) * 1000
+
+        # Prepare audit log entry with arguments truncated to 256 chars
+        arguments_str = str(arguments)[:256]
+        if len(str(arguments)) > 256:
+            arguments_str += '...'
+
+        # Audit log entry (always logged for security compliance)
+        import datetime
+        timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        logger.info(
+            f"AUDIT: Script execution - "
+            f"timestamp={timestamp}, "
+            f"skill={skill_metadata.name}, "
+            f"script={validated_path.relative_to(skill_base_dir)}, "
+            f"args={arguments_str}, "
+            f"exit_code={exit_code}, "
+            f"execution_time_ms={execution_time_ms:.1f}, "
+            f"signal={signal_name}, "
+            f"stdout_truncated={stdout_truncated}, "
+            f"stderr_truncated={stderr_truncated}"
+        )
 
         # Log execution details
         if exit_code == 0:

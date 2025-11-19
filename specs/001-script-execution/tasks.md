@@ -97,11 +97,11 @@ description: "Task list for Script Execution Support feature"
 
 ### Implementation for User Story 2
 
-- [ ] T034 [US2] Enhance _validate_script_path() in ScriptExecutor to validate symlinks don't point outside skill directory using os.path.realpath
-- [ ] T035 [US2] Enhance _check_permissions() in ScriptExecutor to check both setuid (stat.S_ISUID) and setgid (stat.S_ISGID) bits
-- [ ] T036 [US2] Add security violation logging to _validate_script_path() with ERROR level when path traversal detected
-- [ ] T037 [US2] Add security violation logging to _check_permissions() with ERROR level when dangerous permissions detected
-- [ ] T038 [US2] Implement audit log entry in execute() with timestamp, skill name, script path, arguments (truncated to 256 chars), exit code, execution time
+- [X] T034 [US2] Enhance _validate_script_path() in ScriptExecutor to validate symlinks don't point outside skill directory using os.path.realpath
+- [X] T035 [US2] Enhance _check_permissions() in ScriptExecutor to check both setuid (stat.S_ISUID) and setgid (stat.S_ISGID) bits
+- [X] T036 [US2] Add security violation logging to _validate_script_path() with ERROR level when path traversal detected
+- [X] T037 [US2] Add security violation logging to _check_permissions() with ERROR level when dangerous permissions detected
+- [X] T038 [US2] Implement audit log entry in execute() with timestamp, skill name, script path, arguments (truncated to 256 chars), exit code, execution time
 
 **Checkpoint**: Security boundaries enforced - path traversal blocked, dangerous permissions rejected, all executions audited
 

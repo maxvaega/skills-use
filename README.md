@@ -22,6 +22,7 @@ skillkit is compatible with existings skills (SKILL.md), so you can browse and u
 ## Features
 
 - **Framework-free**: can be used without any framework, or with other frameworks (currently only compatible with LangChain - more coming in the future!)
+- **Fully compatible with existing skills**: existing skills can be copied directly, no change needed
 - **Model-agnostic design**: Works with any LLM
 - **Multi-source skill discovery**: From project, Anthropic config, plugins, and custom directories with priority-based conflict resolution
 - **YAML frontmatter parsing** with comprehensive validation
