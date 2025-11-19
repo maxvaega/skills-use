@@ -115,12 +115,12 @@ description: "Task list for Script Execution Support feature"
 
 ### Implementation for User Story 3
 
-- [ ] T039 [US3] Implement timeout handling in _execute_subprocess() to catch subprocess.TimeoutExpired exception
-- [ ] T040 [US3] Set exit_code to 124 and stderr to "Timeout" when subprocess.TimeoutExpired is caught
-- [ ] T041 [US3] Add WARNING level log entry when timeout occurs with timeout duration and script details
-- [ ] T042 [US3] Implement execution time measurement in execute() using time.perf_counter() before/after subprocess call
-- [ ] T043 [US3] Add timeout property to ScriptExecutionResult to check if exit_code==124 and "Timeout" in stderr
-- [ ] T044 [US3] Support custom timeout in SkillManager.execute_skill_script() that overrides default_script_timeout
+- [X] T039 [US3] Implement timeout handling in _execute_subprocess() to catch subprocess.TimeoutExpired exception
+- [X] T040 [US3] Set exit_code to 124 and stderr to "Timeout" when subprocess.TimeoutExpired is caught
+- [X] T041 [US3] Add WARNING level log entry when timeout occurs with timeout duration and script details
+- [X] T042 [US3] Implement execution time measurement in execute() using time.perf_counter() before/after subprocess call
+- [X] T043 [US3] Add timeout property to ScriptExecutionResult to check if exit_code==124 and "Timeout" in stderr
+- [X] T044 [US3] Support custom timeout in SkillManager.execute_skill_script() that overrides default_script_timeout
 
 **Checkpoint**: Timeout enforcement working - long-running scripts killed after timeout, execution time measured and logged
 

@@ -1007,6 +1007,12 @@ class ScriptExecutor:
             )
 
         except subprocess.TimeoutExpired as e:
+            # Log timeout warning
+            logger.warning(
+                f"Script execution timed out after {self.timeout}s - "
+                f"script={script_path.name}, timeout={self.timeout}s"
+            )
+
             # Return timeout indication
             stdout = e.stdout.decode('utf-8', errors='replace') if e.stdout else ''
             stderr = e.stderr.decode('utf-8', errors='replace') if e.stderr else ''
