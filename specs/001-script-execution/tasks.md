@@ -31,11 +31,11 @@ description: "Task list for Script Execution Support feature"
 
 - [X] T001 Create feature branch 001-script-execution from main
 - [X] T002 [P] Create src/skillkit/core/scripts.py module with INTERPRETER_MAP constant
-- [ ] T003 [P] Create tests/test_script_detector.py test file structure
-- [ ] T004 [P] Create tests/test_script_executor.py test file structure
-- [ ] T005 [P] Create tests/fixtures/skills/script-skill/ test fixture directory with SKILL.md
-- [ ] T006 [P] Create examples/script_execution.py example file skeleton
-- [ ] T007 [P] Create examples/skills/pdf-extractor/ example skill directory with SKILL.md
+- [X] T003 [P] Create tests/test_script_detector.py test file structure
+- [X] T004 [P] Create tests/test_script_executor.py test file structure
+- [X] T005 [P] Create tests/fixtures/skills/script-skill/ test fixture directory with SKILL.md
+- [X] T006 [P] Create examples/script_execution.py example file skeleton
+- [X] T007 [P] Create examples/skills/pdf-extractor/ example skill directory with SKILL.md
 
 ---
 
@@ -238,11 +238,11 @@ description: "Task list for Script Execution Support feature"
 
 **Purpose**: User-facing documentation and real-world examples
 
-- [ ] T092 [P] Implement working Python script in examples/skills/pdf-extractor/scripts/extract.py that demonstrates JSON stdin reading
-- [ ] T093 [P] Implement working Shell script in examples/skills/pdf-extractor/scripts/convert.sh for format conversion example
-- [ ] T094 [P] Write comprehensive example in examples/script_execution.py demonstrating: basic execution, error handling, timeout, environment variables
-- [ ] T095 [P] Update README.md with Script Execution (v0.3+) section showing basic usage and LangChain integration
-- [ ] T096 [P] Update CLAUDE.md with v0.3 status (In Progress → Released) and script execution feature summary
+- [X] T092 [P] Implement working Python script in examples/skills/pdf-extractor/scripts/extract.py that demonstrates JSON stdin reading
+- [X] T093 [P] Implement working Shell script in examples/skills/pdf-extractor/scripts/convert.sh for format conversion example
+- [X] T094 [P] Write comprehensive example in examples/script_execution.py demonstrating: basic execution, error handling, timeout, environment variables
+- [X] T095 [P] Update README.md with Script Execution (v0.3+) section showing basic usage and LangChain integration
+- [X] T096 [P] Update CLAUDE.md with v0.3 status (In Progress → Released) and script execution feature summary
 - [ ] T097 [P] Update .docs/TECH_SPECS.md (if exists) with script execution architecture and design decisions
 - [ ] T098 [P] Add docstrings to all public methods in ScriptDetector, ScriptExecutor, and updated Skill/SkillManager classes
 - [ ] T099 Update quickstart.md validation: verify all examples run successfully, check performance targets met

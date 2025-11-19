@@ -7,7 +7,7 @@ Installation:
     pip install skillkit[langchain]
 """
 
-from typing import TYPE_CHECKING, Any, Dict, List, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Dict, List, TypedDict
 
 # Import guards for optional dependencies
 try:
@@ -37,7 +37,7 @@ class ScriptToolResult(TypedDict):
 
     type: str  # Always "tool_result"
     tool_use_id: str  # Unique identifier for this invocation
-    content: Union[str, list, None]  # stdout on success, None on error
+    content: str | list | None  # stdout on success, None on error
     is_error: bool  # False on success, True on error
 
 
@@ -280,10 +280,12 @@ def create_script_tools(skill: "Skill", manager: "SkillManager") -> List[Structu
         # CRITICAL: Use default parameters to capture values at function creation time
         # This prevents Python's late-binding closure issue
         def invoke_script(
-            arguments: Dict[str, Any] = {},
+            arguments: Dict[str, Any] | None = None,
             skill_name: str = skill.metadata.name,
             script_name: str = script.name
         ) -> str:
+            if arguments is None:
+                arguments = {}
             """Sync script execution wrapper for sync agents.
 
             Args:
@@ -327,10 +329,12 @@ def create_script_tools(skill: "Skill", manager: "SkillManager") -> List[Structu
                 raise ToolException(f"Script execution error: {str(e)}") from e
 
         async def ainvoke_script(
-            arguments: Dict[str, Any] = {},
+            arguments: Dict[str, Any] | None = None,
             skill_name: str = skill.metadata.name,
             script_name: str = script.name
         ) -> str:
+            if arguments is None:
+                arguments = {}
             """Async script execution wrapper for async agents.
 
             Args:

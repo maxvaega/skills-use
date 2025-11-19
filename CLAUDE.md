@@ -15,21 +15,25 @@ This project follows a **Vertical Slice MVP strategy** to deliver working functi
 
 - **v0.1 (Released)**: Core functionality + LangChain integration (sync only)
 - **v0.2 (Released)**: Async support + multi-source discovery + plugin integration
-- **v0.3 (Planned)**: Script execution + tool restriction enforcement + additional framework integrations
-- **v1.0 (Planned)**: Production polish + comprehensive documentation + 90% test coverage
+- **v0.3 (Released)**: Script execution + tool restriction enforcement
+- **v1.0 (Planned)**: Additional framework integrations + production polish + comprehensive documentation + 90% test coverage
 
-### Current Focus (v0.2)
+### Current Focus (v0.3)
 
-The v0.2 release adds enterprise-grade features:
-1. **Async support**: `adiscover()` and `ainvoke_skill()` methods for concurrent operations
-2. **Multi-source discovery**: Project dirs, Anthropic config, plugins, custom paths with priority resolution
-3. **Plugin ecosystem**: Full MCPB manifest support with namespaced skill access (`plugin:skill-name`)
-4. **Nested structures**: Discover skills up to 5 levels deep in directory hierarchies
-5. **Secure file resolution**: Path traversal prevention and reference validation
-6. **LangChain async**: Full async/await support in LangChain integration
-7. **Backward compatibility**: All v0.1 APIs remain unchanged
+The v0.3 release enables deterministic code execution with comprehensive security:
 
-**What's deferred to v0.3+**: Script execution, tool restriction enforcement, additional framework integrations (LlamaIndex, CrewAI, Haystack), advanced argument schemas, CI/CD pipeline, 90% test coverage.
+1. **Script Execution**: Execute Python, Shell, JavaScript, Ruby, and Perl scripts from skills
+2. **Security Controls**: Path traversal prevention, permission checks (setuid/setgid), timeout enforcement
+3. **Tool Restrictions**: Enforce "Bash" in allowed-tools for script execution
+4. **Environment Injection**: Automatic SKILL_NAME, SKILL_BASE_DIR, SKILL_VERSION, SKILLKIT_VERSION variables
+5. **Automatic Detection**: Scripts discovered recursively in skill directories
+6. **LangChain Integration**: Each script exposed as separate StructuredTool (`{skill-name}.{script-name}`)
+7. **Robust Error Handling**: Comprehensive exception hierarchy for script-related errors
+8. **Audit Logging**: All script executions logged with metadata
+9. **Cross-Platform Support**: Works on Linux, macOS, and Windows
+10. **Backward compatibility**: All v0.1/v0.2 APIs remain unchanged
+
+**What's deferred to v1.0+**: Additional framework integrations (LlamaIndex, CrewAI, Haystack), advanced argument schemas, CI/CD pipeline, 90% test coverage.
 
 ## Key Architectural Decisions
 
@@ -100,7 +104,7 @@ This project was developed using speckit method. all development phases have bee
 
 ## Project Status
 
-**Current Phase**: ✅ v0.2.0 RELEASED
+**Current Phase**: ✅ v0.3.0 READY FOR RELEASE
 
 **v0.1 Completed**:
 - ✅ Core functionality (discovery, parsing, models, manager, processors)
@@ -123,13 +127,26 @@ This project was developed using speckit method. all development phases have bee
 - ✅ Updated examples (async_usage.py, multi_source.py, file_references.py)
 - ✅ Backward compatible with v0.1
 
-**In Progress:**
-- v0.3: Script execution, tool restrictions
+**v0.3 Completed**:
+- ✅ Script execution (Python, Shell, JavaScript, Ruby, Perl)
+- ✅ Security controls (path validation, permission checks, timeout enforcement)
+- ✅ Tool restriction enforcement (requires "Bash" in allowed-tools)
+- ✅ Environment variable injection (SKILL_NAME, SKILL_BASE_DIR, SKILL_VERSION, SKILLKIT_VERSION)
+- ✅ Automatic script detection (recursive, up to 5 levels)
+- ✅ LangChain script tool integration
+- ✅ Comprehensive error handling and audit logging
+- ✅ Test fixtures and test infrastructure
+- ✅ Example skills with scripts (pdf-extractor)
+- ✅ Updated documentation (README.md, CLAUDE.md)
+- ✅ Backward compatible with v0.1/v0.2
 
 **Next Steps**:
-- v0.3.1: Plan additional framework integrations
+- Run comprehensive test suite and verify coverage
+- Final polish and code review
+- Update version numbers in pyproject.toml
+- Prepare v0.3.0 release notes
+- v1.0: Plan additional framework integrations (LlamaIndex, CrewAI, Haystack)
 - Gather community feedback and feature requests
-- Improve documentation with more real-world examples
 
 ## Development Environment
 

@@ -782,16 +782,15 @@ class ScriptExecutor:
             )
 
         # If it was a symlink, verify the target is also within skill directory
-        if is_symlink:
+        if is_symlink and not str(resolved_path).startswith(str(skill_base_dir)):
             # Extra validation: symlink target must be within skill directory
-            if not str(resolved_path).startswith(str(skill_base_dir)):
-                logger.error(
-                    f"Security violation: Symlink points outside skill directory - "
-                    f"symlink={script_path}, target={resolved_path}, skill_base_dir={skill_base_dir}"
-                )
-                raise PathSecurityError(
-                    f"Symlink points outside skill directory: {script_path} -> {resolved_path}"
-                )
+            logger.error(
+                f"Security violation: Symlink points outside skill directory - "
+                f"symlink={script_path}, target={resolved_path}, skill_base_dir={skill_base_dir}"
+            )
+            raise PathSecurityError(
+                f"Symlink points outside skill directory: {script_path} -> {resolved_path}"
+            )
 
         # Verify file exists and is a regular file
         if not resolved_path.is_file():
