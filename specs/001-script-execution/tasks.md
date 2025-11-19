@@ -29,8 +29,8 @@ description: "Task list for Script Execution Support feature"
 
 **Purpose**: Project initialization and basic structure for v0.3.0 script execution feature
 
-- [ ] T001 Create feature branch 001-script-execution from main
-- [ ] T002 [P] Create src/skillkit/core/scripts.py module with INTERPRETER_MAP constant
+- [X] T001 Create feature branch 001-script-execution from main
+- [X] T002 [P] Create src/skillkit/core/scripts.py module with INTERPRETER_MAP constant
 - [ ] T003 [P] Create tests/test_script_detector.py test file structure
 - [ ] T004 [P] Create tests/test_script_executor.py test file structure
 - [ ] T005 [P] Create tests/fixtures/skills/script-skill/ test fixture directory with SKILL.md
@@ -45,11 +45,11 @@ description: "Task list for Script Execution Support feature"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 Add script-specific exceptions to src/skillkit/core/exceptions.py: InterpreterNotFoundError, ScriptNotFoundError, ScriptPermissionError, ArgumentSerializationError, ArgumentSizeError
-- [ ] T009 [P] Implement ScriptMetadata dataclass in src/skillkit/core/scripts.py with fields: name, path, script_type, description, and get_fully_qualified_name method
-- [ ] T010 [P] Implement ScriptExecutionResult dataclass in src/skillkit/core/scripts.py with fields: stdout, stderr, exit_code, execution_time_ms, script_path, signal, signal_number, stdout_truncated, stderr_truncated, and properties: success, timeout, signaled
-- [ ] T011 [P] Implement INTERPRETER_MAP constant dict in src/skillkit/core/scripts.py mapping extensions (.py, .sh, .js, .rb, .pl, .bat, .cmd, .ps1) to interpreters
-- [ ] T012 [P] Add type aliases to src/skillkit/core/scripts.py: ScriptArguments, ScriptEnvironment, ScriptList
+- [X] T008 Add script-specific exceptions to src/skillkit/core/exceptions.py: InterpreterNotFoundError, ScriptNotFoundError, ScriptPermissionError, ArgumentSerializationError, ArgumentSizeError
+- [X] T009 [P] Implement ScriptMetadata dataclass in src/skillkit/core/scripts.py with fields: name, path, script_type, description, and get_fully_qualified_name method
+- [X] T010 [P] Implement ScriptExecutionResult dataclass in src/skillkit/core/scripts.py with fields: stdout, stderr, exit_code, execution_time_ms, script_path, signal, signal_number, stdout_truncated, stderr_truncated, and properties: success, timeout, signaled
+- [X] T011 [P] Implement INTERPRETER_MAP constant dict in src/skillkit/core/scripts.py mapping extensions (.py, .sh, .js, .rb, .pl, .bat, .cmd, .ps1) to interpreters
+- [X] T012 [P] Add type aliases to src/skillkit/core/scripts.py: ScriptArguments, ScriptEnvironment, ScriptList
 - [ ] T013 Extend Skill dataclass in src/skillkit/core/models.py with _scripts field (Optional[List[ScriptMetadata]]) and scripts property (lazy-loaded)
 - [ ] T014 Update src/skillkit/__init__.py to export new script classes: ScriptMetadata, ScriptExecutionResult, and script exceptions
 
@@ -65,13 +65,13 @@ description: "Task list for Script Execution Support feature"
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] Implement ScriptDescriptionExtractor class in src/skillkit/core/scripts.py with extract() method supporting Python docstrings, shell comments, JSDoc, Ruby/Perl comment blocks
-- [ ] T016 [P] [US1] Implement ScriptDetector class in src/skillkit/core/scripts.py with __init__(max_depth, max_lines_for_description) and detect_scripts() method
-- [ ] T017 [US1] Implement _scan_directories() method in ScriptDetector to scan scripts/ directory and skill root
-- [ ] T018 [US1] Implement _is_executable_script() method in ScriptDetector to filter files by extension and exclude hidden/cache files
-- [ ] T019 [US1] Implement _extract_metadata() method in ScriptDetector to create ScriptMetadata from detected files
-- [ ] T020 [US1] Implement _get_script_type() helper function in src/skillkit/core/scripts.py to map extensions to script types
-- [ ] T021 [P] [US1] Implement ScriptExecutor class __init__ in src/skillkit/core/scripts.py with timeout, max_output_size, use_cache parameters
+- [X] T015 [P] [US1] Implement ScriptDescriptionExtractor class in src/skillkit/core/scripts.py with extract() method supporting Python docstrings, shell comments, JSDoc, Ruby/Perl comment blocks
+- [X] T016 [P] [US1] Implement ScriptDetector class in src/skillkit/core/scripts.py with __init__(max_depth, max_lines_for_description) and detect_scripts() method
+- [X] T017 [US1] Implement _scan_directories() method in ScriptDetector to scan scripts/ directory and skill root
+- [X] T018 [US1] Implement _is_executable_script() method in ScriptDetector to filter files by extension and exclude hidden/cache files
+- [X] T019 [US1] Implement _extract_metadata() method in ScriptDetector to create ScriptMetadata from detected files
+- [X] T020 [US1] Implement _get_script_type() helper function in src/skillkit/core/scripts.py to map extensions to script types
+- [X] T021 [P] [US1] Implement ScriptExecutor class __init__ in src/skillkit/core/scripts.py with timeout, max_output_size, use_cache parameters
 - [ ] T022 [US1] Implement _validate_script_path() method in ScriptExecutor using os.path.realpath and os.path.commonpath for path traversal prevention
 - [ ] T023 [US1] Implement _check_permissions() method in ScriptExecutor to reject setuid/setgid scripts
 - [ ] T024 [US1] Implement _resolve_interpreter() method in ScriptExecutor with extension mapping and shebang fallback

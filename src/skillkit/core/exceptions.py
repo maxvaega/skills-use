@@ -4,6 +4,8 @@ This module defines all custom exceptions used throughout the library,
 following a hierarchical structure for granular error handling.
 """
 
+from typing import List
+
 
 class SkillsUseError(Exception):
     """Base exception for all skillkit errors.
@@ -232,3 +234,227 @@ class ManifestValidationError(PluginError):
         super().__init__(message)
         self.field_name = field_name
         self.invalid_value = invalid_value
+
+
+class ScriptError(SkillsUseError):
+    """Base exception for script-related errors.
+
+    Version:
+        Added in v0.3.0
+    """
+
+
+class InterpreterNotFoundError(ScriptError):
+    """Raised when required interpreter is not available in PATH.
+
+    This exception is raised when attempting to execute a script with
+    an interpreter that cannot be found on the system.
+
+    Attributes:
+        interpreter: Name of the interpreter that was not found
+        script_path: Path to the script that requires the interpreter
+
+    Example:
+        >>> raise InterpreterNotFoundError(
+        ...     "Interpreter 'node' not found in PATH for script.js",
+        ...     interpreter='node',
+        ...     script_path='scripts/process.js'
+        ... )
+    """
+
+    def __init__(
+        self,
+        message: str,
+        interpreter: str | None = None,
+        script_path: str | None = None,
+    ) -> None:
+        """Initialize InterpreterNotFoundError with details.
+
+        Args:
+            message: Error description
+            interpreter: Name of the missing interpreter
+            script_path: Path to the script
+        """
+        super().__init__(message)
+        self.interpreter = interpreter
+        self.script_path = script_path
+
+
+class ScriptNotFoundError(ScriptError):
+    """Raised when requested script doesn't exist in skill.
+
+    This exception is raised when attempting to execute a script that
+    cannot be found in the skill's detected scripts.
+
+    Attributes:
+        script_name: Name of the script that was requested
+        skill_name: Name of the skill that was searched
+
+    Example:
+        >>> raise ScriptNotFoundError(
+        ...     "Script 'extract' not found in skill 'pdf-extractor'",
+        ...     script_name='extract',
+        ...     skill_name='pdf-extractor'
+        ... )
+    """
+
+    def __init__(
+        self,
+        message: str,
+        script_name: str | None = None,
+        skill_name: str | None = None,
+    ) -> None:
+        """Initialize ScriptNotFoundError with details.
+
+        Args:
+            message: Error description
+            script_name: Name of the requested script
+            skill_name: Name of the skill
+        """
+        super().__init__(message)
+        self.script_name = script_name
+        self.skill_name = skill_name
+
+
+class ScriptPermissionError(ScriptError):
+    """Raised when script has dangerous permissions (setuid/setgid).
+
+    This exception is raised when a script has the setuid or setgid
+    permission bits set, which could allow privilege escalation attacks.
+
+    Attributes:
+        script_path: Path to the script with dangerous permissions
+        permission_mode: Octal permission mode of the script
+
+    Example:
+        >>> raise ScriptPermissionError(
+        ...     "Script has setuid bit: scripts/dangerous.py",
+        ...     script_path='scripts/dangerous.py',
+        ...     permission_mode='0o104755'
+        ... )
+    """
+
+    def __init__(
+        self,
+        message: str,
+        script_path: str | None = None,
+        permission_mode: str | None = None,
+    ) -> None:
+        """Initialize ScriptPermissionError with details.
+
+        Args:
+            message: Error description
+            script_path: Path to the script
+            permission_mode: Octal permission mode string
+        """
+        super().__init__(message)
+        self.script_path = script_path
+        self.permission_mode = permission_mode
+
+
+class ArgumentSerializationError(ScriptError):
+    """Raised when arguments cannot be serialized to JSON.
+
+    This exception is raised when script arguments contain data that
+    cannot be serialized to JSON (e.g., circular references, functions).
+
+    Attributes:
+        argument_data: The data that failed serialization (repr string)
+        serialization_error: The underlying JSON serialization error
+
+    Example:
+        >>> raise ArgumentSerializationError(
+        ...     "Cannot serialize arguments: circular reference detected",
+        ...     argument_data="{'circular': {...}}",
+        ...     serialization_error=ValueError("Circular reference")
+        ... )
+    """
+
+    def __init__(
+        self,
+        message: str,
+        argument_data: str | None = None,
+        serialization_error: Exception | None = None,
+    ) -> None:
+        """Initialize ArgumentSerializationError with details.
+
+        Args:
+            message: Error description
+            argument_data: String representation of the data
+            serialization_error: The underlying exception
+        """
+        super().__init__(message)
+        self.argument_data = argument_data
+        self.serialization_error = serialization_error
+
+
+class ArgumentSizeError(ScriptError):
+    """Raised when JSON-serialized arguments exceed size limit.
+
+    This exception is raised when serialized arguments exceed the
+    maximum allowed size (10MB), which could cause memory exhaustion.
+
+    Attributes:
+        size_bytes: Size of the serialized arguments in bytes
+        max_bytes: Maximum allowed size in bytes
+
+    Example:
+        >>> raise ArgumentSizeError(
+        ...     "Arguments too large: 15728640 bytes (max 10MB)",
+        ...     size_bytes=15728640,
+        ...     max_bytes=10485760
+        ... )
+    """
+
+    def __init__(
+        self,
+        message: str,
+        size_bytes: int | None = None,
+        max_bytes: int | None = None,
+    ) -> None:
+        """Initialize ArgumentSizeError with details.
+
+        Args:
+            message: Error description
+            size_bytes: Actual size in bytes
+            max_bytes: Maximum allowed size in bytes
+        """
+        super().__init__(message)
+        self.size_bytes = size_bytes
+        self.max_bytes = max_bytes
+
+
+class ToolRestrictionError(SkillSecurityError):
+    """Raised when tool restrictions prevent script execution.
+
+    This exception is raised when a skill's allowed-tools list does not
+    include 'Bash', which is required for script execution.
+
+    Attributes:
+        skill_name: Name of the skill with tool restrictions
+        allowed_tools: List of allowed tools (may be empty)
+
+    Example:
+        >>> raise ToolRestrictionError(
+        ...     "Script execution requires 'Bash' in allowed-tools",
+        ...     skill_name='pdf-extractor',
+        ...     allowed_tools=['Read', 'Write']
+        ... )
+    """
+
+    def __init__(
+        self,
+        message: str,
+        skill_name: str | None = None,
+        allowed_tools: List[str] | None = None,
+    ) -> None:
+        """Initialize ToolRestrictionError with details.
+
+        Args:
+            message: Error description
+            skill_name: Name of the skill
+            allowed_tools: List of allowed tools
+        """
+        super().__init__(message)
+        self.skill_name = skill_name
+        self.allowed_tools = allowed_tools or []
