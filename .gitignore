@@ -216,3 +216,4 @@ __marimo__/
 .docs/
 .specify/
 .claude/commands/
+.vscode/
