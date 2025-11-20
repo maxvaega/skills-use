@@ -37,7 +37,7 @@ class ScriptToolResult(TypedDict):
 
     type: str  # Always "tool_result"
     tool_use_id: str  # Unique identifier for this invocation
-    content: str | list | None  # stdout on success, None on error
+    content: "str | list[str] | None"  # stdout on success, None on error
     is_error: bool  # False on success, True on error
 
 
@@ -70,7 +70,7 @@ class ScriptInput(BaseModel):
 
     arguments: Dict[str, Any] = Field(
         default_factory=dict,
-        description="JSON-serializable arguments to pass to the script via stdin"
+        description="JSON-serializable arguments to pass to the script via stdin",
     )
 
 
@@ -206,7 +206,7 @@ def create_langchain_tools(manager: "SkillManager") -> List[StructuredTool]:
         # v0.3+: Also create script-based tools for this skill
         # Get the full Skill object (not just metadata) to access scripts property
         try:
-            skill = manager.get_skill(skill_metadata.name)
+            skill = manager.load_skill(skill_metadata.name)
             script_tools = create_script_tools(skill, manager)
             tools.extend(script_tools)
         except Exception:
@@ -275,14 +275,16 @@ def create_script_tools(skill: "Skill", manager: "SkillManager") -> List[Structu
 
         # Use description from script metadata (extracted from comments/docstrings)
         # Empty string if no description found (per FR-009)
-        tool_description = script.description if script.description else f"Execute {script.name} script"
+        tool_description = (
+            script.description if script.description else f"Execute {script.name} script"
+        )
 
         # CRITICAL: Use default parameters to capture values at function creation time
         # This prevents Python's late-binding closure issue
         def invoke_script(
             arguments: Dict[str, Any] | None = None,
             skill_name: str = skill.metadata.name,
-            script_name: str = script.name
+            script_name: str = script.name,
         ) -> str:
             if arguments is None:
                 arguments = {}
@@ -304,7 +306,7 @@ def create_script_tools(skill: "Skill", manager: "SkillManager") -> List[Structu
                     skill_name=skill_name,
                     script_name=script_name,
                     arguments=arguments,
-                    timeout=None  # Use manager's default_script_timeout
+                    timeout=None,  # Use manager's default_script_timeout
                 )
 
                 # Success: return stdout
@@ -331,7 +333,7 @@ def create_script_tools(skill: "Skill", manager: "SkillManager") -> List[Structu
         async def ainvoke_script(
             arguments: Dict[str, Any] | None = None,
             skill_name: str = skill.metadata.name,
-            script_name: str = script.name
+            script_name: str = script.name,
         ) -> str:
             if arguments is None:
                 arguments = {}
@@ -355,7 +357,7 @@ def create_script_tools(skill: "Skill", manager: "SkillManager") -> List[Structu
                     skill_name=skill_name,
                     script_name=script_name,
                     arguments=arguments,
-                    timeout=None
+                    timeout=None,
                 )
 
                 if result.exit_code == 0:

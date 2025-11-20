@@ -35,7 +35,7 @@ from skillkit.core.models import Skill, SkillMetadata
 from skillkit.core.path_resolver import FilePathResolver
 from skillkit.core.scripts import ScriptExecutionResult, ScriptMetadata
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
 __all__ = [
     # Core classes

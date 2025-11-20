@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from skillkit.core.processors import CompositeProcessor
+    from skillkit.core.scripts import ScriptMetadata
 
 # Check Python version for slots support on all dataclasses
 # Note: Project requires Python 3.10+ (per pyproject.toml), so slots=True is safe
@@ -106,7 +107,7 @@ class Skill:
     metadata: SkillMetadata
     base_directory: Path
     _processor: "CompositeProcessor" = field(init=False, repr=False)
-    _scripts: list | None = field(default=None, init=False, repr=False)
+    _scripts: "list[ScriptMetadata] | None" = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         """Initialize processor chain (avoids inline imports anti-pattern).
@@ -273,7 +274,7 @@ class Skill:
         return self._processor.process(content, context)
 
     @property
-    def scripts(self) -> list:
+    def scripts(self) -> "list[ScriptMetadata]":
         """Lazy load detected scripts (v0.3+).
 
         Scripts are detected once on first access and cached for the skill's lifetime.

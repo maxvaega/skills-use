@@ -60,14 +60,14 @@ ScriptList = List["ScriptMetadata"]
 
 # Extension-to-interpreter mapping (immutable dict)
 INTERPRETER_MAP: Dict[str, str] = {
-    '.py': 'python3',      # Python 3.x
-    '.sh': 'bash',         # Bash shell
-    '.js': 'node',         # Node.js
-    '.rb': 'ruby',         # Ruby interpreter
-    '.pl': 'perl',         # Perl interpreter
-    '.bat': 'cmd',         # Windows batch (Windows only)
-    '.cmd': 'cmd',         # Windows command (Windows only)
-    '.ps1': 'powershell',  # PowerShell (cross-platform)
+    ".py": "python3",  # Python 3.x
+    ".sh": "bash",  # Bash shell
+    ".js": "node",  # Node.js
+    ".rb": "ruby",  # Ruby interpreter
+    ".pl": "perl",  # Perl interpreter
+    ".bat": "cmd",  # Windows batch (Windows only)
+    ".cmd": "cmd",  # Windows command (Windows only)
+    ".ps1": "powershell",  # PowerShell (cross-platform)
 }
 
 # Configure module logger
@@ -259,7 +259,7 @@ class ScriptExecutionResult:
             >>> result.timeout
             True
         """
-        return self.exit_code == 124 and 'Timeout' in self.stderr
+        return self.exit_code == 124 and "Timeout" in self.stderr
 
     @property
     def signaled(self) -> bool:
@@ -290,16 +290,16 @@ def _get_script_type(file_path: Path) -> str:
     """
     ext = file_path.suffix.lower()
     mapping = {
-        '.py': 'python',
-        '.sh': 'shell',
-        '.js': 'javascript',
-        '.rb': 'ruby',
-        '.pl': 'perl',
-        '.bat': 'batch',
-        '.cmd': 'batch',
-        '.ps1': 'powershell',
+        ".py": "python",
+        ".sh": "shell",
+        ".js": "javascript",
+        ".rb": "ruby",
+        ".pl": "perl",
+        ".bat": "batch",
+        ".cmd": "batch",
+        ".ps1": "powershell",
     }
-    return mapping.get(ext, 'unknown')
+    return mapping.get(ext, "unknown")
 
 
 class ScriptDescriptionExtractor:
@@ -344,22 +344,22 @@ class ScriptDescriptionExtractor:
             'This script processes data'
         """
         try:
-            with open(script_path, encoding='utf-8', errors='replace') as f:
+            with open(script_path, encoding="utf-8", errors="replace") as f:
                 lines = [f.readline() for _ in range(max_lines)]
 
             script_type = _get_script_type(script_path)
 
-            if script_type == 'python':
+            if script_type == "python":
                 return self._extract_python_docstring(lines)
-            elif script_type in ('shell', 'ruby', 'perl'):
+            elif script_type in ("shell", "ruby", "perl"):
                 return self._extract_hash_comments(lines)
-            elif script_type == 'javascript':
+            elif script_type == "javascript":
                 return self._extract_js_comments(lines)
             else:
-                return ''
+                return ""
 
         except (OSError, UnicodeDecodeError):
-            return ''
+            return ""
 
     def _extract_python_docstring(self, lines: List[str]) -> str:
         """Extract Python docstring or # comments."""
@@ -367,7 +367,7 @@ class ScriptDescriptionExtractor:
         start_idx = 0
         for i, line in enumerate(lines):
             stripped = line.strip()
-            if stripped and not stripped.startswith('#!'):
+            if stripped and not stripped.startswith("#!"):
                 start_idx = i
                 break
 
@@ -380,16 +380,16 @@ class ScriptDescriptionExtractor:
 
                 # Single-line docstring
                 if first_line.count(quote) >= 2:
-                    return first_line.strip(quote).strip()[:self.max_chars]
+                    return first_line.strip(quote).strip()[: self.max_chars]
 
                 # Multi-line docstring
-                for line in lines[start_idx + 1:]:
+                for line in lines[start_idx + 1 :]:
                     if quote in line:
                         docstring_lines.append(line.split(quote)[0])
                         break
                     docstring_lines.append(line)
 
-                return ' '.join(line.strip() for line in docstring_lines).strip()[:self.max_chars]
+                return " ".join(line.strip() for line in docstring_lines).strip()[: self.max_chars]
 
         # Fallback to # comments
         return self._extract_hash_comments(lines)
@@ -403,20 +403,20 @@ class ScriptDescriptionExtractor:
             stripped = line.strip()
 
             # Skip shebang
-            if stripped.startswith('#!'):
+            if stripped.startswith("#!"):
                 continue
 
             # Start collecting comments
-            if stripped.startswith('#'):
+            if stripped.startswith("#"):
                 started = True
-                comment = stripped.lstrip('#').strip()
+                comment = stripped.lstrip("#").strip()
                 if comment:
                     comments.append(comment)
             elif started and stripped:
                 # Stop at first non-comment, non-empty line
                 break
 
-        return ' '.join(comments)[:self.max_chars]
+        return " ".join(comments)[: self.max_chars]
 
     def _extract_js_comments(self, lines: List[str]) -> str:
         """Extract description from JavaScript // or /* */ comments."""
@@ -427,34 +427,34 @@ class ScriptDescriptionExtractor:
             stripped = line.strip()
 
             # Block comment start
-            if '/*' in stripped:
+            if "/*" in stripped:
                 in_block = True
-                comment = stripped.split('/*', 1)[1]
-                if '*/' in comment:
-                    comment = comment.split('*/')[0]
+                comment = stripped.split("/*", 1)[1]
+                if "*/" in comment:
+                    comment = comment.split("*/")[0]
                     in_block = False
                 comments.append(comment.strip())
                 continue
 
             # Block comment end
             if in_block:
-                if '*/' in stripped:
-                    comment = stripped.split('*/')[0]
-                    comments.append(comment.strip(' *'))
+                if "*/" in stripped:
+                    comment = stripped.split("*/")[0]
+                    comments.append(comment.strip(" *"))
                     in_block = False
                 else:
-                    comments.append(stripped.strip(' *'))
+                    comments.append(stripped.strip(" *"))
                 continue
 
             # Line comment
-            if stripped.startswith('//'):
-                comment = stripped.lstrip('/').strip()
+            if stripped.startswith("//"):
+                comment = stripped.lstrip("/").strip()
                 if comment:
                     comments.append(comment)
             elif stripped and not in_block:
                 break
 
-        return ' '.join(comments)[:self.max_chars]
+        return " ".join(comments)[: self.max_chars]
 
 
 class ScriptDetector:
@@ -513,7 +513,7 @@ class ScriptDetector:
         scripts: List[ScriptMetadata] = []
 
         # Scan scripts/ directory (recursive)
-        scripts_dir = skill_base_dir / 'scripts'
+        scripts_dir = skill_base_dir / "scripts"
         if scripts_dir.exists() and scripts_dir.is_dir():
             scripts.extend(self._scan_directories(scripts_dir, skill_base_dir, depth=0))
 
@@ -521,15 +521,11 @@ class ScriptDetector:
         scripts.extend(self._scan_root_directory(skill_base_dir))
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000
-        logger.info(
-            f"Detected {len(scripts)} scripts in skill (took {elapsed_ms:.1f}ms)"
-        )
+        logger.info(f"Detected {len(scripts)} scripts in skill (took {elapsed_ms:.1f}ms)")
 
         return scripts
 
-    def _scan_directories(
-        self, directory: Path, skill_base_dir: Path, depth: int
-    ) -> ScriptList:
+    def _scan_directories(self, directory: Path, skill_base_dir: Path, depth: int) -> ScriptList:
         """Recursively scan directories for scripts.
 
         Args:
@@ -548,18 +544,16 @@ class ScriptDetector:
         try:
             for item in directory.iterdir():
                 # Skip hidden files and directories
-                if item.name.startswith('.'):
+                if item.name.startswith("."):
                     continue
 
                 # Skip common cache directories
-                if item.name in ('__pycache__', 'node_modules', '.venv', 'venv'):
+                if item.name in ("__pycache__", "node_modules", ".venv", "venv"):
                     continue
 
                 # Recurse into subdirectories
                 if item.is_dir() and not item.is_symlink():
-                    scripts.extend(
-                        self._scan_directories(item, skill_base_dir, depth + 1)
-                    )
+                    scripts.extend(self._scan_directories(item, skill_base_dir, depth + 1))
 
                 # Process script files
                 elif self._is_executable_script(item):
@@ -586,7 +580,7 @@ class ScriptDetector:
         try:
             for item in skill_base_dir.iterdir():
                 # Skip hidden files and directories
-                if item.name.startswith('.'):
+                if item.name.startswith("."):
                     continue
 
                 # Skip directories (already scanned scripts/)
@@ -594,7 +588,7 @@ class ScriptDetector:
                     continue
 
                 # Skip SKILL.md and other non-script files
-                if item.name == 'SKILL.md' or item.suffix in ('.md', '.txt', '.json'):
+                if item.name == "SKILL.md" or item.suffix in (".md", ".txt", ".json"):
                     continue
 
                 # Process script files
@@ -629,9 +623,7 @@ class ScriptDetector:
         ext = file_path.suffix.lower()
         return ext in INTERPRETER_MAP
 
-    def _extract_metadata(
-        self, script_path: Path, skill_base_dir: Path
-    ) -> ScriptMetadata | None:
+    def _extract_metadata(self, script_path: Path, skill_base_dir: Path) -> ScriptMetadata | None:
         """Extract metadata from a script file.
 
         Args:
@@ -745,9 +737,7 @@ class ScriptExecutor:
                 f"Security violation: Invalid script path or symlink loop detected - "
                 f"path={script_path}, skill_base_dir={skill_base_dir}"
             )
-            raise PathSecurityError(
-                f"Invalid script path or symlink loop: {script_path}"
-            ) from e
+            raise PathSecurityError(f"Invalid script path or symlink loop: {script_path}") from e
 
         # Verify path stays within skill_base_dir
         try:
@@ -758,9 +748,7 @@ class ScriptExecutor:
                 f"Security violation: Script path on different drive - "
                 f"path={script_path}, skill_base_dir={skill_base_dir}"
             )
-            raise PathSecurityError(
-                f"Script path on different drive: {script_path}"
-            ) from e
+            raise PathSecurityError(f"Script path on different drive: {script_path}") from e
 
         if common != skill_base_dir:
             logger.error(
@@ -777,9 +765,7 @@ class ScriptExecutor:
                 f"Security violation: Script path outside skill directory - "
                 f"path={script_path}, resolved={resolved_path}, skill_base_dir={skill_base_dir}"
             )
-            raise PathSecurityError(
-                f"Script path outside skill directory: {resolved_path}"
-            )
+            raise PathSecurityError(f"Script path outside skill directory: {resolved_path}")
 
         # If it was a symlink, verify the target is also within skill directory
         if is_symlink and not str(resolved_path).startswith(str(skill_base_dir)):
@@ -817,7 +803,7 @@ class ScriptExecutor:
         from skillkit.core.exceptions import ScriptPermissionError
 
         # Skip permission checks on Windows
-        if os.name == 'nt':
+        if os.name == "nt":
             return
 
         # Get file status
@@ -872,9 +858,9 @@ class ScriptExecutor:
             return
 
         # Check if 'Bash' is in allowed tools
-        if 'Bash' not in skill_metadata.allowed_tools:
+        if "Bash" not in skill_metadata.allowed_tools:
             # Get allowed tools list for error message
-            allowed_tools_str = ', '.join(skill_metadata.allowed_tools)
+            allowed_tools_str = ", ".join(skill_metadata.allowed_tools)
 
             raise ToolRestrictionError(
                 f"Script execution not allowed for skill '{skill_metadata.name}'. "
@@ -906,9 +892,7 @@ class ScriptExecutor:
         interpreter = INTERPRETER_MAP.get(ext)
 
         if not interpreter:
-            raise InterpreterNotFoundError(
-                f"No interpreter mapping for extension: {ext}"
-            )
+            raise InterpreterNotFoundError(f"No interpreter mapping for extension: {ext}")
 
         # Verify interpreter exists in PATH
         if not shutil.which(interpreter):
@@ -936,23 +920,17 @@ class ScriptExecutor:
         try:
             serialized = json.dumps(arguments, ensure_ascii=False, indent=None)
         except (TypeError, ValueError) as e:
-            raise ArgumentSerializationError(
-                f"Cannot serialize arguments to JSON: {e}"
-            ) from e
+            raise ArgumentSerializationError(f"Cannot serialize arguments to JSON: {e}") from e
 
         # Check size limit (10MB)
-        size_bytes = len(serialized.encode('utf-8'))
+        size_bytes = len(serialized.encode("utf-8"))
         if size_bytes > 10_000_000:
-            raise ArgumentSizeError(
-                f"Arguments too large: {size_bytes} bytes (max 10MB)"
-            )
+            raise ArgumentSizeError(f"Arguments too large: {size_bytes} bytes (max 10MB)")
 
         return serialized
 
     def _build_environment(
-        self,
-        skill_metadata: "SkillMetadata",
-        skill_base_dir: Path
+        self, skill_metadata: "SkillMetadata", skill_base_dir: Path
     ) -> ScriptEnvironment:
         """Build environment variables for script execution.
 
@@ -974,15 +952,15 @@ class ScriptExecutor:
         env = os.environ.copy()
 
         # Inject skill metadata
-        env['SKILL_NAME'] = skill_metadata.name
-        env['SKILL_BASE_DIR'] = str(skill_base_dir)
-        env['SKILLKIT_VERSION'] = skillkit.__version__
+        env["SKILL_NAME"] = skill_metadata.name
+        env["SKILL_BASE_DIR"] = str(skill_base_dir)
+        env["SKILLKIT_VERSION"] = skillkit.__version__
 
         # Add version if available
-        if hasattr(skill_metadata, 'version') and skill_metadata.version:
-            env['SKILL_VERSION'] = skill_metadata.version
+        if hasattr(skill_metadata, "version") and skill_metadata.version:
+            env["SKILL_VERSION"] = skill_metadata.version
         else:
-            env['SKILL_VERSION'] = '0.0.0'
+            env["SKILL_VERSION"] = "0.0.0"
 
         return env
 
@@ -992,7 +970,7 @@ class ScriptExecutor:
         script_path: Path,
         arguments_json: str,
         env: ScriptEnvironment,
-        skill_base_dir: Path
+        skill_base_dir: Path,
     ) -> tuple[int, str, str, str | None, int | None]:
         """Execute script as subprocess.
 
@@ -1021,7 +999,7 @@ class ScriptExecutor:
                 cwd=str(skill_base_dir),
                 shell=False,  # CRITICAL: Never use shell=True
                 check=False,
-                env=env
+                env=env,
             )
 
             # Detect signal-based termination (Unix only)
@@ -1035,13 +1013,7 @@ class ScriptExecutor:
                 except ValueError:
                     signal_name = f"UNKNOWN_SIGNAL_{signal_number}"
 
-            return (
-                result.returncode,
-                result.stdout,
-                result.stderr,
-                signal_name,
-                signal_number
-            )
+            return (result.returncode, result.stdout, result.stderr, signal_name, signal_number)
 
         except subprocess.TimeoutExpired as e:
             # Log timeout warning
@@ -1051,22 +1023,18 @@ class ScriptExecutor:
             )
 
             # Return timeout indication
-            stdout = e.stdout.decode('utf-8', errors='replace') if e.stdout else ''
-            stderr = e.stderr.decode('utf-8', errors='replace') if e.stderr else ''
+            stdout = e.stdout.decode("utf-8", errors="replace") if e.stdout else ""
+            stderr = e.stderr.decode("utf-8", errors="replace") if e.stderr else ""
 
             return (
                 124,  # Conventional timeout exit code
                 stdout,
-                stderr + '\nTimeout',
+                stderr + "\nTimeout",
                 None,
-                None
+                None,
             )
 
-    def _handle_output_truncation(
-        self,
-        stdout: str,
-        stderr: str
-    ) -> tuple[str, str, bool, bool]:
+    def _handle_output_truncation(self, stdout: str, stderr: str) -> tuple[str, str, bool, bool]:
         """Truncate output if it exceeds size limits.
 
         Args:
@@ -1080,24 +1048,26 @@ class ScriptExecutor:
         stderr_truncated = False
 
         # Truncate stdout if needed
-        if len(stdout.encode('utf-8')) > self.max_output_size:
+        if len(stdout.encode("utf-8")) > self.max_output_size:
             # Truncate to max_output_size bytes
-            truncated_stdout = stdout.encode('utf-8')[:self.max_output_size].decode('utf-8', errors='ignore')
-            stdout = truncated_stdout + '\n[... OUTPUT TRUNCATED: exceeded 10MB limit ...]'
+            truncated_stdout = stdout.encode("utf-8")[: self.max_output_size].decode(
+                "utf-8", errors="ignore"
+            )
+            stdout = truncated_stdout + "\n[... OUTPUT TRUNCATED: exceeded 10MB limit ...]"
             stdout_truncated = True
 
         # Truncate stderr if needed
-        if len(stderr.encode('utf-8')) > self.max_output_size:
-            truncated_stderr = stderr.encode('utf-8')[:self.max_output_size].decode('utf-8', errors='ignore')
-            stderr = truncated_stderr + '\n[... STDERR TRUNCATED: exceeded 10MB limit ...]'
+        if len(stderr.encode("utf-8")) > self.max_output_size:
+            truncated_stderr = stderr.encode("utf-8")[: self.max_output_size].decode(
+                "utf-8", errors="ignore"
+            )
+            stderr = truncated_stderr + "\n[... STDERR TRUNCATED: exceeded 10MB limit ...]"
             stderr_truncated = True
 
         return stdout, stderr, stdout_truncated, stderr_truncated
 
     def _detect_signal(
-        self,
-        signal_name: str | None,
-        signal_number: int | None
+        self, signal_name: str | None, signal_number: int | None
     ) -> tuple[str | None, int | None]:
         """Detect signal information from subprocess.
 
@@ -1120,7 +1090,7 @@ class ScriptExecutor:
         script_path: Path,
         arguments: ScriptArguments,
         skill_base_dir: Path,
-        skill_metadata: "SkillMetadata"
+        skill_metadata: "SkillMetadata",
     ) -> ScriptExecutionResult:
         """Execute a script with security controls.
 
@@ -1174,24 +1144,16 @@ class ScriptExecutor:
 
         # Execute subprocess
         exit_code, stdout, stderr, signal_name, signal_number = self._execute_subprocess(
-            interpreter,
-            validated_path,
-            arguments_json,
-            env,
-            skill_base_dir
+            interpreter, validated_path, arguments_json, env, skill_base_dir
         )
 
         # Handle output truncation
         stdout, stderr, stdout_truncated, stderr_truncated = self._handle_output_truncation(
-            stdout,
-            stderr
+            stdout, stderr
         )
 
         # Detect signal
-        signal_name, signal_number = self._detect_signal(
-            signal_name,
-            signal_number
-        )
+        signal_name, signal_number = self._detect_signal(signal_name, signal_number)
 
         # Calculate execution time
         execution_time_ms = (time.perf_counter() - start_time) * 1000
@@ -1199,10 +1161,11 @@ class ScriptExecutor:
         # Prepare audit log entry with arguments truncated to 256 chars
         arguments_str = str(arguments)[:256]
         if len(str(arguments)) > 256:
-            arguments_str += '...'
+            arguments_str += "..."
 
         # Audit log entry (always logged for security compliance)
         import datetime
+
         timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
         logger.info(
             f"AUDIT: Script execution - "
@@ -1246,5 +1209,5 @@ class ScriptExecutor:
             signal=signal_name,
             signal_number=signal_number,
             stdout_truncated=stdout_truncated,
-            stderr_truncated=stderr_truncated
+            stderr_truncated=stderr_truncated,
         )

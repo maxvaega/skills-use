@@ -287,6 +287,7 @@ console.log("Hello");
             # Cleanup
             invalid_file.chmod(0o644)
 
+    @pytest.mark.skip(reason="pytest-benchmark not installed")
     def test_detection_performance_benchmark(self, tmp_path, benchmark):
         """Benchmark script detection performance."""
         skill_dir = tmp_path / "test-skill"

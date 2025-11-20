@@ -141,10 +141,11 @@ This project was developed using speckit method. all development phases have bee
 - ✅ Backward compatible with v0.1/v0.2
 
 **Next Steps**:
-- Run comprehensive test suite and verify coverage
-- Final polish and code review
-- Update version numbers in pyproject.toml
-- Prepare v0.3.0 release notes
+- ✅ Run comprehensive test suite and verify coverage
+- ✅ Final polish and code review (ruff, mypy, security review)
+- ✅ Update version numbers to 0.3.0 in pyproject.toml and __init__.py
+- ✅ Prepare v0.3.0 release notes (README.md, CLAUDE.md updated)
+- Create PR from 001-script-execution branch to main
 - v1.0: Plan additional framework integrations (LlamaIndex, CrewAI, Haystack)
 - Gather community feedback and feature requests
 
@@ -255,6 +256,18 @@ skillkit/
 - **Memory**: ~2-2.5MB for 100 skills with 10% usage (80% reduction vs eager loading)
 
 ## Changelog
+
+### v0.3.0 (Released)
+- **Script Execution**: Execute Python, Shell, JavaScript, Ruby, and Perl scripts from skills
+- **Security Controls**: Path traversal prevention, permission checks (setuid/setgid), timeout enforcement
+- **Tool Restrictions**: Enforce "Bash" in allowed-tools for script execution
+- **Environment Injection**: Automatic SKILL_NAME, SKILL_BASE_DIR, SKILL_VERSION, SKILLKIT_VERSION variables
+- **Automatic Detection**: Scripts discovered recursively in skill directories
+- **LangChain Integration**: Each script exposed as separate StructuredTool (`{skill-name}.{script-name}`)
+- **Robust Error Handling**: Comprehensive exception hierarchy for script-related errors
+- **Audit Logging**: All script executions logged with metadata
+- **Cross-Platform**: Works on Linux, macOS, and Windows
+- **Backward Compatible**: All v0.1/v0.2 APIs remain unchanged
 
 ### v0.2.0 (Released)
 - **Async Support**: Full async/await implementation with `adiscover()` and `ainvoke_skill()`

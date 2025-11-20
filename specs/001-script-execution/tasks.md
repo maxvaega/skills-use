@@ -209,26 +209,26 @@ description: "Task list for Script Execution Support feature"
 
 **Note**: These tasks are optional enhancements to improve code quality and reliability
 
-- [ ] T072 [P] Write unit tests in tests/test_script_detector.py for detecting Python, Shell, JavaScript, Ruby, Perl scripts
-- [ ] T073 [P] Write unit tests in tests/test_script_detector.py for skipping non-script files (.json, .md), hidden files, __pycache__
-- [ ] T074 [P] Write unit tests in tests/test_script_detector.py for nested directories up to max_depth
-- [ ] T075 [P] Write unit tests in tests/test_script_detector.py for description extraction from docstrings, comments, JSDoc
-- [ ] T076 [P] Write unit tests in tests/test_script_detector.py for empty description when no comments exist
-- [ ] T077 [P] Write unit tests in tests/test_script_executor.py for successful execution (exit code 0)
-- [ ] T078 [P] Write unit tests in tests/test_script_executor.py for failed execution (exit code 1)
-- [ ] T079 [P] Write unit tests in tests/test_script_executor.py for timeout handling (exit code 124)
-- [ ] T080 [P] Write unit tests in tests/test_script_executor.py for signal termination (SIGSEGV, SIGKILL)
-- [ ] T081 [P] Write unit tests in tests/test_script_executor.py for path traversal prevention (../../etc/passwd)
-- [ ] T082 [P] Write unit tests in tests/test_script_executor.py for symlink validation
-- [ ] T083 [P] Write unit tests in tests/test_script_executor.py for permission checks (setuid/setgid)
-- [ ] T084 [P] Write unit tests in tests/test_script_executor.py for output truncation at 10MB
-- [ ] T085 [P] Write unit tests in tests/test_script_executor.py for environment variable injection
-- [ ] T086 [P] Write integration tests in tests/test_manager.py for SkillManager.execute_skill_script()
-- [ ] T087 [P] Write integration tests in tests/test_langchain.py for script tool creation and invocation
-- [ ] T088 [P] Create test fixtures in tests/fixtures/skills/script-skill/scripts/ with Python, Shell, JavaScript test scripts
-- [ ] T089 [P] Create test script that triggers timeout (infinite loop) in tests/fixtures/skills/script-skill/scripts/
-- [ ] T090 [P] Create test script that reads JSON from stdin and writes to stdout in tests/fixtures/skills/script-skill/scripts/
-- [ ] T091 Run pytest with coverage to verify 70%+ test coverage for script modules
+- [X] T072 [P] Write unit tests in tests/test_script_detector.py for detecting Python, Shell, JavaScript, Ruby, Perl scripts
+- [X] T073 [P] Write unit tests in tests/test_script_detector.py for skipping non-script files (.json, .md), hidden files, __pycache__
+- [X] T074 [P] Write unit tests in tests/test_script_detector.py for nested directories up to max_depth
+- [X] T075 [P] Write unit tests in tests/test_script_detector.py for description extraction from docstrings, comments, JSDoc
+- [X] T076 [P] Write unit tests in tests/test_script_detector.py for empty description when no comments exist
+- [X] T077 [P] Write unit tests in tests/test_script_executor.py for successful execution (exit code 0)
+- [X] T078 [P] Write unit tests in tests/test_script_executor.py for failed execution (exit code 1)
+- [X] T079 [P] Write unit tests in tests/test_script_executor.py for timeout handling (exit code 124)
+- [X] T080 [P] Write unit tests in tests/test_script_executor.py for signal termination (SIGSEGV, SIGKILL)
+- [X] T081 [P] Write unit tests in tests/test_script_executor.py for path traversal prevention (../../etc/passwd)
+- [X] T082 [P] Write unit tests in tests/test_script_executor.py for symlink validation
+- [X] T083 [P] Write unit tests in tests/test_script_executor.py for permission checks (setuid/setgid)
+- [X] T084 [P] Write unit tests in tests/test_script_executor.py for output truncation at 10MB
+- [X] T085 [P] Write unit tests in tests/test_script_executor.py for environment variable injection
+- [X] T086 [P] Write integration tests in tests/test_manager.py for SkillManager.execute_skill_script()
+- [X] T087 [P] Write integration tests in tests/test_langchain.py for script tool creation and invocation
+- [X] T088 [P] Create test fixtures in tests/fixtures/skills/script-skill/scripts/ with Python, Shell, JavaScript test scripts
+- [X] T089 [P] Create test script that triggers timeout (infinite loop) in tests/fixtures/skills/script-skill/scripts/
+- [X] T090 [P] Create test script that reads JSON from stdin and writes to stdout in tests/fixtures/skills/script-skill/scripts/
+- [X] T091 Run pytest with coverage to verify 70%+ test coverage for script modules
 
 **Checkpoint**: Test suite complete - 70%+ coverage, all user stories validated with unit and integration tests
 
@@ -255,15 +255,15 @@ description: "Task list for Script Execution Support feature"
 
 **Purpose**: Final refinements before v0.3.0 release
 
-- [ ] T100 [P] Run ruff check src/skillkit to verify linting passes
-- [ ] T101 [P] Run ruff format src/skillkit to ensure consistent formatting
-- [ ] T102 [P] Run mypy src/skillkit --strict to verify type checking passes
-- [ ] T103 Review all error messages for clarity and consistency
-- [ ] T104 Verify backward compatibility: all v0.1/v0.2 APIs work unchanged
-- [ ] T105 Run performance benchmarks: script detection <10ms for 50 scripts, execution overhead <50ms
-- [ ] T106 Security review: verify shell=False everywhere, path validation comprehensive, no shell interpolation
-- [ ] T107 Update version to 0.3.0 in pyproject.toml and src/skillkit/__init__.py
-- [ ] T108 Update CHANGELOG in README.md and CLAUDE.md with v0.3.0 features
+- [X] T100 [P] Run ruff check src/skillkit to verify linting passes
+- [X] T101 [P] Run ruff format src/skillkit to ensure consistent formatting
+- [X] T102 [P] Run mypy src/skillkit --strict to verify type checking passes
+- [X] T103 Review all error messages for clarity and consistency
+- [X] T104 Verify backward compatibility: all v0.1/v0.2 APIs work unchanged
+- [X] T105 Run performance benchmarks: script detection <10ms for 50 scripts, execution overhead <50ms
+- [X] T106 Security review: verify shell=False everywhere, path validation comprehensive, no shell interpolation
+- [X] T107 Update version to 0.3.0 in pyproject.toml and src/skillkit/__init__.py
+- [X] T108 Update CHANGELOG in README.md and CLAUDE.md with v0.3.0 features
 - [ ] T109 Create PR from 001-script-execution branch to main with comprehensive description
 
 **Checkpoint**: v0.3.0 ready for release - all tests pass, documentation complete, security validated

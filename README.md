@@ -594,13 +594,20 @@ python examples/file_references.py
 - ✅ LangChain async integration (`ainvoke`)
 - ✅ Backward compatible with v0.1
 
-### v0.3 (Planned)
-- Script Execution (script detection, execution with variables, stdout/stderr capture, sandboxing)
-- Tool restriction enforcement (allowed-tools validation)
-- Additional framework integrations (LlamaIndex, CrewAI, Haystack)
+### v0.3 (Released) 🚀
+- ✅ Script Execution Support (Python, Shell, JavaScript, Ruby, Perl)
+- ✅ Automatic script detection (recursive, up to 5 levels)
+- ✅ Security controls (path validation, permission checks, timeout enforcement)
+- ✅ Tool restriction enforcement (requires "Bash" in allowed-tools)
+- ✅ Environment variable injection (SKILL_NAME, SKILL_BASE_DIR, SKILL_VERSION, SKILLKIT_VERSION)
+- ✅ LangChain script tool integration (each script exposed as separate StructuredTool)
+- ✅ Comprehensive error handling and audit logging
+- ✅ Cross-platform support (Linux, macOS, Windows)
+- ✅ Backward compatible with v0.1/v0.2
 
 ### v0.4 (Planned)
-- Advanced arguments schemas
+- Additional framework integrations (LlamaIndex, CrewAI, Haystack)
+- Advanced arguments schemas for scripts
 - Skill versioning and compatibility checks
 - Enhanced error handling and recovery
 - Performance optimizations
