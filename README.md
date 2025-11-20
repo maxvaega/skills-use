@@ -24,10 +24,10 @@ skillkit is compatible with existings skills (SKILL.md), so you can browse and u
 - **Framework-free**: can be used without any framework, or with other frameworks (currently only compatible with LangChain - more coming in the future!)
 - **Fully compatible with existing skills**: existing skills can be copied directly, no change needed
 - **Model-agnostic design**: Works with any LLM
-- **Script execution (v0.3+)**: Execute Python, Shell, JavaScript, Ruby, and Perl scripts from skills with comprehensive security controls
 - **Multi-source skill discovery**: From project, Anthropic config, plugins, and custom directories with priority-based conflict resolution
 - **YAML frontmatter parsing** with comprehensive validation
 - **Progressive disclosure pattern** (metadata-first loading, 80% memory reduction)
+- **Script execution**: Execute Python, Shell, JavaScript, Ruby, and Perl scripts from skills with comprehensive security controls
 - **Plugin ecosystem**: Full support for Anthropic's MCPB plugin manifests with namespaced skill access
 - **Nested directory structures**: Discover skills in any directory hierarchy up to 5 levels deep
 - **Security features**: Input validation, size limits, suspicious pattern detection, path security, secure file resolution, script sandboxing
