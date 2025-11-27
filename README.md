@@ -19,6 +19,12 @@ skillkit is compatible with existings skills (SKILL.md), so you can browse and u
 
 ---
 
+<div align="center">
+<img src="https://i.imgflip.com/addac0.jpg" title="skillkit for developers" width=370px height=250px/>
+</div>
+
+---
+
 ## Features
 
 - **Framework-free**: can be used without any framework, or with other frameworks (currently only compatible with LangChain - more coming in the future!)
